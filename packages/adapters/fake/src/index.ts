@@ -28,11 +28,10 @@ export class FakeAdapter implements AgentAdapter {
 
   start(input: StartInput): AsyncIterable<AdapterEvent> {
     const hang = input.env.FAKE_HANG === '1';
-    const args = [bin, fixture(hang ? 'hang.jsonl' : 'pr-happy.jsonl')];
+    const args = [bin, fixture(hang ? 'hang.jsonl' : input.mcpConfigPath ? 'captain-crew.jsonl' : 'pr-happy.jsonl')];
     if (hang) args.push('--hang');
     if (input.env.FAKE_SPAWN_CHILD === '1') args.push('--spawn-child');
     if (input.mcpConfigPath) args.push('--mcp-config', input.mcpConfigPath);
-    if (input.vendorBudget.maxMicroUsd !== null) args.push('--usage-usd', String(input.vendorBudget.maxMicroUsd / 1e6));
     const run = runJsonl(input.transport, args, { cwd: input.cwd, env: input.env }, (line) => {
       try { return JSON.parse(line) as AdapterEvent; } catch { return null; }
     });

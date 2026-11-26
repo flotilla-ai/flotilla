@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { ProcessHandle, ProcessTransport } from '@flotilla/core/types';
+process.env.FLOTILLA_ALLOW_LOCAL_GIT_REMOTES='1';
 import { collectAndPush, seedWorkspace, type GitDriver, type GitProject, type GitThread } from './mirror.js';
 
 const sh = (cmd: string, cwd?: string) => execFileSync('sh', ['-c', cmd], { cwd, encoding: 'utf8', stdio: ['ignore','pipe','pipe'] });

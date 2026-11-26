@@ -7,6 +7,8 @@ import { EventStore } from '../events/store.js';
 import type { GitDriver } from '../git/mirror.js';
 import { seedWorkspace } from '../git/mirror.js';
 import type { AgentAdapter } from '@flotilla/core/types';
+import { getRunTokenService } from '../captain/tools/registry.js';
+import { captainMcpTar } from '../captain/tools/mcpConfig.js';
 
 type Driver = GitDriver & { startThreadContainer(input: Record<string, unknown>): Promise<{ containerId: string }>; stop(id: string): Promise<void> };
 type Row = Record<string, unknown>;
@@ -15,11 +17,15 @@ const add = (a: CostTotals, b: CostTotals): CostTotals => ({ usd: a.usd+b.usd, i
 const id = (p: string) => `${p}_${randomBytes(10).toString('base64url')}`;
 const budget = (maxUsd: number | null = null) => ({ maxUsd, maxTokens: null, maxWallSec: null, scope: 'thread' as const, onHit: 'pause-and-ask' as const, warnAt: 0.8 });
 export type RunnerDeps = { store: EventStore; driver: Driver; adapters: Map<string, AgentAdapter>; secrets?: Record<string,string>; projectFor?(row: Row): Row };
+type AfterRun=(input:{thread:Row;project:Row|null;runId:string;state:string;containerId:string;driver:Driver})=>Promise<void>;
+const afterRunHooks:AfterRun[]=[];
+export function onAfterRun(fn:AfterRun):()=>void{afterRunHooks.push(fn);return()=>{const i=afterRunHooks.indexOf(fn);if(i>=0)afterRunHooks.splice(i,1)}}
 
 export class ThreadRunner {
   readonly running = new Map<string, Promise<void>>();
   readonly queued = new Map<string, string[]>();
   readonly cancelled = new Set<string>();
+  readonly containers = new Map<string,string>();
   constructor(readonly deps: RunnerDeps) {}
   get pool() { return this.deps.store.pool; }
 
@@ -38,9 +44,9 @@ export class ThreadRunner {
     return row;
   }
 
-  async message(threadId: string, text: string, mode: 'queue' | 'interrupt' = 'queue', userId = 'usr_unknown'): Promise<void> {
-    const thread = await this.thread(threadId); if (!thread || thread.owner_id!==userId) throw new Error('not found');
-    await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'user.message', source: 'user', trust: 'trusted', payload: scrub({ text, mode, by: userId }, this.deps.secrets ?? {}) }] as never);
+  async message(threadId: string, text: string, mode: 'queue' | 'interrupt' = 'queue', userId?: string): Promise<void> {
+    const thread = await this.thread(threadId); if (!thread || (userId && thread.owner_id!==userId)) throw new Error('not found');
+    await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'user.message', source: userId ? 'user' : 'kernel', trust: userId ? 'trusted' : 'untrusted', payload: scrub({ text, mode, by: userId }, this.deps.secrets ?? {}) }] as never);
     if (mode === 'interrupt') await this.interrupt(threadId); else this.queued.set(threadId, [...(this.queued.get(threadId) ?? []), text]);
     if (!this.running.has(threadId)) void this.startNext(threadId, 'message');
   }
@@ -54,7 +60,7 @@ export class ThreadRunner {
     if (approval.kind === 'budget' && optionId === 'raise' && value) await this.pool.query(`UPDATE threads SET budget=jsonb_set(budget,'{maxUsd}',to_jsonb($2::int)),status='queued' WHERE id=$1`, [approval.thread_id, value]);
     if (approval.kind === 'budget' && optionId === 'stop') await this.stop(approval.thread_id);
     await this.deps.store.appendEvents(approval.thread_id, [{ runId: null, kind: 'approval.resolved', source: 'kernel', trust: 'trusted', payload: { approvalId, optionId, value } }] as never);
-    if (optionId === 'raise') void this.startNext(approval.thread_id, 'resume');
+    if (optionId === 'raise') { if (this.running.has(approval.thread_id)) this.queued.set(approval.thread_id,[...(this.queued.get(approval.thread_id)??[]),'Continue within the raised budget.']); void this.startNext(approval.thread_id, 'resume'); }
     return approval;
   }
 
@@ -63,7 +69,8 @@ export class ThreadRunner {
     const promise = this.run(threadId, trigger).catch(async (_err) => { await this.pool.query(`UPDATE threads SET status='failed' WHERE id=$1`, [threadId]); }).finally(() => this.running.delete(threadId));
     this.running.set(threadId, promise);
     await promise;
-    if ((this.queued.get(threadId) ?? []).length && !this.cancelled.has(threadId)) void this.startNext(threadId, 'message');
+    const current = await this.thread(threadId);
+    const budgetNow=current?.budget as {maxUsd:number|null}|undefined;const spentNow=(current?.spent as {usd:number}|undefined)?.usd??0;if ((this.queued.get(threadId) ?? []).length && !this.cancelled.has(threadId) && (budgetNow?.maxUsd==null||spentNow<budgetNow.maxUsd)) void this.startNext(threadId, 'message');
   }
 
   private async thread(threadId: string): Promise<Row | null> { return (await this.pool.query('SELECT * FROM threads WHERE id=$1', [threadId])).rows[0] ?? null; }
@@ -85,18 +92,31 @@ export class ThreadRunner {
     }
 
     const project = await this.project(thread);
-    const machine = await this.deps.driver.startThreadContainer({ threadId, code: thread.code, image: 'flotilla-thread:dev', cpus: 1, memMb: 512, env: {}, roMounts: [], egressAllow: project?.egress_allow as string[] ?? [] });
-    if (project) await seedWorkspace({ id: threadId as never, code: thread.code as string, title: thread.title as string, branch: thread.branch as string | null, containerId: machine.containerId }, { id: project.id as never, repo: project.repo as never, trust: project.trust as never }, this.deps.driver).catch(() => ({ branch: null }));
+    const tokenService = thread.role === 'captain' ? getRunTokenService() : null;
+    const runToken = tokenService?.issue(runId, threadId);
+    let machine = { containerId: '' };
+    {
+      machine = await this.deps.driver.startThreadContainer({ threadId, code: thread.code, image: 'flotilla-thread:dev', cpus: 1, memMb: 512, env: runToken ? { FLOTILLA_MCP_TOKEN: runToken.token } : {}, roMounts: [], egressAllow: project?.egress_allow as string[] ?? [] }).catch((err) => { tokenService?.endRun(runId); throw err; });
+      if (project && !thread.branch) {
+        const seeded = await seedWorkspace({ id: threadId as never, code: thread.code as string, title: thread.title as string, branch: thread.branch as string | null, containerId: machine.containerId }, { id: project.id as never, repo: project.repo as never, trust: project.trust as never, token: process.env.GITHUB_TOKEN }, this.deps.driver).catch(() => ({ branch: null }));
+        if (seeded.branch && seeded.branch !== thread.branch) await this.pool.query('UPDATE threads SET branch=$2 WHERE id=$1', [threadId, seeded.branch]);
+        thread.branch = seeded.branch ?? thread.branch;
+      }
+    }
+    if (runToken && 'copyIn' in this.deps.driver) await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', captainMcpTar(runToken.token)).catch(() => undefined);
     const adapter = this.deps.adapters.get((thread.engine as Row).adapter as string) ?? [...this.deps.adapters.values()][0];
-    if (!adapter) throw new Error('adapter missing');
-    const transport = this.deps.driver.transport(machine.containerId);
+    if (!adapter) { tokenService?.endRun(runId); throw new Error('adapter missing'); }
+    let transport: ReturnType<Driver['transport']>;
+    try { transport = this.deps.driver.transport(machine.containerId); } catch (err) { tokenService?.endRun(runId); throw err; }
     let usage = { ...zero }; let state: 'completed' | 'cancelled' | 'failed' | 'paused_budget' = 'completed'; const started = Date.now();
-    const scrubber = createDeltaScrubber(this.deps.secrets ?? {});
-    const stream = adapter.start({ runId: runId as never, threadId: threadId as never, prompt: (this.queued.get(threadId) ?? []).shift() ?? '', cwd: '/workspace/repo', env: {}, transport, resumeSessionId: null, vendorBudget: { maxMicroUsd: policy.maxUsd }, auth: { kind: 'none' }, mcpConfigPath: null, images: [] } as never);
+    const eventSecrets = { ...(this.deps.secrets ?? {}), ...(runToken ? { FLOTILLA_MCP_TOKEN: runToken.token } : {}) };
+    const scrubber = createDeltaScrubber(eventSecrets);
+    let stream: AsyncIterable<AdapterEvent>;
+    try { stream = adapter.start({ runId: runId as never, threadId: threadId as never, prompt: (this.queued.get(threadId) ?? []).shift() ?? '', cwd: project ? '/workspace/repo' : '/workspace', env: {}, transport, resumeSessionId: null, vendorBudget: { maxMicroUsd: policy.maxUsd }, auth: { kind: 'none' }, mcpConfigPath: runToken ? '/run/flotilla/mcp.json' : null, images: [] } as never); } catch (err) { tokenService?.endRun(runId); throw err; }
     try {
       for await (const event of stream) {
         if (this.cancelled.has(threadId)) { state = 'cancelled'; await adapter.cancel(runId as never).catch(() => undefined); break; }
-        await this.adapterEvent(threadId, runId, event, scrubber);
+        await this.adapterEvent(threadId, runId, event, scrubber, eventSecrets);
         if (event.t === 'usage') {
           const m = meter({ threadId: threadId as never, runId: runId as never, at: new Date().toISOString() }, usage, event, null, placeholderPriceTable);
           usage = m.next;
@@ -111,18 +131,21 @@ export class ThreadRunner {
       }
       const tail = scrubber.flush(); if (tail) await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'agent.delta', source: 'adapter', trust: 'trusted', payload: { text: tail } }] as never);
     } finally {
+      tokenService?.endRun(runId);
       await this.pool.query('DELETE FROM budget_holds WHERE run_id=$1', [runId]);
       await this.pool.query('UPDATE runs SET state=$2,ended_at=now(),usage=$3 WHERE id=$1', [runId, state, JSON.stringify(usage)]);
       await this.pool.query(`UPDATE threads SET status=$2,updated_at=now() WHERE id=$1`, [threadId, state === 'paused_budget' ? 'paused' : state === 'completed' ? 'waiting' : state === 'cancelled' ? 'idle' : 'failed']);
       await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'run.ended', source: 'kernel', trust: 'trusted', payload: { state, usage } }] as never);
+      for (const hook of afterRunHooks) await hook({ thread, project, runId, state, containerId: machine.containerId, driver: this.deps.driver }).catch(() => undefined);
       await ((this.deps.driver as Driver & {remove?(id:string):Promise<void>}).remove?.(machine.containerId) ?? this.deps.driver.stop(machine.containerId)).catch(() => undefined);
+      this.containers.delete(threadId);
       this.cancelled.delete(threadId);
     }
   }
-  private async adapterEvent(threadId: string, runId: string, event: AdapterEvent, scrubber: ReturnType<typeof createDeltaScrubber>): Promise<void> {
+  private async adapterEvent(threadId: string, runId: string, event: AdapterEvent, scrubber: ReturnType<typeof createDeltaScrubber>, eventSecrets: Record<string,string> = this.deps.secrets ?? {}): Promise<void> {
     if (event.t === 'text') { const out = scrubber.push(event.delta); if (out) await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'agent.delta', source: 'adapter', trust: 'trusted', payload: { text: out } }] as never); return; }
     const kind = event.t === 'tool_call' ? 'agent.tool_call' : event.t === 'tool_result' ? 'agent.tool_result' : event.t === 'done' ? null : null;
-    if (kind) await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind, source: 'adapter', trust: 'trusted', payload: scrub(event, this.deps.secrets ?? {}) }] as never);
+    if (kind) await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind, source: 'adapter', trust: 'trusted', payload: scrub(event, eventSecrets) }] as never);
   }
   private async pauseBudget(threadId: string, runId: string, why: string): Promise<void> {
     const approvalId = id('apr');

@@ -1,6 +1,7 @@
 import { createServer, request } from 'node:http';
 import { connectThroughGate, verifyShareToken } from '../previews/index.js';
 import { previewTokens } from '../routes/previews.route.js';
+import { gateToken } from '../gateClient/index.js';
 function cookie(req: string | undefined, name: string) { return req?.split(/; */).find(x => x.startsWith(`${name}=`))?.slice(name.length + 1); }
 function cleanPath(path: string): string {
   const url = new URL(path, 'http://preview');
@@ -24,7 +25,7 @@ export function createPreviewServer(tokens = previewTokens, gateHost = 'gate') {
     const pc = cookie(req.headers.cookie, 'flotilla_preview');
     if (!share && !tokens.check(pc ?? '', { code, port })) { res.writeHead(401); res.end(); return; }
     try {
-      const socket = await connectThroughGate(code, port, process.env.GATE_ADMIN_TOKEN ?? '', gateHost);
+      const socket = await connectThroughGate(code, port, gateToken(), gateHost);
       const upstream = request({
         createConnection: () => socket,
         method: req.method,
