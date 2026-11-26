@@ -7,3 +7,4 @@
 - 2026-11-27: unit 03 keeps budget reservation pure and uses placeholder zero token prices marked unverified. Undo: replace price table with verified vendor prices.
 
 - 2026-11-27: unit 04 centralizes process-group cancellation in adapter host; adapters remain transport-only. Undo: move cancellation into adapters if vendor-specific semantics require it.
+- 2026-11-27: unit 08 keeps password hashes in auth-owned credential tables and permits /api/v1 as a route mount root for locked read paths. Undo: move credentials into the core users schema in a later migration.

@@ -13,7 +13,7 @@ Current `flotilla/p1` head: `65fff3d` after unit 01; unit branches update this f
 | 05-docker-driver | pending | 0 | | |
 | 06-claude-code-adapter | pending | 0 | | |
 | 07-codex-adapter | pending | 0 | | |
-| 08-auth-projects-api | pending | 0 | | |
+| 08-auth-projects-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/9 | auth/project/read API tests passed |
 | 09-git-mirror | pending | 0 | | |
 | 10-egress-gate | pending | 0 | | |
 | 11-thread-runner | pending | 0 | | |
