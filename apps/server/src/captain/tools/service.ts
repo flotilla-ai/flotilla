@@ -8,6 +8,7 @@ export type CaptainToolDeps = { pool: pg.Pool; tokens: RunTokenService; runner: 
 const zero = { usd: 0, inputTokens: 0, outputTokens: 0, cacheTokens: 0, machineSec: 0 };
 function json(value: unknown) { return { content: [{ type: 'text', text: JSON.stringify(value) }] }; }
 export class CaptainToolService {
+  private readonly starts = new Map<string, Promise<unknown>>();
   constructor(readonly deps: CaptainToolDeps) {}
   async call(authToken: string | undefined, name: string, args: Record<string, unknown>): Promise<{ status: number; body: unknown }> {
     if (!authToken) return { status: 401, body: { error: 'token required' } };
@@ -17,7 +18,7 @@ export class CaptainToolService {
     catch (err) { if (err instanceof KernelDenied) return { status: 403, body: { error: err.message, rule: err.rule } }; throw err; }
   }
   private async dispatch(captainId: string, name: string, args: Record<string, unknown>): Promise<unknown> {
-    if (name === 'crew.start') return this.crewStart(captainId, args);
+    if (name === 'crew.start') { const prior = this.starts.get(captainId) ?? Promise.resolve(null); const next = prior.catch(() => undefined).then(() => this.crewStart(captainId, args)); this.starts.set(captainId, next); return next; }
     if (name === 'crew.message') { const owned = (await this.deps.pool.query('SELECT 1 FROM threads WHERE id=$1 AND crew_of=$2', [args.threadId, captainId])).rows[0]; if (!owned) throw new KernelDenied('crew-limit', 'thread is not in this captain crew'); await this.deps.runner.message(String(args.threadId), String(args.text ?? ''), 'queue'); return { ok: true }; }
     if (name === 'crew.release') { const out = await this.deps.pool.query('UPDATE threads SET crew_of=null WHERE id=$1 AND crew_of=$2', [args.threadId, captainId]); if ((out as { rowCount?: number }).rowCount === 0) throw new KernelDenied('crew-limit', 'thread is not in this captain crew'); return { ok: true }; }
     if (name === 'digest.write') { await this.deps.pool.query('UPDATE captains SET digest_md=$2 WHERE thread_id=$1', [captainId, String(args.md ?? '')]); return { ok: true }; }
@@ -30,11 +31,12 @@ export class CaptainToolService {
     const active = Number((await this.deps.pool.query(`SELECT count(*)::int n FROM threads WHERE crew_of=$1 AND status IN ('queued','working','paused')`, [captainId])).rows[0]?.n ?? 0);
     const meta = (await this.deps.pool.query('SELECT * FROM captains WHERE thread_id=$1', [captainId])).rows[0] ?? {}; const maxCrew = meta.max_concurrent_crew ?? 5;
     const policy = captain.budget ?? {}; const spent = captain.spent ?? zero;
-    const remaining = policy.maxUsd == null ? Number(args.budget ?? 0) : Math.max(0, Number(policy.maxUsd) - Number(spent.usd ?? 0));
-    const requested = Math.min(Number(args.budget ?? remaining), remaining);
+    const requestedInput = args.budget == null ? null : Number(args.budget);
+    const remaining = policy.maxUsd == null ? (requestedInput ?? 0) : Math.max(0, Number(policy.maxUsd) - Number(spent.usd ?? 0));
+    const requested = requestedInput == null ? remaining : Math.min(requestedInput, remaining);
     crewLimitCheck({ active, max: maxCrew, subtreeRemaining: remaining, requested, sameProject: true, alreadyCrew: false });
     if (policy.maxUsd !== null && requested <= 0) { const approvalId = `apr_${Math.random().toString(16).slice(2)}`; await this.deps.pool.query(`INSERT INTO approvals (id,thread_id,kind,question,options,blocking,state) VALUES ($1,$2,'budget','Captain subtree budget exhausted','[]',true,'open')`, [approvalId, captainId]); throw new KernelDenied('budget', 'captain subtree budget exhausted'); }
-    const thread = await this.deps.runner.createThread({ ownerId: captain.owner_id, projectId: captain.project_id, title: String(args.title ?? 'Crew thread'), prompt: String(args.brief ?? ''), engine: args.engine as never, maxUsd: policy.maxUsd == null ? null : requested });
+    const thread = await this.deps.runner.createThread({ ownerId: captain.owner_id, projectId: captain.project_id, title: String(args.title ?? 'Crew thread'), prompt: String(args.brief ?? ''), engine: args.engine as never, maxUsd: requestedInput == null && policy.maxUsd == null ? null : requested });
     await this.deps.pool.query('UPDATE threads SET crew_of=$2,parent_id=$2 WHERE id=$1', [String(thread.id), captainId]);
     return { threadId: String(thread.id) };
   }

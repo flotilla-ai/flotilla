@@ -4,8 +4,11 @@ export function createCaptainToolsServer(service: CaptainToolService) {
   return createServer((req, res) => { void (async () => {
     if (!(req.url ?? '').startsWith('/mcp/captain')) { res.writeHead(404); res.end(); return; }
     if (req.method !== 'POST') { res.writeHead(405); res.end(); return; }
-    let raw = ''; for await (const x of req) raw += x;
     const auth = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : undefined;
+    if (!auth) { res.writeHead(401); res.end(); return; }
+    let raw = ''; let tooLarge = false;
+    for await (const x of req) { raw += x; if (raw.length > 64 * 1024) { tooLarge = true; break; } }
+    if (tooLarge) { res.writeHead(413); res.end(); return; }
     try {
       const rpc = JSON.parse(raw || '{}') as { method?: string; params?: { name?: string; arguments?: Record<string, unknown> }; id?: unknown };
       if (rpc.method === 'initialize') { res.writeHead(200,{'content-type':'application/json'}); res.end(JSON.stringify({jsonrpc:'2.0',id:rpc.id,result:{protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'flotilla-captain',version:'0.1'}}})); return; }
