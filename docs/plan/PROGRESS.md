@@ -20,7 +20,7 @@ Current `flotilla/p1` head: `65fff3d` after unit 01; unit branches update this f
 | 12-web-ui-core | pending | 0 | | |
 | 13-web-ui-actions | pending | 0 | | |
 | 14-github-autofix | pending | 0 | | |
-| 15-previews | pending | 0 | | |
+| 15-previews | branch-ready | 0 | | token unit tests passed; live proxy integration unverified |
 | 16-captain-tools | pending | 0 | | |
 | 17-captain-scheduler | pending | 0 | | |
 
