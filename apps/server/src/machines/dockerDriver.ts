@@ -14,7 +14,10 @@ export class DockerMachineDriver {
   constructor(readonly docker: Docker) {}
 
   async startThreadContainer(input: StartThreadInput): Promise<{ containerId: string }> {
-    for (const old of await this.docker.listContainers({ all: true, filters: { name: [`flt-${input.code}`] } })) await this.docker.getContainer(old.Id).remove({ force: true }).catch(() => undefined);
+    for (const old of await this.docker.listContainers({ all: true, filters: { name: [`flt-${input.code}`] } })) {
+      const exact = old.Names?.includes(`/flt-${input.code}`) && old.Labels?.['flotilla.thread'] === input.threadId;
+      if (exact) await this.docker.getContainer(old.Id).remove({ force: true }).catch(() => undefined);
+    }
     const network = await createThreadNetwork(this.docker, input.threadId);
     const volumeName = `flt-workspace-${input.threadId}`;
     await this.docker.createVolume({ Name: volumeName, Labels: { 'flotilla.thread': input.threadId } }).catch(() => undefined);
