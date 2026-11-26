@@ -12,3 +12,7 @@ Unverified/gaps:
 - Fake-clock coverage exists for pure backoff/coalescing, not full database timer recovery.
 - Live Captain wake execution through Docker is unverified.
 - Event scanning is interval-based rather than LISTEN/NOTIFY-triggered.
+
+## Final integration fixes
+
+Measured after review: run tokens survive only for one in-memory run, denial retries were added, Captain creation queues its first owner-scoped turn, no-project fake runs use `/workspace`, containers are removed after finalization, GitHub tokens are restricted to github.com remotes, and compose creates the `flotilla` database and installs `git` in the server runtime.
