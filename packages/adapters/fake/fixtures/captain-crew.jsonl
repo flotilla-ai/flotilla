@@ -1,0 +1,10 @@
+{"t":"session","adapterSessionId":"fake-captain"}
+{"mcp":{"name":"crew.start","arguments":{"title":"crew 1","brief":"work","budget":1000}}}
+{"mcp":{"name":"crew.start","arguments":{"title":"crew 2","brief":"work","budget":1000}}}
+{"mcp":{"name":"crew.start","arguments":{"title":"crew 3","brief":"work","budget":1000}}}
+{"mcp":{"name":"crew.start","arguments":{"title":"crew 4","brief":"work","budget":1000}}}
+{"mcp":{"name":"crew.start","arguments":{"title":"crew 5","brief":"work","budget":1000}}}
+{"mcp":{"name":"crew.start","arguments":{"title":"crew 6","brief":"work","budget":1000}}}
+{"t":"text","delta":"crew started"}
+{"t":"usage","usdMicro":1000,"cumulative":true}
+{"t":"done","stopReason":"end_turn"}
