@@ -23,39 +23,7 @@ Current integration branch before final merge: `flotilla/p1` at `c0fcd7c9ee1737d
 | 16-captain-tools | branch-ready | 1 | https://github.com/flotilla-ai/flotilla/pull/17 | tool tests 2/2; live Captain relay unverified |
 | 17-captain-scheduler | branch-ready | 1 | https://github.com/flotilla-ai/flotilla/pull/18 | scheduler tests 2/2; restart recovery partly unverified |
 
-<<<<<<< HEAD
-| 04-adapter-host | pending | 0 | | |
-| 05-docker-driver | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/6 | docker integration passed on local Docker |
-| 06-claude-code-adapter | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/7 | fixture parser tests passed; vendor fields synthetic/unverified |
-| 07-codex-adapter | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/8 | fixture parser tests passed; vendor fields partly verified |
-| 08-auth-projects-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/9 | targeted auth/project/read tests passed |
-| 09-git-mirror | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/10 | local fake-driver tests passed; container/visibility unverified |
-| 10-egress-gate | pending | 0 | | |
-| 11-thread-runner | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/12 | fake adapter/db tests passed; Docker/captain coverage unverified |
-| 12-web-ui-core  | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/13 | build and mocked Playwright passed; server-backed e2e unverified |
-| 13-web-ui-actions | branch-ready | 0 | | feature e2e 6/6 passed; live backend screenshot unverified |
-| 14-github-autofix | pending | 0 | | |
-| 15-previews  | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/14 | token unit tests passed; live proxy integration unverified |
-| 16-captain-tools | branch-ready | 0 | | captain tool tests 2/2 and make check passed; live relay unverified |
-| 17-captain-scheduler | pending | 0 | | |
-||||||| c0fcd7c
-| 04-adapter-host | pending | 0 | | |
-| 05-docker-driver | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/6 | docker integration passed on local Docker |
-| 06-claude-code-adapter | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/7 | fixture parser tests passed; vendor fields synthetic/unverified |
-| 07-codex-adapter | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/8 | fixture parser tests passed; vendor fields partly verified |
-| 08-auth-projects-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/9 | targeted auth/project/read tests passed |
-| 09-git-mirror | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/10 | local fake-driver tests passed; container/visibility unverified |
-| 10-egress-gate | pending | 0 | | |
-| 11-thread-runner | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/12 | fake adapter/db tests passed; Docker/captain coverage unverified |
-| 12-web-ui-core  | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/13 | build and mocked Playwright passed; server-backed e2e unverified |
-| 13-web-ui-actions | branch-ready | 0 | | feature e2e 6/6 passed; live backend screenshot unverified |
-| 14-github-autofix | pending | 0 | | |
-| 15-previews  | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/14 | token unit tests passed; live proxy integration unverified |
-| 16-captain-tools | pending | 0 | | |
-| 17-captain-scheduler | pending | 0 | | |
-=======
 ## Verification highlights
->>>>>>> flotilla/17-captain-scheduler
 
 Measured in this session:
 - `make check` exits 0 on the current unit-17 branch.
