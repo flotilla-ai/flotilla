@@ -40,7 +40,13 @@ export class EventStore {
   }
 
   private ensureMigrated(): Promise<unknown> {
-    this.migrated ??= migrate(this.databaseUrl);
+    if (!this.migrated) {
+      const running = migrate(this.databaseUrl);
+      this.migrated = running;
+      running.catch(() => {
+        if (this.migrated === running) this.migrated = undefined;
+      });
+    }
     return this.migrated;
   }
 
