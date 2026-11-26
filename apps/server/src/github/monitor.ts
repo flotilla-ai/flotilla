@@ -13,6 +13,7 @@ export type MonitorDeps = {
 export class CheckMonitor {
   readonly greenSent = new Set<string>();
   readonly attempts = new Map<string, AutofixAttempt[]>();
+  readonly terminalSent = new Set<string>();
   constructor(readonly deps: MonitorDeps) {}
   key(repo: string, number: number): string { return `${repo}#${number}`; }
   async process(repo: string, number: number, threadId: string, sha: string): Promise<'pending' | 'green' | 'failed'> {
@@ -39,7 +40,8 @@ export class CheckMonitor {
     if (decision === 'retry') {
       this.attempts.set(key, [...prior, current]);
       await this.deps.wake(threadId, `CI failed for ${repo}#${number}. Autofix attempt ${current.attempt}. Log tail:\n${log}`);
-    } else {
+    } else if (!this.terminalSent.has(key)) {
+      this.terminalSent.add(key);
       const id = `apr_${Math.random().toString(16).slice(2)}`;
       await this.deps.pool.query(`INSERT INTO approvals (id,thread_id,kind,question,options,blocking,state) VALUES ($1,$2,'decision',$3,$4,true,'open')`, [id, threadId, `CI autofix stopped: ${decision.stop}`, JSON.stringify([{ id: 'continue', label: 'Continue manually' }, { id: 'stop', label: 'Stop' }])]);
       await this.deps.store.appendEvents(threadId as Event['threadId'], [{ threadId: threadId as Event['threadId'], runId: null, kind: 'approval.requested', source: 'kernel', trust: 'trusted', payload: { approvalId: id, kind: 'decision', reason: decision.stop } }]);

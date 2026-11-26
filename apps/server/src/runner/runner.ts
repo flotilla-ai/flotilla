@@ -38,7 +38,7 @@ export class ThreadRunner {
     return row;
   }
 
-  async message(threadId: string, text: string, mode: 'queue' | 'interrupt' = 'queue', userId = 'usr_unknown'): Promise<void> {
+  async message(threadId: string, text: string, mode: 'queue' | 'interrupt' = 'queue', userId?: string): Promise<void> {
     const thread = await this.thread(threadId); if (!thread || thread.owner_id!==userId) throw new Error('not found');
     await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'user.message', source: 'user', trust: 'trusted', payload: scrub({ text, mode, by: userId }, this.deps.secrets ?? {}) }] as never);
     if (mode === 'interrupt') await this.interrupt(threadId); else this.queued.set(threadId, [...(this.queued.get(threadId) ?? []), text]);
