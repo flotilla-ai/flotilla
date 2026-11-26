@@ -1,0 +1,6 @@
+{"type":"thread.started","thread_id":"codex-sess"}
+{"type":"turn.started"}
+{"type":"item.started","item":{"id":"cmd_1","type":"command_execution","command":"bash -lc ls","status":"in_progress"}}
+{"type":"item.completed","item":{"id":"cmd_1","type":"command_execution","command":"bash -lc ls","status":"completed","exit_code":0,"output":"ok"}}
+{"type":"item.completed","item":{"id":"msg_1","type":"agent_message","text":"Hello"}}
+{"type":"turn.completed","usage":{"input_tokens":12,"cached_input_tokens":2,"output_tokens":4}}

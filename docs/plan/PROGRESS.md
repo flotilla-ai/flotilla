@@ -12,7 +12,7 @@ Current `flotilla/p1` head: `65fff3d` after unit 01; unit branches update this f
 | 04-adapter-host | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/5 | host/fake/generic-cli tests passed |
 | 05-docker-driver | pending | 0 | | |
 | 06-claude-code-adapter | pending | 0 | | |
-| 07-codex-adapter | pending | 0 | | |
+| 07-codex-adapter | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/8 | fixture parser tests passed; vendor fields synthetic/unverified |
 | 08-auth-projects-api | pending | 0 | | |
 | 09-git-mirror | pending | 0 | | |
 | 10-egress-gate | pending | 0 | | |
