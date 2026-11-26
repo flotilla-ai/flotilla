@@ -1,8 +1,14 @@
 import { createServer } from 'node:http';
 
-createServer((req, res) => {
+const server = createServer((req, res) => {
   res.writeHead(403, { 'content-type': 'text/plain' });
   res.end('gate: not implemented');
-}).listen(3128, () => {
+});
+
+server.on('connect', (req, socket) => {
+  socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\nContent-Type: text/plain\r\n\r\ngate: not implemented');
+});
+
+server.listen(3128, () => {
   console.log('gate listening on 3128');
 });

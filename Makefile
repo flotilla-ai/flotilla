@@ -3,7 +3,10 @@ check:
 	pnpm -r test
 	pnpm -r lint
 
+lint:
+	pnpm -r lint
+
 verify: check
-	docker compose up -d --build --wait
+	docker compose -p flotilla-verify up -d --build --wait
 	curl -fsS --retry 20 --retry-connrefused --retry-delay 1 localhost:8080/healthz
-	docker compose down -v
+	docker compose -p flotilla-verify down -v
