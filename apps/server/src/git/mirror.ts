@@ -25,8 +25,13 @@ async function serialized<T>(key: string, fn: () => Promise<T>): Promise<T> {
   return next;
 }
 function isGitHubRemote(fullName: string): boolean {
-  if (!fullName.startsWith('http')) return !fullName.startsWith('/') && !fullName.startsWith('file:');
-  try { return new URL(fullName).hostname.toLowerCase() === 'github.com'; } catch { return false; }
+  if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(fullName)) return true;
+  try { const u=new URL(fullName); return u.protocol==='https:' && u.hostname.toLowerCase()==='github.com'; } catch { return false; }
+}
+function assertRemoteAllowed(fullName: string): void {
+  if (isGitHubRemote(fullName)) return;
+  if (process.env.FLOTILLA_ALLOW_LOCAL_GIT_REMOTES === '1' && (fullName.startsWith('/') || fullName.startsWith('file:'))) return;
+  throw new KernelDenied('scope', 'project remotes must be canonical GitHub repositories');
 }
 function envWithToken(project: GitProject): NodeJS.ProcessEnv {
   if (!project.token || !isGitHubRemote(project.repo.fullName)) return { ...process.env, GIT_CONFIG_NOSYSTEM: '1' };
@@ -40,6 +45,7 @@ export async function ensureMirror(project: GitProject, root = '/data/mirrors'):
   const path = mirrorPath(root, project);
   const env = envWithToken(project);
   const raw = project.repo.fullName;
+  assertRemoteAllowed(raw);
   const url = raw.startsWith('http') || raw.startsWith('/') || raw.startsWith('file:') ? raw : `https://github.com/${raw}.git`;
   try { await git(['--git-dir', path, 'rev-parse', '--is-bare-repository'], { env }); }
   catch { await git(['clone', '--bare', url, path], { env }); }
