@@ -22,7 +22,14 @@ class LocalHandle implements ProcessHandle {
   constructor(private readonly child: import('node:child_process').ChildProcess) {
     this.stdout = lines(child.stdout!);
     this.stderr = lines(child.stderr!);
-    this.exit = new Promise((resolve) => child.once('exit', (code, signal) => resolve({ code, signal })));
+    this.exit = new Promise((resolve) => {
+      child.once('error', () => resolve({ code: null, signal: null }));
+      child.once('exit', (code, signal) => resolve({ code, signal }));
+    });
+  }
+  async groupAlive(): Promise<boolean> {
+    if (!this.child.pid) return false;
+    try { process.kill(-this.child.pid, 0); return true; } catch { return false; }
   }
   async signal(sig: 'SIGINT' | 'SIGTERM' | 'SIGKILL'): Promise<void> {
     if (this.child.pid) {
@@ -55,15 +62,19 @@ export function runJsonl(
     if (cancelPromise) return cancelPromise;
     cancelled = true;
     cancelPromise = (async () => {
+      const groupAlive = async () => 'groupAlive' in handle && typeof handle.groupAlive === 'function' ? await (handle.groupAlive as () => Promise<boolean>)() : true;
       await handle.signal('SIGINT');
-      if (await waitExit(handle.exit, 2000)) return;
+      await waitExit(handle.exit, 2000);
+      if (!(await groupAlive())) return;
       await handle.signal('SIGTERM');
-      if (await waitExit(handle.exit, 2000)) return;
+      await waitExit(handle.exit, 2000);
+      if (!(await groupAlive())) return;
       await handle.signal('SIGKILL');
       await waitExit(handle.exit, 6000);
     })();
     return cancelPromise;
   };
+  void (async () => { for await (const _ of handle.stderr) void _; })();
   const events = (async function* (): AsyncIterable<AdapterEvent> {
     let sawDone = false;
     for await (const line of handle.stdout) {

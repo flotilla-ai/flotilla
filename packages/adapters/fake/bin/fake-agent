@@ -11,7 +11,7 @@ if (args.includes('--probe')) {
   console.log('fake-agent 0.0.0');
   process.exit(0);
 }
-if (args.includes('--spawn-child')) spawn(process.execPath, ['-e', 'setInterval(()=>{},1000)'], { stdio: 'ignore' });
+if (args.includes('--spawn-child')) spawn(process.execPath, ['-e', 'process.on("SIGINT",()=>{});process.on("SIGTERM",()=>{});setInterval(()=>{},1000)'], { stdio: 'ignore' });
 const usageUsd = flag('--usage-usd');
 const usageAtEnd = args.includes('--usage-at-end');
 const usageMicro = usageUsd === null ? null : Math.round(Number(usageUsd) * 1e6);
