@@ -7,7 +7,8 @@ Current `flotilla/p1` head: `65fff3d` after unit 01; unit branches update this f
 |---|---:|---:|---|---|
 | 01-skeleton | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/2 | make check passed; compose healthz returned `ok` |
 | 02-event-store | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/3 | real Postgres tests passed, including NOTIFY and SSE |
-| 03-kernel-budget | pending | 0 | | |
+| 03-kernel-budget | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/4 | pure kernel tests passed; prices placeholder/unverified |
+
 | 04-adapter-host | pending | 0 | | |
 | 05-docker-driver | pending | 0 | | |
 | 06-claude-code-adapter | pending | 0 | | |
