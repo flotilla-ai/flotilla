@@ -11,8 +11,9 @@ export function verifyWebhook(secret: string, body: string, signature: string | 
   const got = signature.slice(7);
   return want.length === got.length && timingSafeEqual(Buffer.from(want), Buffer.from(got));
 }
-export async function pushAndOpenPr(input: { thread: GitThread & { prs?: { repo: string; number: number; owned: boolean }[] }; project: GitProject; driver: GitDriver; github: GitHubClient; store: EventStore; token?: string }): Promise<{ number: number; pushedSha: string }> {
+export async function pushAndOpenPr(input: { thread: GitThread & { prs?: { repo: string; number: number; owned: boolean }[] }; project: GitProject; driver: GitDriver; github: GitHubClient; store: EventStore; token?: string }): Promise<{ number: number | null; pushedSha: string | null }> {
   const pushed = await collectAndPush(input.thread, input.project, input.driver);
+  if (!pushed.pushedSha) return { number: null, pushedSha: null };
   const branch = input.thread.branch ?? '';
   const pr = await input.github.openOrFindPr(input.project.repo.fullName, branch, input.project.repo.baseBranch, input.thread.title);
   const prRecord = { repo: input.project.repo.fullName, number: pr.number, owned: true };
