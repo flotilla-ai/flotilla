@@ -8,3 +8,4 @@
 
 - 2026-11-27: unit 05 keeps the CLI-home copy in a one-shot container and makes the reaper inert without DATABASE_URL to avoid deleting live machines. Undo: move reconciliation fully into a database-backed runner service.
 - 2026-11-27: workspace package exports use a development condition so Vitest can import runtime values from TypeScript sources without a prebuild. Undo: switch tests to build-first packaging.
+- 2026-11-27: unit 06 uses synthetic Claude fixtures because live vendor login is forbidden here; adapter host parsers may return event arrays for multi-event JSONL rows. Undo: replace fixtures with scrubbed P2 smoke recordings.

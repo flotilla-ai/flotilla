@@ -1,0 +1,5 @@
+{"type":"system","subtype":"init","session_id":"sess-fixture","synthetic":true}
+{"type":"assistant","message":{"content":[{"type":"text","text":"Hello"}],"usage":{"input_tokens":10,"output_tokens":4,"cache_read_input_tokens":2,"cache_creation_input_tokens":1}},"session_id":"sess-fixture","synthetic":true}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_1","name":"Read","input":{"path":"x"}}]},"session_id":"sess-fixture","synthetic":true}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_1","content":"file text","is_error":false}]},"session_id":"sess-fixture","synthetic":true}
+{"type":"result","subtype":"success","is_error":false,"total_cost_usd":0.0123,"session_id":"sess-fixture","synthetic":true}
