@@ -1,0 +1,2 @@
+export async function api(path:string,opts:RequestInit={}){const csrf=sessionStorage.getItem('csrf');const res=await fetch(`/api/v1${path}`,{...opts,headers:{...(opts.body?{'content-type':'application/json'}:{}),...(csrf?{'x-flotilla-csrf':csrf}:{})}});if(res.status===401)location.hash='#/login';if(!res.ok)throw new Error(String(res.status));return res.status===204?null:res.json()}
+export const money=(micro?:number)=>`$${((micro??0)/1e6).toFixed(3)}`;

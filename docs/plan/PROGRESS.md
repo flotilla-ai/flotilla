@@ -17,7 +17,7 @@ Current `flotilla/p1` head: `65fff3d` after unit 01; unit branches update this f
 | 09-git-mirror | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/10 | local fake-driver tests passed; container/visibility unverified |
 | 10-egress-gate | pending | 0 | | |
 | 11-thread-runner | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/12 | fake adapter/db tests passed; Docker/captain coverage unverified |
-| 12-web-ui-core | pending | 0 | | |
+| 12-web-ui-core  | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/13 | build and mocked Playwright passed; server-backed e2e unverified |
 | 13-web-ui-actions | pending | 0 | | |
 | 14-github-autofix | pending | 0 | | |
 | 15-previews | pending | 0 | | |
