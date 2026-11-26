@@ -285,7 +285,17 @@ importers:
         version: 3.2.7(@types/node@22.20.7)(msw@2.15.0(@types/node@22.20.7)(typescript@5.9.3))(tsx@4.23.15)
 
   packages/adapters/claude-code:
+    dependencies:
+      '@flotilla/adapter-host':
+        specifier: workspace:*
+        version: link:../host
+      '@flotilla/core':
+        specifier: workspace:*
+        version: link:../../core
     devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.7
       oxlint:
         specifier: ^1.0.0
         version: 1.95.0
