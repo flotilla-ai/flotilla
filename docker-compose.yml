@@ -15,7 +15,7 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
     networks: [db, edge, default]
-    command: ["sh","-c","test -f /run/flotilla-gate/token || node -e \"require('crypto').randomBytes(32).toString('base64url')\" > /run/flotilla-gate/token; exec node apps/server/dist/index.js"]
+    command: ["sh","-c","test -f /run/flotilla-gate/token || node -e \"process.stdout.write(require('crypto').randomBytes(32).toString('base64url'))\" > /run/flotilla-gate/token; exec node apps/server/dist/index.js"]
     environment:
       DATABASE_URL: postgres://postgres@postgres:5432/flotilla
       FLOTILLA_DOMAIN: localhost
