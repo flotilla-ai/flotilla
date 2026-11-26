@@ -1,6 +1,7 @@
 import { randomBytes, scrypt as scryptCb, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import pg from 'pg';
+import { migrate } from '../db/migrate.js';
 
 const scrypt = promisify(scryptCb);
 export type Session = { id: string; userId: string; csrfToken: string; expiresAt: Date };
@@ -9,9 +10,10 @@ export class AuthStore {
   readonly pool: pg.Pool;
   private ready?: Promise<unknown>;
   private setupToken?: string;
-  constructor(databaseUrl: string) { this.pool = new pg.Pool({ connectionString: databaseUrl, max: 3 }); }
+  constructor(private readonly databaseUrl: string) { this.pool = new pg.Pool({ connectionString: databaseUrl, max: 3 }); }
   async ensure(): Promise<void> {
     this.ready ??= (async () => {
+      await migrate(this.databaseUrl);
       await this.pool.query(`CREATE TABLE IF NOT EXISTS flotilla_auth_credentials (user_id text PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, password_hash text NOT NULL)`);
       await this.pool.query(`CREATE TABLE IF NOT EXISTS flotilla_setup_tokens (id integer PRIMARY KEY, token text NOT NULL, created_at timestamptz NOT NULL DEFAULT now())`);
     })();
@@ -45,13 +47,15 @@ export class AuthStore {
   }
   async setup(email: string, password: string, token: string): Promise<{ userId: string } | null> {
     await this.ensure();
-    if (await this.userCount() > 0) return null;
     const expected = await this.getSetupToken();
     if (Buffer.from(token).length !== Buffer.from(expected).length || !timingSafeEqual(Buffer.from(token), Buffer.from(expected))) return null;
     const userId = `usr_${randomBytes(8).toString('hex')}`;
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
+      await client.query(`SELECT pg_advisory_xact_lock(hashtext('flotilla-setup'))`);
+      const count = await client.query('SELECT count(*)::int n FROM users');
+      if (count.rows[0].n > 0) { await client.query('ROLLBACK'); return null; }
       await client.query('INSERT INTO users (id,email,role) VALUES ($1,$2,$3)', [userId, email, 'admin']);
       await client.query('INSERT INTO flotilla_auth_credentials (user_id,password_hash) VALUES ($1,$2)', [userId, await this.hash(password)]);
       await client.query('COMMIT');
