@@ -6,14 +6,17 @@
   "exports": {
     "./types": {
       "types": "./src/types.ts",
+      "development": "./src/types.ts",
       "import": "./dist/types.js"
     },
     "./schemas": {
       "types": "./src/schemas.ts",
+      "development": "./src/schemas.ts",
       "import": "./dist/schemas.js"
     },
     "./kernel/*": {
       "types": "./src/kernel/*.ts",
+      "development": "./src/kernel/*.ts",
       "import": "./dist/kernel/*.js"
     }
   },

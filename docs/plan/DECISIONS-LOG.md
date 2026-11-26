@@ -6,4 +6,5 @@
 - 2026-11-27: unit 02 uses advisory locks for event sequence assignment and notification payloads containing only ids/seq. Undo: replace with a different transactional sequencing mechanism; subscribers can still re-read by seq.
 - 2026-11-27: unit 03 keeps budget reservation pure and uses placeholder zero token prices marked unverified. Undo: replace price table with verified vendor prices.
 
-- 2026-11-27: unit 04 centralizes process-group cancellation in adapter host; adapters remain transport-only. Undo: move cancellation into adapters if vendor-specific semantics require it.
+- 2026-11-27: unit 05 keeps the CLI-home copy in a one-shot container and makes the reaper inert without DATABASE_URL to avoid deleting live machines. Undo: move reconciliation fully into a database-backed runner service.
+- 2026-11-27: workspace package exports use a development condition so Vitest can import runtime values from TypeScript sources without a prebuild. Undo: switch tests to build-first packaging.
