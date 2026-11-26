@@ -69,7 +69,8 @@ export class ThreadRunner {
     const promise = this.run(threadId, trigger).catch(async (_err) => { await this.pool.query(`UPDATE threads SET status='failed' WHERE id=$1`, [threadId]); }).finally(() => this.running.delete(threadId));
     this.running.set(threadId, promise);
     await promise;
-    if ((this.queued.get(threadId) ?? []).length && !this.cancelled.has(threadId)) void this.startNext(threadId, 'message');
+    const current = await this.thread(threadId);
+    if ((this.queued.get(threadId) ?? []).length && !this.cancelled.has(threadId) && current?.status !== 'paused') void this.startNext(threadId, 'message');
   }
 
   private async thread(threadId: string): Promise<Row | null> { return (await this.pool.query('SELECT * FROM threads WHERE id=$1', [threadId])).rows[0] ?? null; }
