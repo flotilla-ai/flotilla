@@ -1,0 +1,4 @@
+{"t":"session","adapterSessionId":"fake-session"}
+{"t":"text","delta":"Hello"}
+{"t":"usage","usdMicro":1000,"cumulative":true}
+{"t":"done","stopReason":"end_turn"}
