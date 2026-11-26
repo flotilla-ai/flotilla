@@ -38,7 +38,7 @@ export class DockerMachineDriver {
       const inspect = await network.inspect().catch(() => null);
       const gateIds = new Set((await this.docker.listContainers({ filters: { label: ['flotilla.role=gate'] } })).map((x) => x.Id));
       const gateIp = Object.entries(inspect?.Containers ?? {}).find(([id]) => gateIds.has(id))?.[1]?.IPv4Address?.split('/')[0];
-      await gateClient(input.gate?.adminUrl, input.gate?.token).putNetwork(network.id, input.egressAllow, gateIp).catch(() => undefined);
+      await gateClient(input.gate?.adminUrl, input.gate?.token).putNetwork(`flt-${input.threadId}`, input.egressAllow, gateIp).catch(() => undefined);
     }
     return { containerId: container.id };
   }

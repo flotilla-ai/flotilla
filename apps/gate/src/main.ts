@@ -1,5 +1,6 @@
 import { createServer, request, type IncomingMessage, type ServerResponse } from 'node:http';
 import { connect as netConnect, type Socket } from 'node:net';
+import { networkInterfaces } from 'node:os';
 import { readFileSync } from 'node:fs';
 import { decideConnect, hostPort, type NetworkRule, type Resolver } from './policy.js';
 import { lookup } from 'node:dns/promises';
@@ -10,8 +11,8 @@ export type GateState = {
   interfaceForName: Map<string, string>;
 };
 const defaultResolver: Resolver = async (host) => (await lookup(host, { all: true, verbatim: true })).map((x) => x.address);
-function token(): string { try { return readFileSync('/run/flotilla-gate/token', 'utf8').trim(); } catch { return process.env.GATE_ADMIN_TOKEN ?? 'dev-gate-token'; } }
-function bearer(req: IncomingMessage): boolean { return req.headers.authorization === `Bearer ${token()}`; }
+function token(): string | null { try { return readFileSync('/run/flotilla-gate/token', 'utf8').trim(); } catch { return process.env.GATE_ADMIN_TOKEN ?? null; } }
+function bearer(req: IncomingMessage): boolean { const t = token(); return t !== null && req.headers.authorization === `Bearer ${t}`; }
 function logDecision(host: string, verdict: string): void { console.log(`gate host=${host} verdict=${verdict}`); }
 
 export function createGate(state: GateState = { byInterface: new Map(), byName: new Map(), interfaceForName: new Map() }, resolver: Resolver = defaultResolver, upstreamHost = 'server') {
@@ -51,23 +52,27 @@ async function adminApi(req: IncomingMessage, res: ServerResponse, state: GateSt
   if (body.gateIp) { state.byInterface.set(body.gateIp, rule); state.interfaceForName.set(name, body.gateIp); }
   res.writeHead(204); res.end();
 }
+function localKey(socket: Socket): string { return (socket.localAddress ?? '').replace(/^::ffff:/, ''); }
+function ownAddresses(): string[] { return Object.values(networkInterfaces()).flat().flatMap((x) => x?.address ? [x.address.replace(/^::ffff:/, '')] : []); }
 function edgePreview(req: IncomingMessage, socket: Socket, state: GateState, host: string): boolean {
-  const rule = state.byInterface.get(socket.localAddress ?? '');
+  const rule = state.byInterface.get(localKey(socket));
   return Boolean(rule?.edge && bearer(req) && /^flt-[A-Za-z0-9-]+$/.test(host));
 }
 async function proxyConnect(req: IncomingMessage, socket: Socket, head: Buffer, state: GateState, resolver: Resolver): Promise<void> {
   const target = hostPort(req.url ?? '');
   if (!target) { socket.end('HTTP/1.1 400 Bad Request\r\n\r\n'); return; }
-  const rule = state.byInterface.get(socket.localAddress ?? '');
+  const rule = state.byInterface.get(localKey(socket));
   let ip: string | undefined;
   if (/^flt-/.test(target.host)) {
     if (!edgePreview(req, socket, state, target.host)) { logDecision(target.host, 'deny-preview'); socket.end('HTTP/1.1 403 Forbidden\r\n\r\n'); return; }
     ip = target.host;
   } else {
-    const decision = await decideConnect(target.host, rule, resolver);
-    logDecision(target.host, decision.reason);
-    if (!decision.allow) { socket.end('HTTP/1.1 403 Forbidden\r\n\r\n'); return; }
-    ip = decision.ip;
+    try {
+      const decision = await decideConnect(target.host, rule, resolver, ownAddresses());
+      logDecision(target.host, decision.reason);
+      if (!decision.allow) { socket.end('HTTP/1.1 403 Forbidden\r\n\r\n'); return; }
+      ip = decision.ip;
+    } catch { logDecision(target.host, 'deny-error'); socket.end('HTTP/1.1 403 Forbidden\r\n\r\n'); return; }
   }
   const upstream = netConnect(target.port, ip, () => {
     socket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
@@ -79,8 +84,8 @@ async function proxyConnect(req: IncomingMessage, socket: Socket, head: Buffer, 
 async function proxyHttp(req: IncomingMessage, res: ServerResponse, state: GateState, resolver: Resolver): Promise<void> {
   try {
     const url = new URL(req.url ?? '');
-    const rule = state.byInterface.get((req.socket as Socket).localAddress ?? '');
-    const decision = await decideConnect(url.hostname, rule, resolver);
+    const rule = state.byInterface.get(localKey(req.socket as Socket));
+    const decision = await decideConnect(url.hostname, rule, resolver, ownAddresses());
     logDecision(url.hostname, decision.reason);
     if (!decision.allow) { res.writeHead(403); res.end(); return; }
     const upstream = request({ host: decision.ip, port: Number(url.port || 80), path: `${url.pathname}${url.search}`, method: req.method, headers: { ...req.headers, host: url.host } }, (ur) => {
@@ -95,5 +100,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const gate = createGate();
   gate.proxy.listen(3128, () => console.log('gate proxy listening on 3128'));
   gate.relay.listen(80, () => console.log('gate relay listening on 80'));
-  gate.admin.listen(3129, () => console.log('gate admin listening on 3129'));
+  const edgeIp = Object.values(networkInterfaces()).flat().find((x) => x && x.family === 'IPv4' && !x.internal)?.address;
+  gate.admin.listen(3129, edgeIp, () => console.log('gate admin listening on 3129'));
 }
