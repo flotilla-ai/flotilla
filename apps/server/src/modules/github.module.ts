@@ -20,7 +20,7 @@ export default {
     setCheckMonitor(monitor);
     const unregister = onAfterRun(async ({ thread, project, state, containerId, driver }) => {
       if (!project || state !== 'completed') return;
-      await pushAndOpenPr({ thread: { id: thread.id, code: thread.code, title: thread.title, branch: thread.branch, prs: thread.prs, containerId } as never, project: { id: project.id, repo: project.repo, trust: project.trust } as never, driver, github: new GitHubClient(process.env.GITHUB_TOKEN ?? ''), store });
+      await pushAndOpenPr({ thread: { id: thread.id, code: thread.code, title: thread.title, branch: thread.branch, prs: thread.prs, containerId } as never, project: { id: project.id, repo: project.repo, trust: project.trust, token: process.env.GITHUB_TOKEN } as never, driver, github: new GitHubClient(process.env.GITHUB_TOKEN ?? ''), store });
     });
     const timer = setInterval(() => { void checkMonitor?.pollOnce().catch(() => undefined); }, 60_000);
     return async () => { unregister(); clearInterval(timer); setCheckMonitor(null); checkMonitor = null; await store.pool.end().catch(() => undefined); };
