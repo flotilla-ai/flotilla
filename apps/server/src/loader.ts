@@ -46,7 +46,7 @@ export async function loadModules(modulesDir = join(here, 'modules')): Promise<L
 
 function assertBasePath(basePath: string): void {
   if (basePath === '/healthz') return;
-  if (!basePath.startsWith('/api/v1/')) throw new Error(`route basePath must be /api/v1/*: ${basePath}`);
+  if (basePath !== '/api/v1' && !basePath.startsWith('/api/v1/')) throw new Error(`route basePath must be /api/v1/*: ${basePath}`);
 }
 
 export async function createApp(opts: { routesDir?: string } = {}): Promise<Hono> {

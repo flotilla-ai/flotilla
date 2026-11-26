@@ -9,6 +9,11 @@ function sse(event: Event): Uint8Array {
 export function createStreamRoute(store: EventStore): { basePath: string; app: Hono; public: boolean } {
   const app = new Hono().get('/:id/stream', async (c) => {
     const threadId = c.req.param('id') as Event['threadId'];
+    const userId = (c as unknown as { get(key: string): string | undefined }).get('userId');
+    if (userId) {
+      const owner = await store.pool.query('SELECT 1 FROM threads WHERE id=$1 AND owner_id=$2', [threadId, userId]);
+      if (!owner.rows[0]) return c.json({ error: 'not found' }, 404);
+    }
     const after = Number.parseInt(c.req.query('after') ?? '0', 10) || 0;
     const subscription = await store.subscribe(threadId, after);
     const iterator = subscription[Symbol.asyncIterator]();
