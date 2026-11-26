@@ -31,7 +31,7 @@ export async function loadRoutes(routesDir = join(here, 'routes')): Promise<Rout
     const mod = await import(pathToFileURL(join(routesDir, file)).href);
     routes.push(mod.default);
   }
-  return routes;
+  return routes.sort((a, b) => Number(a.basePath === '/') - Number(b.basePath === '/'));
 }
 
 export async function loadModules(modulesDir = join(here, 'modules')): Promise<LifecycleModule[]> {
@@ -45,7 +45,7 @@ export async function loadModules(modulesDir = join(here, 'modules')): Promise<L
 }
 
 function assertBasePath(basePath: string): void {
-  if (basePath === '/healthz') return;
+  if (basePath === '/healthz' || basePath === '/') return;
   if (basePath !== '/api/v1' && !basePath.startsWith('/api/v1/')) throw new Error(`route basePath must be /api/v1/*: ${basePath}`);
 }
 
