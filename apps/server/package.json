@@ -1,0 +1,39 @@
+{
+  "name": "@flotilla/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "oxlint src",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@flotilla/core": "workspace:*",
+    "@flotilla/adapter-host": "workspace:*",
+    "@flotilla/adapter-fake": "workspace:*",
+    "@flotilla/adapter-generic-cli": "workspace:*",
+    "@flotilla/adapter-claude-code": "workspace:*",
+    "@flotilla/adapter-codex": "workspace:*",
+    "hono": "^4.0.0",
+    "@hono/node-server": "^1.0.0",
+    "zod": "^4.0.0",
+    "drizzle-orm": "^0.44.0",
+    "pg": "^8.16.0",
+    "dockerode": "^4.0.0",
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.0",
+    "msw": "^2.0.0",
+    "vitest": "^3.0.0",
+    "typescript": "^5.9.0",
+    "tsx": "^4.0.0",
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.0.0",
+    "@types/dockerode": "^3.0.0",
+    "oxlint": "^1.0.0"
+  }
+}
