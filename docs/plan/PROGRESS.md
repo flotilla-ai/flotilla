@@ -10,7 +10,7 @@ Current `flotilla/p1` head: `65fff3d` after unit 01; unit branches update this f
 | 03-kernel-budget | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/4 | pure kernel tests passed; prices placeholder/unverified |
 
 | 04-adapter-host | pending | 0 | | |
-| 05-docker-driver | pending | 0 | | |
+| 05-docker-driver | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/6 | docker integration passed on local Docker |
 | 06-claude-code-adapter | pending | 0 | | |
 | 07-codex-adapter | pending | 0 | | |
 | 08-auth-projects-api | pending | 0 | | |
