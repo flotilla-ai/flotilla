@@ -1,11 +1,13 @@
 import type Docker from 'dockerode';
 import { createThreadNetwork } from './network.js';
 import { DockerExecTransport } from './transport.js';
+import { gateClient } from '../gateClient/index.js';
 import type { ProcessTransport } from '@flotilla/core/types';
 
 export type StartThreadInput = {
   threadId: string; code: string; image: string; cpus: number; memMb: number; env: Record<string, string>;
   roMounts?: { source: string; target: string }[]; cliHome?: { userVolume: string; threadVolume: string };
+  egressAllow?: string[]; gate?: { adminUrl: string; token: string };
 };
 
 export class DockerMachineDriver {
@@ -32,6 +34,12 @@ export class DockerMachineDriver {
       }
     });
     await container.start();
+    if (input.egressAllow) {
+      const inspect = await network.inspect().catch(() => null);
+      const gateIds = new Set((await this.docker.listContainers({ filters: { label: ['flotilla.role=gate'] } })).map((x) => x.Id));
+      const gateIp = Object.entries(inspect?.Containers ?? {}).find(([id]) => gateIds.has(id))?.[1]?.IPv4Address?.split('/')[0];
+      await gateClient(input.gate?.adminUrl, input.gate?.token).putNetwork(network.id, input.egressAllow, gateIp).catch(() => undefined);
+    }
     return { containerId: container.id };
   }
 
@@ -55,6 +63,7 @@ export class DockerMachineDriver {
     const info = await container.inspect().catch(() => null);
     await container.remove({ force: true }).catch(() => undefined);
     for (const name of Object.keys(info?.NetworkSettings?.Networks ?? {})) {
+      await gateClient().deleteNetwork(name).catch(() => undefined);
       const network = this.docker.getNetwork(name);
       const inspect = await network.inspect().catch(() => null);
       for (const attached of Object.keys(inspect?.Containers ?? {})) {

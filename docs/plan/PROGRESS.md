@@ -15,7 +15,7 @@ Current `flotilla/p1` head: `65fff3d` after unit 01; unit branches update this f
 | 07-codex-adapter | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/8 | fixture parser tests passed; vendor fields partly verified |
 | 08-auth-projects-api | pending | 0 | | |
 | 09-git-mirror | pending | 0 | | |
-| 10-egress-gate | pending | 0 | | |
+| 10-egress-gate | branch-ready | 0 | | gate unit tests passed; live Docker proxy integration unverified |
 | 11-thread-runner | pending | 0 | | |
 | 12-web-ui-core | pending | 0 | | |
 | 13-web-ui-actions | pending | 0 | | |
