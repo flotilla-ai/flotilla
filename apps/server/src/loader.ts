@@ -31,7 +31,7 @@ export async function loadRoutes(routesDir = join(here, 'routes')): Promise<Rout
     const mod = await import(pathToFileURL(join(routesDir, file)).href);
     routes.push(mod.default);
   }
-  return routes;
+  return routes.sort((a, b) => Number(a.basePath === '/') - Number(b.basePath === '/'));
 }
 
 export async function loadModules(modulesDir = join(here, 'modules')): Promise<LifecycleModule[]> {
