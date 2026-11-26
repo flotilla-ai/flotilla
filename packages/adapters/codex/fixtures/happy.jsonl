@@ -1,0 +1,5 @@
+{"type":"session.started","session_id":"codex-sess","synthetic":true}
+{"type":"item.completed","item":{"type":"message","text":"Hello"},"synthetic":true}
+{"type":"item.completed","item":{"type":"function_call","id":"call_1","name":"shell","arguments":{"cmd":"ls"}},"synthetic":true}
+{"type":"item.completed","item":{"type":"function_call_output","call_id":"call_1","output":"ok"},"synthetic":true}
+{"type":"turn.completed","usage":{"input_tokens":12,"output_tokens":4,"cached_tokens":2},"synthetic":true}
