@@ -32,7 +32,6 @@ export class FakeAdapter implements AgentAdapter {
     if (hang) args.push('--hang');
     if (input.env.FAKE_SPAWN_CHILD === '1') args.push('--spawn-child');
     if (input.mcpConfigPath) args.push('--mcp-config', input.mcpConfigPath);
-    if (input.vendorBudget.maxMicroUsd !== null) args.push('--usage-usd', String(input.vendorBudget.maxMicroUsd / 1e6));
     const run = runJsonl(input.transport, args, { cwd: input.cwd, env: input.env }, (line) => {
       try { return JSON.parse(line) as AdapterEvent; } catch { return null; }
     });

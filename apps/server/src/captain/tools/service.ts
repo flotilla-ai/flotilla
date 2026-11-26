@@ -14,11 +14,34 @@ export class CaptainToolService {
     if (!authToken) return { status: 401, body: { error: 'token required' } };
     const auth = this.deps.tokens.authenticate(authToken);
     if (!auth) return { status: 401, body: { error: 'expired token' } };
-    try { return { status: 200, body: json(await this.dispatch(auth.captainId, name, args)) }; }
-    catch (err) { if (err instanceof KernelDenied) { const seq = Number((await this.deps.pool.query('SELECT coalesce(max(seq),0)+1 n FROM events WHERE thread_id=$1', [auth.captainId])).rows[0]?.n ?? 1); await this.deps.pool.query(`INSERT INTO events (id,thread_id,seq,kind,source,trust,payload) VALUES ($1,$2,$3,'kernel.denied','kernel','trusted',$4)`, [`evt_${Math.random().toString(16).slice(2)}`, auth.captainId, seq, JSON.stringify({ rule: err.rule, detail: err.detail, tool: name })]).catch(() => undefined); return { status: 403, body: { error: err.message, rule: err.rule } }; } throw err; }
+    if (name === 'crew.start') {
+      const prior = this.starts.get(auth.captainId) ?? Promise.resolve(null);
+      const next = prior.catch(() => undefined).then(async () => {
+        const still = this.deps.tokens.authenticate(authToken);
+        if (!still || still.runId !== auth.runId) return { status: 401, body: { error: 'expired token' } };
+        return this.execute(auth.captainId, name, args);
+      });
+      this.starts.set(auth.captainId, next);
+      return next;
+    }
+    return this.execute(auth.captainId, name, args);
+  }
+  private async execute(captainId: string, name: string, args: Record<string, unknown>): Promise<{ status: number; body: unknown }> {
+    try { return { status: 200, body: json(await this.dispatch(captainId, name, args)) }; }
+    catch (err) {
+      if (err instanceof KernelDenied) { await this.recordDenied(captainId, name, err); return { status: 403, body: { error: err.message, rule: err.rule } }; }
+      throw err;
+    }
+  }
+  private async recordDenied(captainId: string, name: string, err: KernelDenied): Promise<void> {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const seq = Number((await this.deps.pool.query('SELECT coalesce(max(seq),0)+1 n FROM events WHERE thread_id=$1', [captainId])).rows[0]?.n ?? 1);
+      try { await this.deps.pool.query(`INSERT INTO events (id,thread_id,seq,kind,source,trust,payload) VALUES ($1,$2,$3,'kernel.denied','kernel','trusted',$4)`, [`evt_${Math.random().toString(16).slice(2)}`, captainId, seq, JSON.stringify({ rule: err.rule, detail: err.detail, tool: name })]); return; }
+      catch { if (attempt === 2) return; }
+    }
   }
   private async dispatch(captainId: string, name: string, args: Record<string, unknown>): Promise<unknown> {
-    if (name === 'crew.start') { const prior = this.starts.get(captainId) ?? Promise.resolve(null); const next = prior.catch(() => undefined).then(() => this.crewStart(captainId, args)); this.starts.set(captainId, next); return next; }
+    if (name === 'crew.start') return this.crewStart(captainId, args);
     if (name === 'crew.message') { const owned = (await this.deps.pool.query('SELECT 1 FROM threads WHERE id=$1 AND crew_of=$2', [args.threadId, captainId])).rows[0]; if (!owned) throw new KernelDenied('crew-limit', 'thread is not in this captain crew'); await this.deps.runner.message(String(args.threadId), String(args.text ?? ''), 'queue'); return { ok: true }; }
     if (name === 'crew.release') { const out = await this.deps.pool.query('UPDATE threads SET crew_of=null WHERE id=$1 AND crew_of=$2', [args.threadId, captainId]); if ((out as { rowCount?: number }).rowCount === 0) throw new KernelDenied('crew-limit', 'thread is not in this captain crew'); return { ok: true }; }
     if (name === 'digest.write') { await this.deps.pool.query('UPDATE captains SET digest_md=$2 WHERE thread_id=$1', [captainId, String(args.md ?? '')]); return { ok: true }; }
