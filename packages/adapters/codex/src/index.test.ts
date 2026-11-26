@@ -15,8 +15,15 @@ describe('codex adapter', () => {
       { t: 'tool_call', id: 'cmd_1', name: 'shell', input: { command: 'bash -lc ls' } },
       { t: 'tool_result', id: 'cmd_1', ok: true, output: 'ok' },
       { t: 'text', delta: 'Hello' },
-      { t: 'usage', inputTokens: 12, outputTokens: 4, cacheTokens: 2, cumulative: true },
+      { t: 'usage', inputTokens: 10, outputTokens: 4, cacheTokens: 2, cumulative: true },
       { t: 'done', stopReason: 'end_turn', error: undefined }
+    ]);
+  });
+
+  it('does not emit a result for an in-progress command with null exit_code', () => {
+    expect(parseCodexJsonl('{"type":"item.started","item":{"id":"c","type":"command_execution","command":"ls","status":"in_progress","exit_code":null}}')).toEqual([
+      { t: 'tool_call', id: 'c', name: 'shell', input: { command: 'ls' } },
+      { t: 'done', stopReason: 'cancelled' }
     ]);
   });
   it('never references auth.json or child_process', () => {

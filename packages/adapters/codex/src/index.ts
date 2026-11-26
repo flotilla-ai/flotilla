@@ -20,14 +20,14 @@ export function parseCodexLine(line: string): AdapterEvent[] {
     if (item.type === 'command_execution') {
       const out: AdapterEvent[] = [];
       if (typeof item.command === 'string' && item.status === 'in_progress') out.push({ t: 'tool_call', id: String(item.id ?? ''), name: 'shell', input: { command: item.command } });
-      if ('output' in item || 'exit_code' in item || item.status === 'completed' || item.status === 'failed') out.push({ t: 'tool_result', id: String(item.id ?? ''), ok: item.status !== 'failed' && Number(item.exit_code ?? 0) === 0, output: String(item.output ?? '') });
+      if ('output' in item || typeof item.exit_code === 'number' || item.status === 'completed' || item.status === 'failed') out.push({ t: 'tool_result', id: String(item.id ?? ''), ok: item.status !== 'failed' && Number(item.exit_code ?? 0) === 0, output: String(item.output ?? '') });
       return out;
     }
   }
   if (type === 'turn.completed' || type === 'result') {
     const usage = (row.usage ?? {}) as Json;
     const out: AdapterEvent[] = [];
-    if (Object.keys(usage).length) out.push({ t: 'usage', inputTokens: Number(usage.input_tokens ?? usage.inputTokens ?? 0), outputTokens: Number(usage.output_tokens ?? usage.outputTokens ?? 0), cacheTokens: Number(usage.cached_input_tokens ?? usage.cached_tokens ?? usage.cacheTokens ?? 0), cumulative: true });
+    if (Object.keys(usage).length) out.push({ t: 'usage', inputTokens: Math.max(0, Number(usage.input_tokens ?? usage.inputTokens ?? 0) - Number(usage.cached_input_tokens ?? usage.cached_tokens ?? usage.cacheTokens ?? 0)), outputTokens: Number(usage.output_tokens ?? usage.outputTokens ?? 0), cacheTokens: Number(usage.cached_input_tokens ?? usage.cached_tokens ?? usage.cacheTokens ?? 0), cumulative: true });
     out.push({ t: 'done', stopReason: row.is_error === true || row.error ? 'error' : 'end_turn', error: row.error ? String(row.error) : undefined });
     return out;
   }
