@@ -1,5 +1,6 @@
-{"type":"session.started","session_id":"codex-sess","synthetic":true}
-{"type":"item.completed","item":{"type":"message","text":"Hello"},"synthetic":true}
-{"type":"item.completed","item":{"type":"function_call","id":"call_1","name":"shell","arguments":{"cmd":"ls"}},"synthetic":true}
-{"type":"item.completed","item":{"type":"function_call_output","call_id":"call_1","output":"ok"},"synthetic":true}
-{"type":"turn.completed","usage":{"input_tokens":12,"output_tokens":4,"cached_tokens":2},"synthetic":true}
+{"type":"thread.started","thread_id":"codex-sess"}
+{"type":"turn.started"}
+{"type":"item.started","item":{"id":"cmd_1","type":"command_execution","command":"bash -lc ls","status":"in_progress"}}
+{"type":"item.completed","item":{"id":"cmd_1","type":"command_execution","command":"bash -lc ls","status":"completed","exit_code":0,"output":"ok"}}
+{"type":"item.completed","item":{"id":"msg_1","type":"agent_message","text":"Hello"}}
+{"type":"turn.completed","usage":{"input_tokens":12,"cached_input_tokens":2,"output_tokens":4}}

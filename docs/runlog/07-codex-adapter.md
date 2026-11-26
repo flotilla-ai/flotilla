@@ -3,7 +3,7 @@
 ## DECISIONS
 
 - Fixtures are synthetic because the P3 Codex check was not run and live vendor login/API calls are forbidden here.
-- API-key env var is `OPENAI_API_KEY` and egress host is `api.openai.com`, both unverified against current Codex docs.
+- API-key env var is `CODEX_API_KEY`, verified in the current Codex noninteractive docs; egress host remains unverified.
 - The adapter-host multi-event parser correction is repeated in this branch because `turn.completed` carries usage and done in one row.
 
 ## Verification
@@ -40,5 +40,5 @@ apps/server lint: Done
 
 ## Unverified
 
-- Exact Codex JSONL event/type/item/usage field names are synthetic/unverified.
-- Model flag spelling, API-key env var, version range, and egress host list are unverified.
+- `thread.started`, `item.started`, `item.completed`, `agent_message`, `command_execution`, `turn.completed`, and `cached_input_tokens` are verified in the current docs; detailed completion output fields remain partially unverified.
+- Model flag spelling, version range, and egress host list are unverified.

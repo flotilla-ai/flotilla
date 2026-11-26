@@ -12,9 +12,9 @@ describe('codex adapter', () => {
     const events = parseCodexJsonl(readFileSync(new URL('../fixtures/happy.jsonl', import.meta.url), 'utf8'));
     expect(events).toEqual([
       { t: 'session', adapterSessionId: 'codex-sess' },
+      { t: 'tool_call', id: 'cmd_1', name: 'shell', input: { command: 'bash -lc ls' } },
+      { t: 'tool_result', id: 'cmd_1', ok: true, output: 'ok' },
       { t: 'text', delta: 'Hello' },
-      { t: 'tool_call', id: 'call_1', name: 'shell', input: { cmd: 'ls' } },
-      { t: 'tool_result', id: 'call_1', ok: true, output: 'ok' },
       { t: 'usage', inputTokens: 12, outputTokens: 4, cacheTokens: 2, cumulative: true },
       { t: 'done', stopReason: 'end_turn', error: undefined }
     ]);
