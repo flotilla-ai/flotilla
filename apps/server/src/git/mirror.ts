@@ -76,7 +76,7 @@ async function mirrorDefaultBranch(mirror: string, fallback: string, env: NodeJS
     return head.replace(/^refs\/heads\//, '') || fallback;
   } catch { return fallback; }
 }
-export async function collectAndPush(thread: GitThread, project: GitProject, driver: GitDriver, root = '/data/mirrors'): Promise<{ pushedSha: string }> {
+export async function collectAndPush(thread: GitThread, project: GitProject, driver: GitDriver, root = '/data/mirrors'): Promise<{ pushedSha: string | null }> {
   return serialized(project.repo.fullName, async () => {
     const mirror = await ensureMirror(project, root);
     const transport = driver.transport(thread.containerId);
@@ -102,7 +102,10 @@ export async function collectAndPush(thread: GitThread, project: GitProject, dri
         if (!branchOwnedByThread(branch, thread)) throw new KernelDenied('protected-branch', `refusing push to foreign thread branch ${branch}`);
         return { ref, object, branch };
       });
-      for (const item of parsed) {
+      const baseSha = (await git(['--git-dir', mirror, 'rev-parse', `refs/heads/${defaultBranch}`], { env: cleanEnv })).stdout.trim();
+      const changed = parsed.filter((item) => item.object !== baseSha);
+      if (!changed.length) return { pushedSha: null };
+      for (const item of changed) {
         await git(['--git-dir', mirror, '-c', 'core.hooksPath=/dev/null', '-c', 'core.fsmonitor=false', 'push', 'origin', `${item.ref}:refs/heads/${item.branch}`], { env: cleanEnv });
         sha = item.object;
       }
