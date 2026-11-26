@@ -21,7 +21,7 @@ Current `flotilla/p1` head: `65fff3d` after unit 01; unit branches update this f
 | 13-web-ui-actions | branch-ready | 0 | | feature e2e 6/6 passed; live backend screenshot unverified |
 | 14-github-autofix | pending | 0 | | |
 | 15-previews  | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/14 | token unit tests passed; live proxy integration unverified |
-| 16-captain-tools | pending | 0 | | |
+| 16-captain-tools | branch-ready | 0 | | captain tool tests 2/2 and make check passed; live relay unverified |
 | 17-captain-scheduler | pending | 0 | | |
 
 ## Unverified items

@@ -24,8 +24,17 @@ async function serialized<T>(key: string, fn: () => Promise<T>): Promise<T> {
   locks.set(key, next.catch(() => undefined));
   return next;
 }
+function isGitHubRemote(fullName: string): boolean {
+  if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(fullName)) return true;
+  try { const u=new URL(fullName); return u.protocol==='https:' && u.hostname.toLowerCase()==='github.com'; } catch { return false; }
+}
+function assertRemoteAllowed(fullName: string): void {
+  if (isGitHubRemote(fullName)) return;
+  if (process.env.FLOTILLA_ALLOW_LOCAL_GIT_REMOTES === '1' && (fullName.startsWith('/') || fullName.startsWith('file:'))) return;
+  throw new KernelDenied('scope', 'project remotes must be canonical GitHub repositories');
+}
 function envWithToken(project: GitProject): NodeJS.ProcessEnv {
-  if (!project.token) return { ...process.env, GIT_CONFIG_NOSYSTEM: '1' };
+  if (!project.token || !isGitHubRemote(project.repo.fullName)) return { ...process.env, GIT_CONFIG_NOSYSTEM: '1' };
   return { ...process.env, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'http.extraHeader', GIT_CONFIG_VALUE_0: `Authorization: Bearer ${project.token}` };
 }
 async function git(args: string[], opts: { cwd?: string; env?: NodeJS.ProcessEnv } = {}) {
@@ -36,6 +45,7 @@ export async function ensureMirror(project: GitProject, root = '/data/mirrors'):
   const path = mirrorPath(root, project);
   const env = envWithToken(project);
   const raw = project.repo.fullName;
+  assertRemoteAllowed(raw);
   const url = raw.startsWith('http') || raw.startsWith('/') || raw.startsWith('file:') ? raw : `https://github.com/${raw}.git`;
   try { await git(['--git-dir', path, 'rev-parse', '--is-bare-repository'], { env }); }
   catch { await git(['clone', '--bare', url, path], { env }); }
@@ -76,7 +86,7 @@ async function mirrorDefaultBranch(mirror: string, fallback: string, env: NodeJS
     return head.replace(/^refs\/heads\//, '') || fallback;
   } catch { return fallback; }
 }
-export async function collectAndPush(thread: GitThread, project: GitProject, driver: GitDriver, root = '/data/mirrors'): Promise<{ pushedSha: string }> {
+export async function collectAndPush(thread: GitThread, project: GitProject, driver: GitDriver, root = '/data/mirrors'): Promise<{ pushedSha: string | null }> {
   return serialized(project.repo.fullName, async () => {
     const mirror = await ensureMirror(project, root);
     const transport = driver.transport(thread.containerId);
@@ -102,7 +112,11 @@ export async function collectAndPush(thread: GitThread, project: GitProject, dri
         if (!branchOwnedByThread(branch, thread)) throw new KernelDenied('protected-branch', `refusing push to foreign thread branch ${branch}`);
         return { ref, object, branch };
       });
-      for (const item of parsed) {
+      let baseSha = '';
+      try { baseSha = (await git(['--git-dir', mirror, 'rev-parse', `refs/heads/${project.repo.baseBranch}`], { env: cleanEnv })).stdout.trim(); } catch { baseSha = ''; }
+      const changed = parsed.filter((item) => !baseSha || item.object !== baseSha);
+      if (baseSha && !changed.length) return { pushedSha: null };
+      for (const item of changed) {
         await git(['--git-dir', mirror, '-c', 'core.hooksPath=/dev/null', '-c', 'core.fsmonitor=false', 'push', 'origin', `${item.ref}:refs/heads/${item.branch}`], { env: cleanEnv });
         sha = item.object;
       }
