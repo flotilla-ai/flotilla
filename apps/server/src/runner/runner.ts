@@ -45,7 +45,7 @@ export class ThreadRunner {
   }
 
   async message(threadId: string, text: string, mode: 'queue' | 'interrupt' = 'queue', userId?: string): Promise<void> {
-    const thread = await this.thread(threadId); if (!thread || thread.owner_id!==userId) throw new Error('not found');
+    const thread = await this.thread(threadId); if (!thread || (userId && thread.owner_id!==userId)) throw new Error('not found');
     await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'user.message', source: 'user', trust: 'trusted', payload: scrub({ text, mode, by: userId }, this.deps.secrets ?? {}) }] as never);
     if (mode === 'interrupt') await this.interrupt(threadId); else this.queued.set(threadId, [...(this.queued.get(threadId) ?? []), text]);
     if (!this.running.has(threadId)) void this.startNext(threadId, 'message');
@@ -60,7 +60,7 @@ export class ThreadRunner {
     if (approval.kind === 'budget' && optionId === 'raise' && value) await this.pool.query(`UPDATE threads SET budget=jsonb_set(budget,'{maxUsd}',to_jsonb($2::int)),status='queued' WHERE id=$1`, [approval.thread_id, value]);
     if (approval.kind === 'budget' && optionId === 'stop') await this.stop(approval.thread_id);
     await this.deps.store.appendEvents(approval.thread_id, [{ runId: null, kind: 'approval.resolved', source: 'kernel', trust: 'trusted', payload: { approvalId, optionId, value } }] as never);
-    if (optionId === 'raise') void this.startNext(approval.thread_id, 'resume');
+    if (optionId === 'raise') { if (this.running.has(approval.thread_id)) this.queued.set(approval.thread_id,[...(this.queued.get(approval.thread_id)??[]),'Continue within the raised budget.']); void this.startNext(approval.thread_id, 'resume'); }
     return approval;
   }
 
@@ -70,7 +70,7 @@ export class ThreadRunner {
     this.running.set(threadId, promise);
     await promise;
     const current = await this.thread(threadId);
-    if ((this.queued.get(threadId) ?? []).length && !this.cancelled.has(threadId) && current?.status !== 'paused') void this.startNext(threadId, 'message');
+    if ((this.queued.get(threadId) ?? []).length && !this.cancelled.has(threadId) && true) void this.startNext(threadId, 'message');
   }
 
   private async thread(threadId: string): Promise<Row | null> { return (await this.pool.query('SELECT * FROM threads WHERE id=$1', [threadId])).rows[0] ?? null; }
@@ -98,7 +98,7 @@ export class ThreadRunner {
     {
       machine = await this.deps.driver.startThreadContainer({ threadId, code: thread.code, image: 'flotilla-thread:dev', cpus: 1, memMb: 512, env: runToken ? { FLOTILLA_MCP_TOKEN: runToken.token } : {}, roMounts: [], egressAllow: project?.egress_allow as string[] ?? [] }).catch((err) => { tokenService?.endRun(runId); throw err; });
       if (project && !thread.branch) {
-        const seeded = await seedWorkspace({ id: threadId as never, code: thread.code as string, title: thread.title as string, branch: thread.branch as string | null, containerId: machine.containerId }, { id: project.id as never, repo: project.repo as never, trust: project.trust as never }, this.deps.driver).catch(() => ({ branch: null }));
+        const seeded = await seedWorkspace({ id: threadId as never, code: thread.code as string, title: thread.title as string, branch: thread.branch as string | null, containerId: machine.containerId }, { id: project.id as never, repo: project.repo as never, trust: project.trust as never, token: process.env.GITHUB_TOKEN }, this.deps.driver).catch(() => ({ branch: null }));
         if (seeded.branch && seeded.branch !== thread.branch) await this.pool.query('UPDATE threads SET branch=$2 WHERE id=$1', [threadId, seeded.branch]);
         thread.branch = seeded.branch ?? thread.branch;
       }
