@@ -11,3 +11,4 @@
 - 2026-11-27: unit 06 uses synthetic Claude fixtures because live vendor login is forbidden here; adapter host parsers may return event arrays for multi-event JSONL rows. Undo: replace fixtures with scrubbed P2 smoke recordings.
 - 2026-11-27: unit 07 uses documented Codex JSONL fields where verified and CODEX_API_KEY from current docs; remaining vendor details are marked unverified. Undo: replace fixtures with P3 live recordings.
 - 2026-11-27: unit 09 stages thread refs in the mirror before validation and validates every staged ref before pushing any ref, preventing partial pushes when a protected ref is present. Undo: use a transaction-like refspec push if upstream supports it safely.
+- 2026-11-27: unit 12 initially uses hash routing to keep static fallback simple and avoid coupling SPA deep links to server route ordering. Undo: move to history routing after static routing is proven.

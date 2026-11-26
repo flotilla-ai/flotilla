@@ -1,0 +1,31 @@
+{
+  "name": "@flotilla/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests src",
+    "test:e2e": "playwright test",
+    "lint": "oxlint src e2e"
+  },
+  "dependencies": {
+    "@flotilla/core": "workspace:*",
+    "@vitejs/plugin-react": "latest",
+    "vite": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-router-dom": "latest"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "vitest": "^3.0.0",
+    "oxlint": "^1.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "playwright": "^1.49.0",
+    "@playwright/test": "^1.49.0"
+  }
+}
