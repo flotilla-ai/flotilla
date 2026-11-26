@@ -55,6 +55,18 @@ beforeAll(async () => {
   const port = portLine.split(':').pop();
   databaseUrl = `postgres://postgres@127.0.0.1:${port}/postgres`;
   await waitPostgres();
+  for (let i = 0; i < 40; i++) {
+    try {
+      const probe = new pg.Client({ connectionString: databaseUrl, connectionTimeoutMillis: 1000 });
+      await probe.connect();
+      await probe.query('SELECT 1');
+      await probe.end();
+      break;
+    } catch (err) {
+      if (i === 39) throw err;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
   await migrate(databaseUrl);
   store = new EventStore(databaseUrl);
   await query('INSERT INTO users (id, email, role) VALUES ($1,$2,$3)', [userId, 'test@example.invalid', 'admin']);
