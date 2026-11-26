@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import type { Project, Thread } from '@flotilla/core/types';
 import { assertPushAllowed } from '@flotilla/core/kernel/branchGuard';
+import { KernelDenied } from '@flotilla/core/types';
 import type { ProcessTransport } from '@flotilla/core/types';
 
 const exec = promisify(execFile);
@@ -98,7 +99,7 @@ export async function collectAndPush(thread: GitThread, project: GitProject, dri
         const [ref, object] = line.split(' ');
         const branch = ref.slice(prefix.length + 1);
         assertPushAllowed(branch, { baseBranch: project.repo.baseBranch, defaultBranch });
-        if (!branchOwnedByThread(branch, thread)) throw new Error('protected-branch: branch belongs to another thread');
+        if (!branchOwnedByThread(branch, thread)) throw new KernelDenied('protected-branch', `refusing push to foreign thread branch ${branch}`);
         return { ref, object, branch };
       });
       for (const item of parsed) {
