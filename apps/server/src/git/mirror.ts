@@ -24,8 +24,12 @@ async function serialized<T>(key: string, fn: () => Promise<T>): Promise<T> {
   locks.set(key, next.catch(() => undefined));
   return next;
 }
+function isGitHubRemote(fullName: string): boolean {
+  if (!fullName.startsWith('http')) return !fullName.startsWith('/') && !fullName.startsWith('file:');
+  try { return new URL(fullName).hostname.toLowerCase() === 'github.com'; } catch { return false; }
+}
 function envWithToken(project: GitProject): NodeJS.ProcessEnv {
-  if (!project.token) return { ...process.env, GIT_CONFIG_NOSYSTEM: '1' };
+  if (!project.token || !isGitHubRemote(project.repo.fullName)) return { ...process.env, GIT_CONFIG_NOSYSTEM: '1' };
   return { ...process.env, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'http.extraHeader', GIT_CONFIG_VALUE_0: `Authorization: Bearer ${project.token}` };
 }
 async function git(args: string[], opts: { cwd?: string; env?: NodeJS.ProcessEnv } = {}) {
@@ -102,9 +106,10 @@ export async function collectAndPush(thread: GitThread, project: GitProject, dri
         if (!branchOwnedByThread(branch, thread)) throw new KernelDenied('protected-branch', `refusing push to foreign thread branch ${branch}`);
         return { ref, object, branch };
       });
-      const baseSha = (await git(['--git-dir', mirror, 'rev-parse', `refs/heads/${defaultBranch}`], { env: cleanEnv })).stdout.trim();
-      const changed = parsed.filter((item) => item.object !== baseSha);
-      if (!changed.length) return { pushedSha: null };
+      let baseSha = '';
+      try { baseSha = (await git(['--git-dir', mirror, 'rev-parse', `refs/heads/${project.repo.baseBranch}`], { env: cleanEnv })).stdout.trim(); } catch { baseSha = ''; }
+      const changed = parsed.filter((item) => !baseSha || item.object !== baseSha);
+      if (baseSha && !changed.length) return { pushedSha: null };
       for (const item of changed) {
         await git(['--git-dir', mirror, '-c', 'core.hooksPath=/dev/null', '-c', 'core.fsmonitor=false', 'push', 'origin', `${item.ref}:refs/heads/${item.branch}`], { env: cleanEnv });
         sha = item.object;
