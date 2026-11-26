@@ -1,0 +1,2 @@
+import {createServer} from 'node:http';
+export default{name:'captain-tools',async start(){if(process.env.FLOTILLA_CAPTAIN_TOOLS==='0')return async()=>undefined;const s=createServer((req,res)=>{if(!req.headers.authorization){res.writeHead(401);res.end();return}res.writeHead(501,{'content-type':'application/json'});res.end('{"error":"captain MCP implementation incomplete"}')});s.listen(8082,'127.0.0.1');return async()=>{s.close()}}}
