@@ -80,7 +80,7 @@ export async function collectAndPush(thread: GitThread, project: GitProject, dri
   return serialized(project.repo.fullName, async () => {
     const mirror = await ensureMirror(project, root);
     const transport = driver.transport(thread.containerId);
-    await runTransport(transport, ['git', 'bundle', 'create', '/tmp/thread.bundle', '--glob=refs/heads/flotilla/*'], '/workspace/repo');
+    await runTransport(transport, ['git', '-c', 'core.hooksPath=/dev/null', '-c', 'core.fsmonitor=false', '-c', 'credential.helper=', '-c', 'core.sshCommand=', 'bundle', 'create', '/tmp/thread.bundle', '--glob=refs/heads/flotilla/*'], '/workspace/repo');
     const tar = await driver.copyOut(thread.containerId, '/tmp/thread.bundle');
     const tmp = mkdtempSync(join(tmpdir(), 'flt-push-'));
     try {

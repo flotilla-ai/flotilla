@@ -22,7 +22,7 @@ class FakeDriver implements GitDriver {
   transport(): ProcessTransport {
     return { spawn: (argv, opts) => {
       argv = argv.map((a) => a.startsWith('/tmp/') ? join(this.root, 'tmp', a.slice(5)) : a.startsWith('/workspace') ? join(this.root, a.slice(11)) : a);
-      if (argv[0]==='git' && argv[3]===join(this.root,'tmp/thread.bundle') && this.mutateBundleArgs) argv = this.mutateBundleArgs(argv);
+      if (argv[0]==='git' && argv.includes(join(this.root,'tmp/thread.bundle')) && this.mutateBundleArgs) argv = this.mutateBundleArgs(argv);
       const cwd = opts.cwd === '/workspace' ? this.root : join(this.root, opts.cwd.replace(/^\/workspace\/?/, ''));
       mkdirSync(cwd,{recursive:true});
       const child = spawn(argv[0], argv.slice(1), { cwd, env: { ...process.env, ...opts.env }, detached: true, stdio: ['ignore','pipe','pipe'] });
@@ -78,7 +78,7 @@ describe('git mirror', () => {
     const root=mkdtempSync(join(base,'foreign-')); const driver=new FakeDriver(root);
     await seedWorkspace(thread,project,driver,mirrors);
     sh('git config user.email a@x && git config user.name a && echo foreign >> README.md && git add . && git commit -m foreign',join(root,'repo'));
-    await expect(collectAndPush({...thread,id:'thr_foreign',code:'FLO-2'},project,driver,mirrors)).rejects.toThrow('another thread');
+    await expect(collectAndPush({...thread,id:'thr_foreign',code:'FLO-2'},project,driver,mirrors)).rejects.toThrow('foreign thread branch');
   },30_000);
 
 });
