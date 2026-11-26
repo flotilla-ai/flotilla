@@ -12,6 +12,17 @@
   "devDependencies": {
     "typescript": "^5.9.0",
     "vitest": "^3.0.0",
-    "oxlint": "^1.0.0"
+    "oxlint": "^1.0.0",
+    "@types/node": "^22.0.0"
+  },
+  "dependencies": {
+    "@flotilla/core": "workspace:*"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "import": "./dist/index.js"
+    }
   }
 }
