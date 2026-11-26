@@ -5,6 +5,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends git python3 ca-
   && chmod 1777 /run/flotilla \
   && chown -R node:node /workspace
 COPY deploy/flotilla-exec /opt/flotilla/bin/flotilla-exec
+COPY packages/adapters/fake/bin /app/packages/adapters/fake/bin
+COPY packages/adapters/fake/fixtures /app/packages/adapters/fake/fixtures
 RUN chmod 755 /opt/flotilla/bin/flotilla-exec
 USER node
 WORKDIR /workspace
