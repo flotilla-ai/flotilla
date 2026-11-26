@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+if [ "$1" = "--signal" ]; then
+  sig="$2"; id="$3"
+  pgid=$(cat "/run/flotilla/$id.pgid")
+  kill -"${sig#SIG}" -"$pgid" 2>/dev/null || true
+  exit 0
+fi
+id="$1"; shift
+[ "$1" = "--" ] && shift
+mkdir -p /run/flotilla
+setsid "$@" &
+pid=$!
+echo "$pid" > "/run/flotilla/$id.pgid"
+wait "$pid"
+rc=$?
+rm -f "/run/flotilla/$id.pgid"
+exit "$rc"
