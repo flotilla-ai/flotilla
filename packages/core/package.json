@@ -18,6 +18,11 @@
       "types": "./src/kernel/*.ts",
       "development": "./src/kernel/*.ts",
       "import": "./dist/kernel/*.js"
+    },
+    "./kernel/autofix": {
+      "types": "./src/kernel/autofix.ts",
+      "development": "./src/kernel/autofix.ts",
+      "import": "./dist/kernel/autofix.js"
     }
   },
   "scripts": {
