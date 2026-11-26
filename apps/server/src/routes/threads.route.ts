@@ -20,8 +20,8 @@ export function createThreadsRoute(runner = defaultRunner()) {
     return c.json(row, 201);
   });
   app.post('/threads/:id/message', async (c) => { const body = await c.req.json().catch(() => ({})); await runner.message(c.req.param('id'), body.text ?? '', body.mode ?? 'queue', userId(c)); return c.body(null, 202); });
-  app.post('/threads/:id/interrupt', async (c) => { await runner.interrupt(c.req.param('id')); return c.body(null, 202); });
-  app.post('/threads/:id/stop', async (c) => { await runner.stop(c.req.param('id')); return c.body(null, 202); });
+  app.post('/threads/:id/interrupt', async (c) => { await runner.interrupt(c.req.param('id'), userId(c)); return c.body(null, 202); });
+  app.post('/threads/:id/stop', async (c) => { await runner.stop(c.req.param('id'), userId(c)); return c.body(null, 202); });
   app.post('/approvals/:id/answer', async (c) => { const body = await c.req.json().catch(() => ({})); const row = await runner.answerApproval(c.req.param('id'), body.optionId ?? '', body.value, userId(c)); return row ? c.json(row) : c.json({ error: 'not found' }, 404); });
   return { basePath: '/api/v1', app, public: false };
 }
