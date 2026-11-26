@@ -95,7 +95,7 @@ export class ThreadRunner {
     const runToken = tokenService?.issue(runId, threadId);
     let machine = { containerId: this.containers.get(threadId) ?? '' };
     if (!machine.containerId) {
-      machine = await this.deps.driver.startThreadContainer({ threadId, code: thread.code, image: 'flotilla-thread:dev', cpus: 1, memMb: 512, env: runToken ? { FLOTILLA_MCP_TOKEN: runToken.token } : {}, roMounts: [], egressAllow: project?.egress_allow as string[] ?? [] });
+      machine = await this.deps.driver.startThreadContainer({ threadId, code: thread.code, image: 'flotilla-thread:dev', cpus: 1, memMb: 512, env: runToken ? { FLOTILLA_MCP_TOKEN: runToken.token } : {}, roMounts: [], egressAllow: project?.egress_allow as string[] ?? [] }).catch((err) => { tokenService?.endRun(runId); throw err; });
       this.containers.set(threadId, machine.containerId);
       if (project) {
         const seeded = await seedWorkspace({ id: threadId as never, code: thread.code as string, title: thread.title as string, branch: thread.branch as string | null, containerId: machine.containerId }, { id: project.id as never, repo: project.repo as never, trust: project.trust as never }, this.deps.driver).catch(() => ({ branch: null }));
@@ -105,8 +105,9 @@ export class ThreadRunner {
     }
     if (runToken && 'copyIn' in this.deps.driver) await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', captainMcpTar(runToken.token)).catch(() => undefined);
     const adapter = this.deps.adapters.get((thread.engine as Row).adapter as string) ?? [...this.deps.adapters.values()][0];
-    if (!adapter) throw new Error('adapter missing');
-    const transport = this.deps.driver.transport(machine.containerId);
+    if (!adapter) { tokenService?.endRun(runId); throw new Error('adapter missing'); }
+    let transport: ReturnType<Driver['transport']>;
+    try { transport = this.deps.driver.transport(machine.containerId); } catch (err) { tokenService?.endRun(runId); throw err; }
     let usage = { ...zero }; let state: 'completed' | 'cancelled' | 'failed' | 'paused_budget' = 'completed'; const started = Date.now();
     const eventSecrets = { ...(this.deps.secrets ?? {}), ...(runToken ? { FLOTILLA_MCP_TOKEN: runToken.token } : {}) };
     const scrubber = createDeltaScrubber(eventSecrets);
