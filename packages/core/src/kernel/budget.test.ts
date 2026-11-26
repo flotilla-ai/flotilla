@@ -38,7 +38,7 @@ describe('budget kernel', () => {
   });
 
   it('settles overshoot and enforces wall clock fence', () => {
-    expect(settle([{ scope: 'thread', scopeId: 'thr_t', runId: ctx.runId, amount: 10 }], totals(15))).toEqual({ overshoot: 5 });
+    expect(settle([{ scope: 'thread', scopeId: 'thr_t', runId: ctx.runId, amount: 20 }, { scope: 'captain-subtree', scopeId: 'thr_c', runId: ctx.runId, amount: 10 }], totals(15))).toEqual({ overshoot: 5 });
     const policy = { maxUsd: null, maxTokens: null, maxWallSec: 10, scope: 'thread' as const, onHit: 'pause-and-ask' as const, warnAt: 0.8 };
     expect(inRunFence({ estimate: totals(0), wallSec: 10, hold: { scope: 'thread', scopeId: 'thr_t', runId: ctx.runId, amount: 10 }, policy })).toEqual({ stop: 'wall' });
   });

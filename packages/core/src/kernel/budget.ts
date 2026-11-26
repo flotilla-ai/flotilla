@@ -121,8 +121,7 @@ export function reserve(
 }
 
 export function settle(holds: Hold[], actual: CostTotals): { overshoot: MicroUsd } {
-  const reserved = holds.reduce((max, hold) => Math.max(max, hold.amount), 0);
-  return { overshoot: Math.max(0, actual.usd - reserved) };
+  return { overshoot: holds.reduce((max, hold) => Math.max(max, actual.usd - hold.amount), 0) };
 }
 
 export function inRunFence(input: { estimate: CostTotals; wallSec: number; hold: Hold; policy: BudgetPolicy }): 'continue' | { stop: 'usd' | 'tokens' | 'wall' } {
