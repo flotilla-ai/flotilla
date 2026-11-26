@@ -46,7 +46,7 @@ export class ThreadRunner {
 
   async message(threadId: string, text: string, mode: 'queue' | 'interrupt' = 'queue', userId?: string): Promise<void> {
     const thread = await this.thread(threadId); if (!thread || (userId && thread.owner_id!==userId)) throw new Error('not found');
-    await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'user.message', source: 'user', trust: 'trusted', payload: scrub({ text, mode, by: userId }, this.deps.secrets ?? {}) }] as never);
+    await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'user.message', source: userId ? 'user' : 'kernel', trust: userId ? 'trusted' : 'untrusted', payload: scrub({ text, mode, by: userId }, this.deps.secrets ?? {}) }] as never);
     if (mode === 'interrupt') await this.interrupt(threadId); else this.queued.set(threadId, [...(this.queued.get(threadId) ?? []), text]);
     if (!this.running.has(threadId)) void this.startNext(threadId, 'message');
   }
@@ -70,7 +70,7 @@ export class ThreadRunner {
     this.running.set(threadId, promise);
     await promise;
     const current = await this.thread(threadId);
-    if ((this.queued.get(threadId) ?? []).length && !this.cancelled.has(threadId) && true) void this.startNext(threadId, 'message');
+    const budgetNow=current?.budget as {maxUsd:number|null}|undefined;const spentNow=(current?.spent as {usd:number}|undefined)?.usd??0;if ((this.queued.get(threadId) ?? []).length && !this.cancelled.has(threadId) && (budgetNow?.maxUsd==null||spentNow<budgetNow.maxUsd)) void this.startNext(threadId, 'message');
   }
 
   private async thread(threadId: string): Promise<Row | null> { return (await this.pool.query('SELECT * FROM threads WHERE id=$1', [threadId])).rows[0] ?? null; }
