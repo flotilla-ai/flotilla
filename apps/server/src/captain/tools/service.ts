@@ -15,7 +15,7 @@ export class CaptainToolService {
     const auth = this.deps.tokens.authenticate(authToken);
     if (!auth) return { status: 401, body: { error: 'expired token' } };
     try { return { status: 200, body: json(await this.dispatch(auth.captainId, name, args)) }; }
-    catch (err) { if (err instanceof KernelDenied) return { status: 403, body: { error: err.message, rule: err.rule } }; throw err; }
+    catch (err) { if (err instanceof KernelDenied) { const seq = Number((await this.deps.pool.query('SELECT coalesce(max(seq),0)+1 n FROM events WHERE thread_id=$1', [auth.captainId])).rows[0]?.n ?? 1); await this.deps.pool.query(`INSERT INTO events (id,thread_id,seq,kind,source,trust,payload) VALUES ($1,$2,$3,'kernel.denied','kernel','trusted',$4)`, [`evt_${Math.random().toString(16).slice(2)}`, auth.captainId, seq, JSON.stringify({ rule: err.rule, detail: err.detail, tool: name })]).catch(() => undefined); return { status: 403, body: { error: err.message, rule: err.rule } }; } throw err; }
   }
   private async dispatch(captainId: string, name: string, args: Record<string, unknown>): Promise<unknown> {
     if (name === 'crew.start') { const prior = this.starts.get(captainId) ?? Promise.resolve(null); const next = prior.catch(() => undefined).then(() => this.crewStart(captainId, args)); this.starts.set(captainId, next); return next; }
