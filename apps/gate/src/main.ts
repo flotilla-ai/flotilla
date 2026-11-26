@@ -101,5 +101,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   gate.proxy.listen(3128, () => console.log('gate proxy listening on 3128'));
   gate.relay.listen(80, () => console.log('gate relay listening on 80'));
   const edgeIp = Object.values(networkInterfaces()).flat().find((x) => x && x.family === 'IPv4' && !x.internal)?.address;
+  if (edgeIp) gate.state.byInterface.set(edgeIp, { allow: [], edge: true });
   gate.admin.listen(3129, edgeIp, () => console.log('gate admin listening on 3129'));
 }
