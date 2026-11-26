@@ -17,7 +17,7 @@ export function argvFor(input: StartInput | ResumeInput): string[] {
   return argv;
 }
 
-export function parseClaudeLine(line: string): AdapterEvent[] {
+export function parseClaudeLine(line: string, opts: { resume?: boolean; seenUsageMessages?: Set<string> } = {}): AdapterEvent[] {
   let row: Json;
   try { row = JSON.parse(line) as Json; } catch { return []; }
   if (row.type === 'system' && row.subtype === 'init' && typeof row.session_id === 'string') return [{ t: 'session', adapterSessionId: row.session_id }];
@@ -28,8 +28,13 @@ export function parseClaudeLine(line: string): AdapterEvent[] {
       if (part.type === 'text' && typeof part.text === 'string') out.push({ t: 'text', delta: part.text });
       if (part.type === 'tool_use') out.push({ t: 'tool_call', id: String(part.id), name: String(part.name), input: part.input });
     }
-    const usage = usageOf(message?.usage as Json | undefined, false);
-    if (usage) out.push(usage);
+    const messageId = typeof message?.id === 'string' ? message.id : undefined;
+    const duplicateUsage = messageId !== undefined && opts.seenUsageMessages?.has(messageId);
+    const usage = duplicateUsage ? null : usageOf(message?.usage as Json | undefined, false);
+    if (usage) {
+      if (messageId) opts.seenUsageMessages?.add(messageId);
+      out.push(usage);
+    }
     return out;
   }
   if (row.type === 'user') {
@@ -42,7 +47,17 @@ export function parseClaudeLine(line: string): AdapterEvent[] {
   }
   if (row.type === 'result') {
     const out: AdapterEvent[] = [];
-    if (typeof row.total_cost_usd === 'number') out.push({ t: 'usage', usdMicro: Math.round(row.total_cost_usd * 1e6), cumulative: true });
+    const resultUsage = row.usage as Json | undefined;
+    if (!opts.resume && (typeof row.total_cost_usd === 'number' || resultUsage)) {
+      out.push({
+        t: 'usage',
+        usdMicro: typeof row.total_cost_usd === 'number' ? Math.round(row.total_cost_usd * 1e6) : undefined,
+        inputTokens: resultUsage ? Number(resultUsage.input_tokens ?? 0) : undefined,
+        outputTokens: resultUsage ? Number(resultUsage.output_tokens ?? 0) : undefined,
+        cacheTokens: resultUsage ? Number(resultUsage.cache_read_input_tokens ?? 0) + Number(resultUsage.cache_creation_input_tokens ?? 0) : undefined,
+        cumulative: true
+      });
+    }
     out.push({ t: 'done', stopReason: row.is_error === true ? 'error' : 'end_turn', error: row.is_error === true ? String(row.result ?? 'claude error') : undefined });
     return out;
   }
@@ -50,7 +65,8 @@ export function parseClaudeLine(line: string): AdapterEvent[] {
 }
 
 export function parseClaudeJsonl(text: string): AdapterEvent[] {
-  const events = text.split('\n').filter(Boolean).flatMap(parseClaudeLine);
+  const seen = new Set<string>();
+  const events = text.split('\n').filter(Boolean).flatMap((line) => parseClaudeLine(line, { seenUsageMessages: seen }));
   if (!events.some((e) => e.t === 'done')) events.push({ t: 'done', stopReason: 'cancelled' });
   return events;
 }
@@ -73,15 +89,17 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     return { installed: out.code === 0, version: out.code === 0 ? out.stdout.trim().split(/\s+/).pop() ?? null : null, authed: 'unknown' as const };
   }
   start(input: StartInput): AsyncIterable<AdapterEvent> {
-    const run = runJsonl(input.transport, argvFor(input), { cwd: input.cwd, env: input.env }, parseClaudeLineMany);
+    const seen = new Set<string>();
+    const resume = 'adapterSessionId' in input;
+    const run = runJsonl(input.transport, argvFor(input), { cwd: input.cwd, env: input.env }, (line) => parseClaudeLineMany(line, { resume, seen }));
     this.cancels.set(input.runId, run.cancel);
     return run.events;
   }
   resume(input: ResumeInput): AsyncIterable<AdapterEvent> { return this.start(input); }
   async cancel(runId: RunId): Promise<void> { await this.cancels.get(runId)?.(); }
 }
-function parseClaudeLineMany(line: string): AdapterEvent[] | null {
-  const events = parseClaudeLine(line);
+function parseClaudeLineMany(line: string, opts: { resume?: boolean; seen?: Set<string> } = {}): AdapterEvent[] | null {
+  const events = parseClaudeLine(line, { resume: opts.resume, seenUsageMessages: opts.seen });
   return events.length ? events : null;
 }
 export const claudeCodeAdapter = new ClaudeCodeAdapter();

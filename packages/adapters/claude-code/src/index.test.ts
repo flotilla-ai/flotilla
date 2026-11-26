@@ -33,6 +33,12 @@ describe('claude-code adapter', () => {
     expect(events).toContainEqual({ t: 'usage', usdMicro: 12300, cumulative: true });
     expect(events.at(-1)).toMatchObject({ t: 'done', stopReason: 'end_turn' });
   });
+
+  it('dedupes repeated message usage and reads final result token usage', () => {
+    const events = parseClaudeJsonl('{"type":"assistant","message":{"id":"m1","content":[{"type":"text","text":"a"}],"usage":{"input_tokens":1,"output_tokens":1}}}\n{"type":"assistant","message":{"id":"m1","content":[{"type":"tool_use","id":"t","name":"x","input":{}}],"usage":{"input_tokens":1,"output_tokens":1}}}\n{"type":"result","total_cost_usd":0.001,"usage":{"input_tokens":2,"output_tokens":3,"cache_read_input_tokens":4}}');
+    expect(events.filter((e) => e.t === 'usage' && e.cumulative === false)).toHaveLength(1);
+    expect(events).toContainEqual({ t: 'usage', usdMicro: 1000, inputTokens: 2, outputTokens: 3, cacheTokens: 4, cumulative: true });
+  });
   it('parses a SIGTERM-killed fixture as cancelled without final usage', () => {
     const events = parseClaudeJsonl(readFileSync(new URL('../fixtures/sigterm.jsonl', import.meta.url), 'utf8'));
     expect(events.at(-1)).toEqual({ t: 'done', stopReason: 'cancelled' });
