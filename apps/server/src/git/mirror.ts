@@ -28,16 +28,17 @@ function envWithToken(project: GitProject): NodeJS.ProcessEnv {
   return { ...process.env, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'http.extraHeader', GIT_CONFIG_VALUE_0: `Authorization: Bearer ${project.token}` };
 }
 async function git(args: string[], opts: { cwd?: string; env?: NodeJS.ProcessEnv } = {}) {
-  return exec('git', args, { cwd: opts.cwd, env: { ...(opts.env ?? process.env), HOME: opts.env?.HOME ?? process.env.HOME } });
+  return exec('git', args, { cwd: opts.cwd, maxBuffer: 256 * 1024 * 1024, env: { ...(opts.env ?? process.env), HOME: opts.env?.HOME ?? process.env.HOME } });
 }
 export function mirrorPath(root: string, project: GitProject): string { return join(root, `${project.id}.git`); }
 export async function ensureMirror(project: GitProject, root = '/data/mirrors'): Promise<string> {
   const path = mirrorPath(root, project);
   const env = envWithToken(project);
-  const url = project.repo.fullName.startsWith('http') ? `https://github.com/${project.repo.fullName}.git` : project.repo.fullName;
+  const raw = project.repo.fullName;
+  const url = raw.startsWith('http') || raw.startsWith('/') || raw.startsWith('file:') ? raw : `https://github.com/${raw}.git`;
   try { await git(['--git-dir', path, 'rev-parse', '--is-bare-repository'], { env }); }
   catch { await git(['clone', '--bare', url, path], { env }); }
-  await git(['--git-dir', path, 'fetch', '--prune', 'origin'], { env });
+  await git(['--git-dir', path, 'fetch', '--prune', 'origin', '+refs/heads/*:refs/heads/*'], { env });
   return path;
 }
 async function collect(iter: AsyncIterable<string>): Promise<string> { let out = ''; for await (const x of iter) out += x; return out; }
@@ -47,7 +48,7 @@ async function runTransport(transport: ProcessTransport, argv: string[], cwd: st
   if (exit.code !== 0) throw new Error(`${argv.join(' ')} failed: ${stderr || stdout}`);
 }
 function slug(title: string): string { return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'work'; }
-async function tarOne(file: string, inner: string): Promise<Buffer> { return (await exec('tar', ['-C', join(file, '..'), '-cf', '-', inner], { encoding: 'buffer' } as never)).stdout as unknown as Buffer; }
+async function tarOne(file: string, inner: string): Promise<Buffer> { return (await exec('tar', ['-C', join(file, '..'), '-cf', '-', inner], { encoding: 'buffer', maxBuffer: 256 * 1024 * 1024 } as never)).stdout as unknown as Buffer; }
 
 export async function seedWorkspace(thread: GitThread, project: GitProject, driver: GitDriver, root = '/data/mirrors'): Promise<{ branch: string }> {
   const mirror = await ensureMirror(project, root);
@@ -65,6 +66,15 @@ export async function seedWorkspace(thread: GitThread, project: GitProject, driv
   } finally { rmSync(tmp, { recursive: true, force: true }); }
 }
 
+function branchOwnedByThread(branch: string, thread: GitThread): boolean {
+  return branch.startsWith(`flotilla/${thread.code}-`);
+}
+async function mirrorDefaultBranch(mirror: string, fallback: string, env: NodeJS.ProcessEnv): Promise<string> {
+  try {
+    const head = (await git(['--git-dir', mirror, 'symbolic-ref', '--short', 'HEAD'], { env })).stdout.trim();
+    return head.replace(/^refs\/heads\//, '') || fallback;
+  } catch { return fallback; }
+}
 export async function collectAndPush(thread: GitThread, project: GitProject, driver: GitDriver, root = '/data/mirrors'): Promise<{ pushedSha: string }> {
   return serialized(project.repo.fullName, async () => {
     const mirror = await ensureMirror(project, root);
@@ -83,10 +93,12 @@ export async function collectAndPush(thread: GitThread, project: GitProject, dri
       if (!refs.length) throw new Error('no flotilla refs in bundle');
       let sha = '';
       const cleanEnv = { ...envWithToken(project), HOME: tmp, GIT_CONFIG_NOSYSTEM: '1' };
+      const defaultBranch = await mirrorDefaultBranch(mirror, project.repo.baseBranch, envWithToken(project));
       const parsed = refs.map((line) => {
         const [ref, object] = line.split(' ');
         const branch = ref.slice(prefix.length + 1);
-        assertPushAllowed(branch, { baseBranch: project.repo.baseBranch, defaultBranch: project.repo.baseBranch });
+        assertPushAllowed(branch, { baseBranch: project.repo.baseBranch, defaultBranch });
+        if (!branchOwnedByThread(branch, thread)) throw new Error('protected-branch: branch belongs to another thread');
         return { ref, object, branch };
       });
       for (const item of parsed) {
