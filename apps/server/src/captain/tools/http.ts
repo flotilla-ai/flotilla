@@ -7,7 +7,7 @@ export function createCaptainToolsServer(service: CaptainToolService) {
     const auth = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : undefined;
     if (!auth) { res.writeHead(401); res.end(); return; }
     let raw = ''; let tooLarge = false;
-    for await (const x of req) { raw += x; if (raw.length > 64 * 1024) { tooLarge = true; break; } }
+    try { for await (const x of req) { raw += x; if (raw.length > 64 * 1024) { tooLarge = true; break; } } } catch { res.writeHead(400); res.end(); return; }
     if (tooLarge) { res.writeHead(413); res.end(); return; }
     try {
       const rpc = JSON.parse(raw || '{}') as { method?: string; params?: { name?: string; arguments?: Record<string, unknown> }; id?: unknown };

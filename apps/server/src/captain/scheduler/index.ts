@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import type pg from 'pg';
-export type CrewEvent={kind:string;payload?:{status?:string};at?:string};
-export function triage(events:CrewEvent[]):{wake:boolean;reasons:string[]}{const reasons:string[]=[];for(const e of events){if(e.kind==='budget.warning'||e.kind==='budget.exceeded'||e.kind==='kernel.denied')reasons.push(e.kind);else if(e.kind==='crew.status'&&['done','needs-decision','blocked','failed','resolved'].includes(e.payload?.status??''))reasons.push(String(e.payload?.status))}return{wake:reasons.length>0,reasons}}
+export type CrewEvent={kind:string;payload?:{status?:string;state?:string};at?:string};
+export function triage(events:CrewEvent[]):{wake:boolean;reasons:string[]}{const reasons:string[]=[];for(const e of events){if(e.kind==='budget.warning'||e.kind==='budget.exceeded'||e.kind==='kernel.denied')reasons.push(e.kind);else if(e.kind==='crew.status'&&['done','needs-decision','blocked','failed','resolved'].includes(e.payload?.status??''))reasons.push(String(e.payload?.status));else if(e.kind==='run.ended'&&['completed','failed'].includes(e.payload?.state??''))reasons.push(`run.${e.payload?.state}`)}return{wake:reasons.length>0,reasons}}
 export function coalesceWake(lastWakeMs:number|null,nowMs:number,windowMs=30_000):boolean{return lastWakeMs===null||nowMs-lastWakeMs>=windowMs}
 export function heartbeatInterval(idleCycles:number):number{return Math.min(600*2**Math.max(0,idleCycles),7200)}
 export function digestMd(needs:string[],news:string[],active:string[]):string{return `## Needs you\n${needs.map(x=>`- ${x}`).join('\n')}\n\n## New\n${news.map(x=>`- ${x}`).join('\n')}\n\n## In progress\n${active.map(x=>`- ${x}`).join('\n')}\n`}
