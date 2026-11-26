@@ -7,6 +7,8 @@ import { EventStore } from '../events/store.js';
 import type { GitDriver } from '../git/mirror.js';
 import { seedWorkspace } from '../git/mirror.js';
 import type { AgentAdapter } from '@flotilla/core/types';
+import { getRunTokenService } from '../captain/tools/registry.js';
+import { captainMcpTar } from '../captain/tools/mcpConfig.js';
 
 type Driver = GitDriver & { startThreadContainer(input: Record<string, unknown>): Promise<{ containerId: string }>; stop(id: string): Promise<void> };
 type Row = Record<string, unknown>;
@@ -85,14 +87,17 @@ export class ThreadRunner {
     }
 
     const project = await this.project(thread);
-    const machine = await this.deps.driver.startThreadContainer({ threadId, code: thread.code, image: 'flotilla-thread:dev', cpus: 1, memMb: 512, env: {}, roMounts: [], egressAllow: project?.egress_allow as string[] ?? [] });
+    const tokenService = thread.role === 'captain' ? getRunTokenService() : null;
+    const runToken = tokenService?.issue(runId, threadId);
+    const machine = await this.deps.driver.startThreadContainer({ threadId, code: thread.code, image: 'flotilla-thread:dev', cpus: 1, memMb: 512, env: runToken ? { FLOTILLA_MCP_TOKEN: runToken.token } : {}, roMounts: [], egressAllow: project?.egress_allow as string[] ?? [] });
+    if (runToken && 'copyIn' in this.deps.driver) await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', captainMcpTar(runToken.token)).catch(() => undefined);
     if (project) await seedWorkspace({ id: threadId as never, code: thread.code as string, title: thread.title as string, branch: thread.branch as string | null, containerId: machine.containerId }, { id: project.id as never, repo: project.repo as never, trust: project.trust as never }, this.deps.driver).catch(() => ({ branch: null }));
     const adapter = this.deps.adapters.get((thread.engine as Row).adapter as string) ?? [...this.deps.adapters.values()][0];
     if (!adapter) throw new Error('adapter missing');
     const transport = this.deps.driver.transport(machine.containerId);
     let usage = { ...zero }; let state: 'completed' | 'cancelled' | 'failed' | 'paused_budget' = 'completed'; const started = Date.now();
-    const scrubber = createDeltaScrubber(this.deps.secrets ?? {});
-    const stream = adapter.start({ runId: runId as never, threadId: threadId as never, prompt: (this.queued.get(threadId) ?? []).shift() ?? '', cwd: '/workspace/repo', env: {}, transport, resumeSessionId: null, vendorBudget: { maxMicroUsd: policy.maxUsd }, auth: { kind: 'none' }, mcpConfigPath: null, images: [] } as never);
+    const scrubber = createDeltaScrubber({ ...(this.deps.secrets ?? {}), ...(runToken ? { FLOTILLA_MCP_TOKEN: runToken.token } : {}) });
+    const stream = adapter.start({ runId: runId as never, threadId: threadId as never, prompt: (this.queued.get(threadId) ?? []).shift() ?? '', cwd: '/workspace/repo', env: {}, transport, resumeSessionId: null, vendorBudget: { maxMicroUsd: policy.maxUsd }, auth: { kind: 'none' }, mcpConfigPath: runToken ? '/run/flotilla/mcp.json' : null, images: [] } as never);
     try {
       for await (const event of stream) {
         if (this.cancelled.has(threadId)) { state = 'cancelled'; await adapter.cancel(runId as never).catch(() => undefined); break; }
@@ -116,6 +121,7 @@ export class ThreadRunner {
       await this.pool.query(`UPDATE threads SET status=$2,updated_at=now() WHERE id=$1`, [threadId, state === 'paused_budget' ? 'paused' : state === 'completed' ? 'waiting' : state === 'cancelled' ? 'idle' : 'failed']);
       await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'run.ended', source: 'kernel', trust: 'trusted', payload: { state, usage } }] as never);
       await ((this.deps.driver as Driver & {remove?(id:string):Promise<void>}).remove?.(machine.containerId) ?? this.deps.driver.stop(machine.containerId)).catch(() => undefined);
+      tokenService?.endRun(runId);
       this.cancelled.delete(threadId);
     }
   }
