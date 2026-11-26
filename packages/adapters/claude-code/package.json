@@ -1,0 +1,17 @@
+{
+  "name": "@flotilla/adapter-claude-code",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "lint": "oxlint src"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "vitest": "^3.0.0",
+    "oxlint": "^1.0.0"
+  }
+}

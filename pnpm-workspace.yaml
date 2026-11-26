@@ -1,0 +1,10 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "packages/adapters/*"
+allowBuilds:
+  cpu-features: true
+  esbuild: true
+  msw: true
+  protobufjs: true
+  ssh2: true
