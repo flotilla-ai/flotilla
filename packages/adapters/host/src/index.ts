@@ -53,7 +53,7 @@ export function runJsonl(
   transport: ProcessTransport,
   argv: string[],
   opts: { cwd: string; env: Record<string, string> },
-  parseLine: (line: string) => AdapterEvent | null
+  parseLine: (line: string) => AdapterEvent | AdapterEvent[] | null
 ): { events: AsyncIterable<AdapterEvent>; cancel(): Promise<void> } {
   const handle = transport.spawn(argv, opts);
   let cancelled = false;
@@ -79,9 +79,9 @@ export function runJsonl(
     let sawDone = false;
     for await (const line of handle.stdout) {
       const event = parseLine(line);
-      if (event) {
-        if (event.t === 'done') sawDone = true;
-        yield event;
+      for (const item of event ? Array.isArray(event) ? event : [event] : []) {
+        if (item.t === 'done') sawDone = true;
+        yield item;
       }
     }
     const exit = await handle.exit;

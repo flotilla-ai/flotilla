@@ -7,3 +7,4 @@
 - 2026-11-27: unit 03 keeps budget reservation pure and uses placeholder zero token prices marked unverified. Undo: replace price table with verified vendor prices.
 
 - 2026-11-27: unit 04 centralizes process-group cancellation in adapter host; adapters remain transport-only. Undo: move cancellation into adapters if vendor-specific semantics require it.
+- 2026-11-27: unit 06 uses synthetic Claude fixtures because live vendor login is forbidden here; adapter host parsers may return event arrays for multi-event JSONL rows. Undo: replace fixtures with scrubbed P2 smoke recordings.
