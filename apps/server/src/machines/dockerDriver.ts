@@ -55,7 +55,12 @@ export class DockerMachineDriver {
     const info = await container.inspect().catch(() => null);
     await container.remove({ force: true }).catch(() => undefined);
     for (const name of Object.keys(info?.NetworkSettings?.Networks ?? {})) {
-      await this.docker.getNetwork(name).remove().catch(() => undefined);
+      const network = this.docker.getNetwork(name);
+      const inspect = await network.inspect().catch(() => null);
+      for (const attached of Object.keys(inspect?.Containers ?? {})) {
+        await network.disconnect({ Container: attached, Force: true }).catch(() => undefined);
+      }
+      await network.remove().catch(() => undefined);
     }
   }
 }

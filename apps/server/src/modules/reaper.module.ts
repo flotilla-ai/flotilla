@@ -2,6 +2,7 @@ import Docker from 'dockerode';
 import pg from 'pg';
 import { DockerMachineDriver } from '../machines/dockerDriver.js';
 import { reconcile } from '../machines/reaper.js';
+import { migrate } from '../db/migrate.js';
 
 export default {
   name: 'reaper',
@@ -12,6 +13,7 @@ export default {
     const timer = setInterval(async () => {
       const containers = (await docker.listContainers({ all: true, filters: { label: ['flotilla.thread'] } })).map((c) => ({ id: c.Id, labels: c.Labels ?? {}, state: c.State }));
       if (!env.DATABASE_URL) return;
+      await migrate(env.DATABASE_URL);
       const db = new pg.Client({ connectionString: env.DATABASE_URL });
       await db.connect();
       const rows = await db.query<{ id: string; status: string }>('SELECT id, status FROM threads').finally(() => db.end().catch(() => undefined));
