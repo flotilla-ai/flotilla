@@ -7,7 +7,7 @@ function sse(event: Event): Uint8Array {
 }
 
 export function createStreamRoute(store: EventStore): { basePath: string; app: Hono; public: boolean } {
-  const app = new Hono().get('/threads/:id/stream', async (c) => {
+  const app = new Hono().get('/:id/stream', async (c) => {
     const threadId = c.req.param('id') as Event['threadId'];
     const after = Number.parseInt(c.req.query('after') ?? '0', 10) || 0;
     const subscription = await store.subscribe(threadId, after);
@@ -39,7 +39,7 @@ export function createStreamRoute(store: EventStore): { basePath: string; app: H
       }
     });
   });
-  return { basePath: '/api/v1', app, public: false };
+  return { basePath: '/api/v1/threads', app, public: false };
 }
 
 const store = new EventStore(process.env.DATABASE_URL ?? 'postgres://postgres@postgres:5432/flotilla');

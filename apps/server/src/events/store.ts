@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import pg from 'pg';
 import type { Event } from '@flotilla/core/types';
+import { migrate } from '../db/migrate.js';
 
 export type NewEvent = Omit<Event, 'id' | 'seq' | 'at'>;
 export type Tx = { query: pg.PoolClient['query'] };
@@ -30,9 +31,17 @@ const eventColumns = 'id, thread_id, seq, run_id, kind, at, source, trust, paylo
 
 export class EventStore {
   readonly pool: pg.Pool;
+  private readonly databaseUrl: string;
+  private migrated?: Promise<unknown>;
 
   constructor(databaseUrl: string, pool?: pg.Pool) {
+    this.databaseUrl = databaseUrl;
     this.pool = pool ?? new pg.Pool({ connectionString: databaseUrl, max: 4 });
+  }
+
+  private ensureMigrated(): Promise<unknown> {
+    this.migrated ??= migrate(this.databaseUrl);
+    return this.migrated;
   }
 
   async appendEvents(
@@ -41,9 +50,11 @@ export class EventStore {
     opts: { requestId?: string; apply?: (tx: Tx) => Promise<void> } = {}
   ): Promise<Event[]> {
     if (events.length === 0) return [];
+    await this.ensureMigrated();
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
+      await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [threadId]);
       if (opts.requestId) {
         const existing = await client.query(
           `SELECT ${eventColumns} FROM events WHERE thread_id = $1 AND request_id = $2 ORDER BY seq`,
@@ -55,7 +66,6 @@ export class EventStore {
         }
       }
 
-      await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [threadId]);
       const max = await client.query<{ max: number | null }>('SELECT max(seq) FROM events WHERE thread_id = $1', [threadId]);
       let seq = (max.rows[0]?.max ?? 0) + 1;
       const inserted: Event[] = [];
@@ -94,6 +104,7 @@ export class EventStore {
   }
 
   async listAfter(threadId: Event['threadId'], afterSeq: number, limit = 1000): Promise<Event[]> {
+    await this.ensureMigrated();
     const rows = await this.pool.query(
       `SELECT ${eventColumns} FROM events WHERE thread_id = $1 AND seq > $2 ORDER BY seq LIMIT $3`,
       [threadId, afterSeq, limit]
@@ -102,6 +113,7 @@ export class EventStore {
   }
 
   async subscribe(threadId: Event['threadId'], afterSeq = 0): Promise<AsyncIterable<Event>> {
+    await this.ensureMigrated();
     const client = new pg.Client({ connectionString: this.pool.options.connectionString });
     await client.connect();
     await client.query('LISTEN flotilla_events');

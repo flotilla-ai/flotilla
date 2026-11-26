@@ -70,9 +70,10 @@ CREATE TABLE IF NOT EXISTS events (
   trust text NOT NULL CHECK (trust IN ('trusted', 'untrusted')),
   payload jsonb NOT NULL,
   request_id text,
-  UNIQUE (thread_id, seq),
-  UNIQUE (thread_id, request_id)
+  UNIQUE (thread_id, seq)
 );
+
+CREATE INDEX IF NOT EXISTS events_thread_request_idx ON events (thread_id, request_id);
 
 CREATE TABLE IF NOT EXISTS approvals (
   id text PRIMARY KEY,

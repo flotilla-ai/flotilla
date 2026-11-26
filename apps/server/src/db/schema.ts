@@ -73,7 +73,7 @@ export const events = pgTable('events', {
   requestId: text('request_id')
 }, (t) => [
   uniqueIndex('events_thread_seq_unique').on(t.threadId, t.seq),
-  uniqueIndex('events_thread_request_unique').on(t.threadId, t.requestId),
+  index('events_thread_request_idx').on(t.threadId, t.requestId),
   index('events_thread_seq_idx').on(t.threadId, t.seq)
 ]);
 

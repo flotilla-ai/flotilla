@@ -50,7 +50,7 @@ function ev(threadId: Event['threadId'], text: string): NewEvent {
 }
 
 beforeAll(async () => {
-  container = await docker(['run', '-d', '--rm', '-P', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', 'postgres:16']);
+  container = await docker(['run', '-d', '--rm', '-p', '127.0.0.1::5432', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', 'postgres:16']);
   const portLine = await docker(['port', container, '5432/tcp']);
   const port = portLine.split(':').pop();
   databaseUrl = `postgres://postgres@127.0.0.1:${port}/postgres`;
@@ -84,18 +84,19 @@ describe('event store', () => {
 
   it('returns original events for a duplicate requestId', async () => {
     const threadId = await makeThread();
-    const first = await store.appendEvents(threadId, [ev(threadId, 'once')], { requestId: 'req-1' });
+    const first = await store.appendEvents(threadId, [ev(threadId, 'once'), ev(threadId, 'batch')], { requestId: 'req-1' });
+    expect(first).toHaveLength(2);
     const second = await store.appendEvents(threadId, [ev(threadId, 'twice')], { requestId: 'req-1' });
     expect(second.map((e) => e.id)).toEqual(first.map((e) => e.id));
     const rows = await query('SELECT count(*)::int AS n FROM events WHERE thread_id=$1', [threadId]);
-    expect(rows.rows[0].n).toBe(1);
+    expect(rows.rows[0].n).toBe(2);
   });
 
   it('streams replayed events after seq 2 in order and then live events', async () => {
     const threadId = await makeThread();
     for (let i = 1; i <= 5; i++) await store.appendEvents(threadId, [ev(threadId, `seed${i}`)]);
     const route = createStreamRoute(store);
-    const res = await route.app.request(`http://local/threads/${threadId}/stream?after=2`);
+    const res = await route.app.request(`http://local/${threadId}/stream?after=2`);
     expect(res.headers.get('content-type')).toContain('text/event-stream');
     const reader = res.body!.getReader();
     const decoder = new TextDecoder();
