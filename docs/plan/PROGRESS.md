@@ -1,0 +1,32 @@
+# Flotilla phase 1 progress
+
+Started: 2026-11-27 PKT.
+Current `flotilla/p1` head: initializing.
+
+| Unit | Status | Attempts | PR | Notes |
+|---|---:|---:|---|---|
+| 01-skeleton | pending | 0 | | |
+| 02-event-store | pending | 0 | | |
+| 03-kernel-budget | pending | 0 | | |
+| 04-adapter-host | pending | 0 | | |
+| 05-docker-driver | pending | 0 | | |
+| 06-claude-code-adapter | pending | 0 | | |
+| 07-codex-adapter | pending | 0 | | |
+| 08-auth-projects-api | pending | 0 | | |
+| 09-git-mirror | pending | 0 | | |
+| 10-egress-gate | pending | 0 | | |
+| 11-thread-runner | pending | 0 | | |
+| 12-web-ui-core | pending | 0 | | |
+| 13-web-ui-actions | pending | 0 | | |
+| 14-github-autofix | pending | 0 | | |
+| 15-previews | pending | 0 | | |
+| 16-captain-tools | pending | 0 | | |
+| 17-captain-scheduler | pending | 0 | | |
+
+## Unverified items
+
+None yet.
+
+## Blocked units
+
+None yet.
