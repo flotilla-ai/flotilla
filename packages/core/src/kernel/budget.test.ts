@@ -30,9 +30,11 @@ describe('budget kernel', () => {
     expect(Number.isInteger(second.next.usd)).toBe(true);
   });
 
-  it('reservation fails when existing parallel holds would exceed the captain subtree', () => {
+  it('reserves the smaller remaining amount and only fails with no positive balance', () => {
     const result = reserve([state('thread', 100, 0, 0), state('captain-subtree', 100, 0, 90)], 20, ctx);
-    expect(result).toMatchObject({ ok: false, scope: { scope: 'captain-subtree' } });
+    expect(result).toMatchObject({ ok: true });
+    if (result.ok) expect(result.holds.find((h) => h.scope === 'captain-subtree')?.amount).toBe(10);
+    expect(reserve([state('captain-subtree', 100, 0, 100)], 20, ctx)).toMatchObject({ ok: false, scope: { scope: 'captain-subtree' } });
   });
 
   it('settles overshoot and enforces wall clock fence', () => {

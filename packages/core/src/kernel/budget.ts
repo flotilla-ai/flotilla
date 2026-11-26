@@ -101,7 +101,7 @@ export function reserve(
   ctx: { threadId: Approval['threadId']; captainId: Approval['captainId']; runId: Hold['runId'] }
 ): { ok: true; holds: Hold[] } | { ok: false; scope: BudgetState; approval: Omit<Approval, 'id'> } {
   for (const scope of tree) {
-    if (remaining(scope) < perRunReserve) {
+    if (remaining(scope) <= 0) {
       return {
         ok: false,
         scope,
@@ -115,7 +115,7 @@ export function reserve(
       scope: scope.scope,
       scopeId: scope.scopeId,
       runId: ctx.runId,
-      amount: perRunReserve
+      amount: Math.min(perRunReserve, Math.trunc(remaining(scope)))
     }))
   };
 }

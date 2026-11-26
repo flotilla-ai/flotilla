@@ -54,16 +54,11 @@ export function scrub(payload: unknown, secrets: Record<string, string>): unknow
 }
 
 export function createDeltaScrubber(secrets: Record<string, string>): { push(chunk: string): string; flush(): string } {
-  const longestKnown = Math.max(0, ...Object.values(secrets).map((s) => s.length));
-  const holdback = Math.max(127, longestKnown - 1);
   let buffer = '';
   return {
     push(chunk: string): string {
       buffer += chunk;
-      if (buffer.length <= holdback) return '';
-      const emit = buffer.slice(0, buffer.length - holdback);
-      buffer = buffer.slice(buffer.length - holdback);
-      return scrubString(emit, secrets);
+      return '';
     },
     flush(): string {
       const out = scrubString(buffer, secrets);
