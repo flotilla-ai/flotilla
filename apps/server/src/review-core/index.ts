@@ -18,6 +18,11 @@ const run = (r: Row): ReviewRun => ({ id: r.id, repo: r.repo, prNumber: r.pr_num
 const finding = (r: Row): ReviewFinding => ({ id: r.id, runId: r.run_id, repo: r.repo, prNumber: r.pr_number, round: r.round, kind: r.kind, category: r.category, severity: r.severity, confidence: r.confidence, file: r.file, line: r.line, body: r.body, fingerprint: r.fingerprint, status: r.status, githubThreadState: r.github_thread_state, posted: r.posted, superseded: r.superseded });
 const rank: Record<string, number> = { low: 1, medium: 2, high: 3 };
 
+async function assertVerifiedRepoAccess(pool: pg.Pool, userId: string, repo: string): Promise<void> {
+  const allowed = await pool.query(`SELECT 1 FROM github_installations i JOIN github_accounts a ON a.id=i.account_id WHERE a.user_id=$1 AND a.revoked_at IS NULL AND i.revoked_at IS NULL AND i.verified_at IS NOT NULL AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(i.repositories) x WHERE lower(x)=lower($2)) LIMIT 1`, [userId, repo]);
+  if (!allowed.rows[0]) throw new ApiFailure('NotFound', 'review repository not found in a verified installation');
+}
+
 export class ReviewCoreStore {
   constructor(readonly pool: pg.Pool) {}
   private async q(sql: string, args: unknown[] = []) { return (await this.pool.query(sql, args)).rows as Row[] }
@@ -37,23 +42,25 @@ export class ReviewCoreStore {
     if (!['pr-page','mention','api','push'].includes(source)) throw new ApiFailure('ValidationFailed', 'invalid review source');
     const repo = repoName(input.repo); const pr = prNumber(input.prNumber); const head = sha(input.headSha);
     const base = input.baseSha == null ? null : sha(input.baseSha);
+    await assertVerifiedRepoAccess(this.pool, userId, repo);
     const effort = String(input.effort ?? 'medium') as ReviewEffort; if (!['low','medium','high','flex'].includes(effort)) throw new ApiFailure('ValidationFailed', 'invalid review effort');
     const last = await this.latest(userId, repo, pr); const round = (last?.round ?? 0) + 1;
     const rid = id('rev');
+    const [r] = await this.q(`INSERT INTO review_runs (id,owner_id,repo,pr_number,head_sha,base_sha,round,status,source,instructions,effort,credits,adapter,connection_id,last_reviewed_sha,source_event_at) VALUES ($1,$2,$3,$4,$5,$6,$7,'completed',$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+      [rid, userId, repo, pr, head, base, round, source, input.instructions == null ? null : String(input.instructions), effort, reviewCredits(effort, round), String(input.adapter ?? 'fake'), input.connectionId == null ? null : String(input.connectionId), last?.head_sha ?? null, input.eventAt == null ? null : new Date(String(input.eventAt))]);
     if (last && last.head_sha !== head) await this.pool.query('UPDATE review_findings SET superseded=true,updated_at=now() WHERE owner_id=$1 AND repo=$2 AND pr_number=$3 AND NOT superseded', [userId, repo, pr]);
-    const [r] = await this.q(`INSERT INTO review_runs (id,owner_id,repo,pr_number,head_sha,base_sha,round,status,source,instructions,effort,credits,adapter,connection_id,last_reviewed_sha) VALUES ($1,$2,$3,$4,$5,$6,$7,'completed',$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
-      [rid, userId, repo, pr, head, base, round, source, input.instructions == null ? null : String(input.instructions), effort, reviewCredits(effort, round), String(input.adapter ?? 'fake'), input.connectionId == null ? null : String(input.connectionId), last?.head_sha ?? null]);
     await this.pool.query('UPDATE review_settings SET reviewed_once=true WHERE owner_id=$1 AND repo=$2', [userId, repo]);
     return run(r);
   }
-  async push(userId: string, repoInput: unknown, prInput: unknown, headInput: unknown): Promise<ReviewRun | null> {
+  async push(userId: string, repoInput: unknown, prInput: unknown, headInput: unknown, eventAtInput?: unknown): Promise<ReviewRun | null> {
     const repo = repoName(repoInput); const pr = prNumber(prInput); const head = sha(headInput);
     const last = await this.latest(userId, repo, pr); if (!last || last.head_sha === head) return null;
+    const eventAt = eventAtInput == null ? undefined : String(eventAtInput); if (last.source_event_at && eventAt && new Date(String(eventAt)).getTime() <= new Date(last.source_event_at).getTime()) return null;
     const settings = await this.settings(userId, repo);
     if (settings.automaticMode === 'off' || (settings.automaticMode === 'once' && (await this.q('SELECT reviewed_once FROM review_settings WHERE owner_id=$1 AND repo=$2', [userId, repo]))[0]?.reviewed_once)) return null;
     if (settings.automaticMode !== 'every-push' && settings.automaticMode !== 'once') return null;
     await this.pool.query('UPDATE review_findings SET superseded=true,updated_at=now() WHERE owner_id=$1 AND repo=$2 AND pr_number=$3 AND NOT superseded', [userId, repo, pr]);
-    return this.start(userId, { repo, prNumber: pr, headSha: head, baseSha: last.base_sha, effort: last.effort, adapter: last.adapter, connectionId: last.connection_id }, 'push');
+    return this.start(userId, { repo, prNumber: pr, headSha: head, baseSha: last.base_sha, effort: last.effort, adapter: last.adapter, connectionId: last.connection_id, eventAt }, 'push');
   }
   private async ownedRun(userId: string, runId: string): Promise<Row> { const [r] = await this.q('SELECT * FROM review_runs WHERE id=$1 AND owner_id=$2', [runId, userId]); if (!r) throw new ApiFailure('NotFound', 'review run not found'); return r }
   async addFindings(userId: string, runId: string, items: Row[]): Promise<ReviewFinding[]> {
@@ -90,7 +97,7 @@ export class ReviewCoreStore {
   }
   async state(userId: string, repoInput: string, prInput: number): Promise<{ run: ReviewRun | null; findings: ReviewFinding[]; readiness: { ready: boolean; override: boolean; blockedBy: ReviewFinding[] } }> {
     const repo = repoName(repoInput); const pr = prNumber(prInput); const latest = await this.latest(userId, repo, pr);
-    const rows = latest ? await this.q('SELECT * FROM review_findings WHERE owner_id=$1 AND repo=$2 AND pr_number=$3 AND round=$4 AND NOT superseded ORDER BY round,file,line', [userId, repo, pr, latest.round]) : [];
+    const rows = latest ? await this.q('SELECT * FROM review_findings WHERE owner_id=$1 AND repo=$2 AND pr_number=$3 AND NOT superseded ORDER BY round,file,line', [userId, repo, pr]) : [];
     const findings = rows.map(finding); const blockedBy = findings.filter((f) => f.kind === 'finding' && f.status === 'open' && f.severity === 'high' && f.confidence === 'confirmed');
     const override = latest?.ready_override === true; return { run: latest ? run(latest) : null, findings, readiness: { ready: override || blockedBy.length === 0, override, blockedBy } };
   }
@@ -103,6 +110,6 @@ export async function reviewPushFromWebhook(store: ReviewCoreStore, body: Row): 
   if (typeof repo !== 'string' || !Number.isInteger(number) || typeof head !== 'string') return 0;
   const owners = await store.pool.query('SELECT DISTINCT owner_id FROM review_runs WHERE repo=$1 AND pr_number=$2', [repo, number]);
   let made = 0;
-  for (const row of owners.rows as Row[]) if (await store.push(String(row.owner_id), repo, number, head)) made++;
+  for (const row of owners.rows as Row[]) if (await store.push(String(row.owner_id), repo, number, head, (pr as Row).updated_at)) made++;
   return made;
 }

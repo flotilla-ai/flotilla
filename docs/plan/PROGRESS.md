@@ -53,9 +53,9 @@ Counted in `docs/plan/PARITY.md` after phase2-25: done 279, pending 246, needs-h
 | phase2-14-devices-pairing | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/70 | Pairing codes, device trust/status/heartbeat, machine picker, workspace policy, folder scan; 3 rows done, 7 device-execution rows blocked; see `docs/runlog/phase2-14.md` |
 | phase2-27-automation-control | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/71 | automation control operations, cap, webhook rotation, filters; 4 rows done, Drive/machine/output rows blocked; see `docs/runlog/phase2-27.md` |
 | repair-19-runner-requeue | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/72 | failed starts requeue claimed input instead of cancelling user messages |
-| phase2-28-automation-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/73 | automation REST CRUD; see `docs/runlog/phase2-28.md` |
+| phase2-28-automation-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/73 | automation REST CRUD, run/batch controls, state transitions; see `docs/runlog/phase2-28.md` |
 | phase2-23-pr-autofix | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/74 | PR settings/list/actions/review actor and no-CI wake foundation; see `docs/runlog/phase2-23.md` |
-| phase2-24-review-core | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/75 | review rounds/findings/triage/readiness; see `docs/runlog/phase2-24.md` |
+| phase2-24-review-core | in review | 1 |  | durable review rounds/findings/triage/readiness/posting policy; see `docs/runlog/phase2-24.md` |
 | phase2-25-review-policy | in review | 1 |  | review context/policy/guides/evidence/stack detection; see `docs/runlog/phase2-25.md` |
 ## Next action
 

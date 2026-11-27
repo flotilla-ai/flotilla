@@ -18,7 +18,7 @@ beforeAll(async () => {
   const port = (await exec('docker', ['port', container, '5432/tcp'])).stdout.trim().split(':').pop(); const url = `postgres://postgres@127.0.0.1:${port}/postgres`;
   for (let i = 0; i < 40; i++) { try { const c = new pg.Client({ connectionString: url }); await c.connect(); await c.end(); break; } catch { await new Promise((r) => setTimeout(r, 250)); } }
   await migrate(url); pool = new pg.Pool({ connectionString: url }); store = new ReviewCoreStore(pool);
-  await pool.query(`INSERT INTO users (id,email,role) VALUES ('usr_r','r@x','member')`);
+  await pool.query(`INSERT INTO users (id,email,role) VALUES ('usr_r','r@x','member')`);await pool.query(`INSERT INTO github_accounts (id,user_id,login,kind,token_ref) VALUES ('gha_r','usr_r','alice','personal','vault:github/token')`);await pool.query(`INSERT INTO github_installations (id,account_id,installation_id,subject,repositories,permissions,verified_at) VALUES ('ghi_r','gha_r','1','acme','["acme/app"]','{"contents":"write"}',now())`);
   app = new Hono(); app.onError((err, c) => err instanceof ApiFailure ? apiError(c, err.kind, err.message) : apiError(c, 'Internal', String(err)));
   app.use('*', async (c, next) => { c.set('userId' as never, 'usr_r' as never); await next(); });
   app.route('/api/v1', createReviewCoreRoute(() => store).app);
