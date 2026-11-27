@@ -175,5 +175,7 @@ describe('skills', () => {
     const tar = copies.find((c) => c.dir === '/home/node')!.tar; const at = tar.indexOf('.claude/skills/review/scripts/check.sh');
     expect(untar(tar)['.claude/skills/review/scripts/check.sh']).toBe('#!/bin/sh\necho ok\n'); expect(tar.toString('ascii', at + 100, at + 107)).toBe('0000755');
     expect((await call('/skills', { method: 'POST', json: { source: 'drive', folder: 'big', files: { 'SKILL.md': md('big', 'Big.'), 'blob.txt': 'x'.repeat(300 * 1024) } } })).status).toBe(400);
+    expect((await call('/skills/import', { method: 'POST', json: { from: 'cursor', files: [{ path: 'skills/review/SKILL.md', content: md('review', 'Overwritten.') }, { path: 'skills/huge/SKILL.md', content: 'x'.repeat(300 * 1024) }] } })).status).toBe(400);
+    expect(byName((await json(await call('/skills'))).items, 'review')[0].description).toBe('Review a diff.');
   }, 20_000);
 });

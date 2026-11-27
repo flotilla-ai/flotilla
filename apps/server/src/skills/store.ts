@@ -13,6 +13,10 @@ const toSkill = (r: Row): Omit<Skill, 'load'> => ({ id: r.id, name: r.name, desc
 /** Lists `<dir>/<folder>/<file>` regular files (no symlinks, < 64 KB) under the repo skill dirs as `path<TAB>base64`. */
 const SCAN = `cd "$1" 2>/dev/null || exit 0; for d in ${REPO_SKILL_DIRS.join(' ')}; do [ -d "$d" ] || continue; find "$d" -mindepth 2 -maxdepth 5 -type f -size -64k | head -n 400 | while IFS= read -r f; do printf '%s\\t%s\\n' "$f" "$(base64 -w0 < "$f")"; done; done`;
 
+function checkSize(files: Record<string, string>): void {
+  if (Object.keys(files).length > MAX_FILES || Object.values(files).reduce((n, f) => n + Buffer.byteLength(f), 0) > MAX_BYTES) throw new ApiFailure('ValidationFailed', `a skill folder is limited to ${MAX_FILES} files and 256 KB`);
+}
+
 export class SkillStore {
   readonly pool: pg.Pool;
   private ready?: Promise<unknown>;
@@ -38,7 +42,7 @@ export class SkillStore {
     return resolveSkills([...BUILTIN_SKILLS, ...rows.map(toSkill)], disabled);
   }
   async save(userId: string, w: SkillWrite): Promise<Skill> {
-    if (Object.keys(w.files).length > MAX_FILES || Object.values(w.files).reduce((n, f) => n + Buffer.byteLength(f), 0) > MAX_BYTES) throw new ApiFailure('ValidationFailed', `a skill folder is limited to ${MAX_FILES} files and 256 KB`);
+    checkSize(w.files);
     const projectId = await this.ownedProject(userId, w.projectId);
     const [r] = await this.q(`INSERT INTO skills (id,owner_id,project_id,source,plugin,origin,name,files) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
       ON CONFLICT ON CONSTRAINT skills_folder DO UPDATE SET files=EXCLUDED.files, origin=EXCLUDED.origin, updated_at=now() RETURNING id`,
@@ -57,6 +61,7 @@ export class SkillStore {
       if (rest.length < 2) throw new ApiFailure('ValidationFailed', `${f.path} is not inside a skill folder`);
       folders.set(rest[0], { ...folders.get(rest[0]), [rest.slice(1).join('/')]: f.content });
     }
+    for (const files of folders.values()) checkSize(files);
     const out: Skill[] = [];
     for (const [folder, files] of folders) out.push(await this.save(userId, { source: 'drive', projectId: input.projectId, folder, files, origin: input.from }));
     return out;
