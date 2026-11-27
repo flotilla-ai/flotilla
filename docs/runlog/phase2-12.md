@@ -1,6 +1,6 @@
 # phase2-12 machine core
 
-Branch `flotilla/phase2-12-machine-core` from `origin/flotilla/p1` (`9fc248b`), then a real merge of `origin/flotilla/p1` `0662ec8` (phase2-06) `eba906f` (phase2-17) and `6b5546a` (repair-10, repair-12). Fake machine driver + local-process transport, temporary Postgres 16 container, server-rendered web component. No vendor calls or logins.
+Branch `flotilla/phase2-12-machine-core` from `origin/flotilla/p1` (`9fc248b`), then a real merge of `origin/flotilla/p1` `0662ec8` (phase2-06) `eba906f` (phase2-17), `6b5546a` (repair-10, repair-12) and `2aefb24` (phase2-18). The `2aefb24` merge keeps phase2-18's `RunPlacement`: a run with `workspaceFrom` gets a per-run container (read-only mount, no seeding, no pool lease); CAPY-050/051 restored to phase2-17's blocked rows because phase2-18 had reset them to pending. Fake machine driver + local-process transport, temporary Postgres 16 container, server-rendered web component. No vendor calls or logins.
 
 ## Rows
 - done: CAPY-201, CAPY-202, CAPY-203, CAPY-204, CAPY-205, CAPY-209, CAPY-210, CAPY-211, CAPY-213; CAPY-186 (phase2-10) moved to done now that boot/wake rerun startup entries.
