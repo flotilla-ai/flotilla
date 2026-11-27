@@ -87,3 +87,7 @@ This local failure is the `git/mirror.test.ts` failure recorded above. It is out
 ## Integration renumber
 
 Parent integration rule: phase2-03 keeps migration prefix 0006, so this unit's migration is now `0007_runner_queue.sql`. Migrations run in name order and nothing else refers to the file name.
+
+## Parity downgrade (parent review)
+
+The handoff treats CAPY-009/010/026/465/466/467/468/469/470/476 as web-UI rows. This unit only ships the server/API slice, and web wiring would push the diff past 800 lines. Those 10 rows are now `blocked`. Each note says which UI piece is missing. CAPY-004/601/603/604 stay `done` because runner-queue.test.ts proves them without a UI.

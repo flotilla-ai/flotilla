@@ -5,7 +5,7 @@ Current `flotilla/p1` head: `4772b1c` (repair-5 merged; merged into phase2-05).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` on this branch: done 71, pending 531, needs-human-login 8, n-a 22, blocked 0 (phase2-05 adds 14 done rows; the remaining P2/P3/P4 rows are pending); phase 1 rows are done except live vendor/GitHub rows marked `needs-human-login`; n/a rows carry Appendix A's reason.
+Counted in `docs/plan/PARITY.md` on this branch: done 61, pending 531, needs-human-login 8, n-a 22, blocked 10 (phase2-05 adds 4 done rows and 10 blocked web-UI rows; the remaining P2/P3/P4 rows are pending); phase 1 rows are done except live vendor/GitHub rows marked `needs-human-login`; n/a rows carry Appendix A's reason.
 
 ## Unit table
 
@@ -23,7 +23,7 @@ Counted in `docs/plan/PARITY.md` on this branch: done 71, pending 531, needs-hum
 | repair-4-secrets-hardening | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/29 | persist vault key; keyed idempotency fingerprints |
 | phase2-03-models-catalog | in progress | 1 |  | child session implementing |
 | repair-5-runner-supervise | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/33 | runner background continuations drained before pool end |
-| phase2-05-runner-queue | in review | 1 |  | durable inbox, steer/queue, versions, retry, /plan gate; 14 rows |
+| phase2-05-runner-queue | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/34 | durable inbox, steer/queue, versions, retry, /plan gate; 4 rows done, 10 web-UI rows blocked |
 
 ## Next action
 
