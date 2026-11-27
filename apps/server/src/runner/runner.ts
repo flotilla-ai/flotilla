@@ -139,7 +139,7 @@ export class ThreadRunner {
     const eventSecrets = { ...this.deps.secrets, ...prepared.env, ...(runToken ? { FLOTILLA_MCP_TOKEN: runToken.token } : {}) };
     const scrubber = createDeltaScrubber(eventSecrets);
     let stream: AsyncIterable<AdapterEvent>;
-    try { stream = adapter.start({ runId: runId as never, threadId: threadId as never, prompt: (this.queued.get(threadId) ?? []).shift() ?? '', cwd: project ? '/workspace/repo' : '/workspace', env: prepared.env, transport, resumeSessionId: null, vendorBudget: { maxMicroUsd: policy.maxUsd }, auth: { kind: 'none' }, mcpConfigPath: runToken ? '/run/flotilla/mcp.json' : null, images: [] } as never); } catch (err) { tokenService?.endRun(runId); throw err; }
+    try { stream = adapter.start({ runId: runId as never, threadId: threadId as never, prompt: (this.queued.get(threadId) ?? []).shift() ?? '', model: (thread.engine as Row).model ?? null, effort: (thread.engine as Row).effort ?? null, cwd: project ? '/workspace/repo' : '/workspace', env: prepared.env, transport, resumeSessionId: null, vendorBudget: { maxMicroUsd: policy.maxUsd }, auth: { kind: 'none' }, mcpConfigPath: runToken ? '/run/flotilla/mcp.json' : null, images: [] } as never); } catch (err) { tokenService?.endRun(runId); throw err; }
     try {
       for await (const event of stream) {
         if (this.cancelled.has(threadId)) { state = 'cancelled'; await adapter.cancel(runId as never).catch(() => undefined); break; }

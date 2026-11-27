@@ -20,13 +20,14 @@ Initialized in `docs/plan/PARITY.md`: P2/P3/P4 rows are pending; phase 1 rows ar
 | phase2-01-api-platform | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/25 | API platform foundation; 10 rows done |
 | repair-2-runner-authz | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/26 | runner ownership/idempotency security repair |
 | phase2-02-secrets | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/28 | secrets vault + env API; 12 rows done |
-| repair-4-secrets-hardening | in progress | 1 |  | persist vault key; keyed idempotency fingerprints |
-| phase2-03-models-catalog | in progress | 1 |  | child session implementing |
-| phase2-09-previews | in review | 1 |  | preview lifecycle and sharing; 7 rows done |
+| repair-4-secrets-hardening | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/29 | persist vault key; keyed idempotency fingerprints |
+| phase2-03-models-catalog | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/30 | model catalog + connections; 2 rows done, 5 needs-human-login, 1 blocked (CAPY-332 web picker) |
+| phase2-07-thread-lifecycle | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/31 | thread lifecycle and collaboration; 11 rows done pending merge; see `docs/runlog/phase2-07.md` |
+| phase2-09-previews | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/32 | preview lifecycle and sharing; 7 rows done |
 
 ## Next action
 
-1. Merge repair-4-secrets-hardening, then review the phase2-03 child PR.
+1. Review and merge phase2-03-models-catalog (branched from `flotilla/p1` `366c7bb`, merged with `8ada8c0`).
 2. Continue wave 1 serialized foundations in order with phase2-04 after phase2-03.
 3. Wave 2 units may start after wave 1 dependencies merge.
 
@@ -40,4 +41,4 @@ None.
 
 ## Unverified items
 
-See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. phase2-01, phase2-02 and phase2-09 unverified items are listed in `docs/runlog/phase2-01.md`, `docs/runlog/phase2-02.md` and `docs/runlog/phase2-09.md`.
+See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. phase2-01, phase2-02, phase2-07 and phase2-09 unverified items are listed in `docs/runlog/phase2-01.md`, `docs/runlog/phase2-02.md`, `docs/runlog/phase2-07.md` and `docs/runlog/phase2-09.md`.
