@@ -35,9 +35,10 @@ const list = (x: unknown, what: string): Record<string, unknown>[] => (x === und
 
 /** Validates an `EnvironmentSpec`, filling defaults (initialize 900 s, refresh 300 s). */
 export function parseEnvironmentSpec(raw: unknown): EnvironmentSpec {
-  const r = obj(raw); const setup = obj(r.setup);
+  const record = (x: unknown, what: string) => (x === undefined ? {} : x && typeof x === 'object' && !Array.isArray(x) ? obj(x) : fail(`${what} must be an object`));
+  const r = record(raw ?? fail('spec must be an object'), 'spec'); const setup = record(r.setup, 'setup');
   const phase = (name: SetupPhaseName): SetupPhase => {
-    const p = obj(setup[name]); const timeoutSec = p.timeoutSec ?? DEFAULT_TIMEOUT[name];
+    const p = record(setup[name], `setup.${name}`); const timeoutSec = p.timeoutSec ?? DEFAULT_TIMEOUT[name];
     if (!Number.isInteger(timeoutSec) || (timeoutSec as number) < 60 || (timeoutSec as number) > 3600) fail(`${name} timeoutSec must be an integer in 60-3600`);
     return { script: script(p.script, `${name} script`), timeoutSec: timeoutSec as number };
   };
