@@ -79,5 +79,9 @@ exit=2
 - Mentions match `@<email local part>` (substring match).
 - Machine cost uses the thread's current machine.
 
-## Review
-Pending.
+## Review round 1 (Devin Review on 5a954e5)
+- Resolved: former members of a now-private thread could still view or take it over (access now requires owner, shared or joined; takeover needs a shared thread). Takeover or transfer to a user who does not own the thread's project is now a 409. Streamed `agent.delta` replies now count as unread, and a run counts once with mentions matched across its deltas. The Inbox selection is cleared when switching the archived view.
+- Escalated (pre-existing, outside this unit's scope; for a parent repair PR):
+  - `read.route.ts` and `stream.route.ts` are owner-only, so joined collaborators cannot open shared threads from the Inbox.
+  - The GitHub CheckMonitor wake (`github.module.ts`) runs `runner.message` on archived threads, and the kernel message unarchives them. The recommended fix is for the check monitor to skip archived threads.
+- After the fixes: focused tests passed 11/11. `pnpm --filter @flotilla/server test`: 14/15 files and 72 tests passed, 1 skipped. The one failure is the known `git mirror` flake, which is not touched by this unit. Run alone twice, the same mirror file passed once (4/4) and failed once (1 failed | 3 passed).
