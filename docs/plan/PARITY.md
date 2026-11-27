@@ -275,29 +275,29 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-269 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
 | CAPY-270 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
 | CAPY-271 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-272 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-273 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-274 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-275 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-276 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-277 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-278 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-279 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-272 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | Scopes `org`, `user`, `project`, `project-user`, `automation`, `captain` in `drive_items` (Postgres) + content-addressed blobs in `FLOTILLA_DRIVE_DIR`; access: org read all/write admin, personal owner, project owner, automation admin, Captain owner (drive-core.test.ts). |
+| CAPY-273 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | Each thread mount copies its Drives to `/run/flotilla/drive/<scope>` before the agent starts (`onBeforeRun`); root `AGENTS.md` text is appended to the prompt (drive-core.test.ts, fake driver + fake adapter). |
+| CAPY-274 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | `skills/<name>/SKILL.md` files are mounted and listed by name/path in the run prompt and `GET /threads/:id/drive` (drive-core.test.ts). |
+| CAPY-275 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | After a run, changed files in writable mounted Drives are saved as new versions `by` the thread (`source=agent`), no git commit; unchanged files skipped; deletions inside the machine are not synced (drive-core.test.ts). |
+| CAPY-276 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | `/#/drive` page (scope picker, folders, edit+Save with `baseVersion`, upload, delete); `PUT /drive/files` rejects >32 MB uploads with a card (drive-core.test.ts + e2e/drive-core.spec.ts with mocked API). |
+| CAPY-277 | Drive | P2 | blocked | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | `GET /threads/:id/drive/copy` returns a point-in-time tar (`x-flotilla-drive-sync: none`) and later edits are not reflected (drive-core.test.ts); nothing unpacks it into `~/.flotilla/drive` on a local machine yet; needs the BYOM machine unit. |
+| CAPY-278 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | Every version kept in `drive_versions` (no expiry); `GET /drive/items/:id/versions`, `POST /drive/items/:id/restore` writes a new `restore` version (drive-core.test.ts). |
+| CAPY-279 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | No plans in Flotilla: quota per Drive is `FLOTILLA_DRIVE_QUOTA_BYTES` (default 10 GiB); 100 MiB per file; quota counts every retained version; an over-quota save returns 413 with a `drive_full` card shown on the Drive page (drive-core.test.ts + spec). |
 | CAPY-280 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-281 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-282 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-283 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-284 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-285 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-286 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-287 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-288 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-289 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-290 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-291 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-292 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-293 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-294 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-284 | Instructions & rules | P2 | done | phase2-32 | https://github.com/flotilla-ai/flotilla/pull/53 | Org (admin-only) and Personal instructions via `PUT /rules/instructions/{org,me}` plus per-project `PUT /projects/:id/rules` (owner); all are layered into every run prompt (rules.test.ts) and edited on `#/rules` (rules.spec.ts, mocked API). Agent CLIs still read the repo AGENTS.md natively. |
+| CAPY-285 | Instructions & rules | P2 | done | phase2-32 | https://github.com/flotilla-ai/flotilla/pull/53 | Root `AGENTS.md` wins over `CLAUDE.md` (fallback, reported `shadowed`); `.cursorrules`, `.windsurfrules`, `.clinerules`, `GEMINI.md`, `.github/copilot-instructions.md` are listed as `deprecated` and never injected. Read through the thread machine transport. |
+| CAPY-286 | Instructions & rules | P2 | done | phase2-32 | https://github.com/flotilla-ai/flotilla/pull/53 | A nested `AGENTS.md` is injected on the next turn after an `agent.tool_call` names a path in its subtree (`path`/`file_path`/`filePath`/`notebook_path`/`paths`/`files` inputs). Proven with a synthetic fake-adapter tool call; real vendor tool-input key names are unverified. |
+| CAPY-287 | Instructions & rules | P2 | done | phase2-32 | https://github.com/flotilla-ai/flotilla/pull/53 | `.capy/rules` and `.cursor/rules` `.md`/`.mdc` with `globs` (string, comma list or YAML list) or `alwaysApply`; glob rules apply when touched paths match. Injected through one runner `onBeforeRun` hook, so `fake` and `generic-cli` get byte-identical preambles (no adapter-name checks). |
+| CAPY-288 | Instructions & rules | P2 | done | phase2-32 | https://github.com/flotilla-ai/flotilla/pull/53 | One shared token budget (`FLOTILLA_RULES_MAX_TOKENS`, default 8000; tokens = ceil(chars/4), an estimate) across layers in order; an oversized layer ends with `[Flotilla truncated this layer: N of M tokens shown; shared context budget B tokens]`, later layers get 0. |
+| CAPY-289 | Instructions & rules | P2 | done | phase2-32 | https://github.com/flotilla-ai/flotilla/pull/53 | `GET /rules/guidance` (`RULES_GUIDANCE.whereToPut`, `antiPatterns`), shown on `#/rules`. |
+| CAPY-290 | Instructions & rules | P2 | done | phase2-32 | https://github.com/flotilla-ai/flotilla/pull/53 | `RULES_GUIDANCE.migration` covers Claude Code, Cursor and AGENTS.md agents (Codex and others); served by `GET /rules/guidance` and shown on `#/rules`. |
+| CAPY-291 | Instructions & rules | P2 | done | phase2-32 | https://github.com/flotilla-ai/flotilla/pull/53 | Kernel layer (no merge/protected push without an explicit ask, no secret exposure, no fabrication) is always first, never truncated and has no API to edit; enforcement stays in code via `assertPushAllowed` and `scrub` (asserted in rules.test.ts). Fabrication is prompt-only. |
+| CAPY-292 | Instructions & rules | P2 | done | phase2-32 | https://github.com/flotilla-ai/flotilla/pull/53 | Each run stores a per-layer token breakdown (no rule text) in `rules_context`; `GET /threads/:id/rules-context` (`/threads/:id/context` is the phase2-05 context meter) (owner) and the `#/rules` Context table show layer, source, tokens (truncated as `N of M`), budget and ignored files. |
+| CAPY-293 | Instructions & rules | P2 | done | phase2-32 | https://github.com/flotilla-ai/flotilla/pull/53 | Memory experiment: `POST/GET/DELETE /memory` (user or admin-set org scope), only while the effective Memory flag is on; the 50 newest entries become a `memory` layer in later threads of that user. Teaching is explicit (API/UI), not extracted from chats; Capy retention semantics unverified. |
+| CAPY-294 | Instructions & rules | P2 | done | phase2-32 | https://github.com/flotilla-ai/flotilla/pull/53 | `GET/PUT /experiments` stores Memory and Captain flags per user and org (org needs admin); user value overrides org, default off. `#/rules` Experiments checkboxes. The Captain flag is stored and shown but nothing reads it yet. |
 | CAPY-295 | Skills | P2 | done | phase2-33 | https://github.com/flotilla-ai/flotilla/pull/52 | Web/API invocation: `$name`, `/name`, `@name`, the name as words ("make a deck") or "<name> skill" (`parseInvocations`); runner prepends which SKILL.md to read and records `skill_invocations` (`GET /threads/:id/skills`); `POST /skills/resolve` previews. Slack `$name` resolution is a P3 Slack-unit integration (not built). |
 | CAPY-296 | Skills | P2 | done | phase2-33 | https://github.com/flotilla-ai/flotilla/pull/52 | Nine built-in skills (`BUILTIN_SKILLS`) listed and copied each run into `/home/node/{.agents,.claude,.codex}/skills/<name>/` via driver `copyIn` (fake-driver tar test). Live Docker extraction/ownership in the thread image unverified. |
 | CAPY-297 | Skills | P2 | done | phase2-33 | https://github.com/flotilla-ai/flotilla/pull/52 | Each run scans the checkout's `.agents/skills` and `.claude/skills` (bash+find on the machine transport; fixture repo test), caches them per project in `skills` and mounts them; `.agents` wins over `.claude`. |
@@ -344,19 +344,19 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-338 | Models & connections | P2 | blocked | phase2-04 | https://github.com/flotilla-ai/flotilla/pull/36 | `POST /api/v1/models/background` resolves the user's policy `background` model, else the thread's own, under the same policy and connections (no hosted account) — proven. Blocked: phase2-07's `TitleGenerator` is the offline heuristic and no PR-summary generator exists; a model-backed generator that runs on this resolver's selection is still needed (owner: the unit adding model-generated titles/PR summaries). |
 | CAPY-339 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-340 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
-| CAPY-341 | Billing & plans | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-341 | Billing & plans | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | Machine time is `machineSec` in `cost_entries` (runner 10 s ticker); 0023 trigger prices `machine-estimate` rows from the admin rate per runner type (`PUT /usage/settings` `machineRates`, µ$/min; default type `pool`). Report `machine[]` shows minutes/rate/usd. usage-billing-api.test.ts. |
 | CAPY-342 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-343 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-344 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-345 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
-| CAPY-346 | Billing & plans | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-346 | Billing & plans | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `PUT /usage/budgets` sets global/project windows (`month` UTC calendar or `lifetime`, maxUsd, warnAt); before each run `runGates` pauses the thread with a budget approval (`monthly global budget`) once the window is spent; only this month counts; raising resumes. No auto-reload/billing. |
 | CAPY-347 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-348 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-349 | Billing & plans | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-350 | Billing & plans | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-351 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
-| CAPY-352 | Usage & analytics | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-353 | Usage & analytics | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-352 | Usage & analytics | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `/usage` web page (apps/web/src/features/usage-billing-api) shows window spend/tokens, budget windows and tables by member/model/thread/billing item (machine/free/subscription/key). Render test only; no browser e2e. |
+| CAPY-353 | Usage & analytics | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `GET /usage` report and `GET /usage/series?bucket=hour|day&by=member|item|thread|model` and `GET /usage/balance`; admins see the org, members only their own usage. |
 | CAPY-354 | Usage & analytics | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-355 | Usage & analytics | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-356 | Usage & analytics | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
@@ -484,7 +484,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-478 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-479 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-480 | Billing & plans | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-481 | Billing & plans | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-481 | Billing & plans | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | On run-out the switch onto the free models always asks (even with keep-going); admin `PUT /usage/settings {runOutFree:'never'}` drops the free option (Wait only). Fake run_out adapter; real vendor run-out detection stays under CAPY-333. |
 | CAPY-482 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-483 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-484 | Models & connections | P2 | needs-human-login | phase2-04 | https://github.com/flotilla-ai/flotilla/pull/36 | Proven offline: one list row per Claude model; a connected Claude subscription is first in run order (before an API key added earlier) and resolve picks it; production `defaultRunner` now registers the claude-code and codex adapters. Live: `claude auth login`, connect the subscription, run a thread on a Claude model and confirm it runs without ANTHROPIC_API_KEY. |
@@ -505,8 +505,8 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-499 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-500 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-501 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-502 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-503 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-502 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | Usage is summed as bigint; a Drive at >2 GiB accepts saves up to its quota (drive-core.test.ts, sizes recorded without writing 2 GiB). |
+| CAPY-503 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | Mount/save failures insert a non-blocking `approvals` card with `detail.drive={code,title,nextStep}`; the run still starts (drive-core.test.ts). |
 | CAPY-504 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-505 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-506 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
@@ -638,8 +638,8 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-632 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-633 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-634 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-635 | API: usage | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-636 | API: usage | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-637 | API: usage | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-635 | API: usage | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `GET /api/v1/usage?from&to` returns `UsageReport` (totals + byMember/byModel/byThread/byItem + machine); session or API key. |
+| CAPY-636 | API: usage | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `GET /api/v1/usage/series` returns `UsageSeries` points per UTC hour/day bucket and group key. |
+| CAPY-637 | API: usage | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `GET /api/v1/usage/balance` returns `BudgetWindow[]` (spent, reserved holds, remaining, ok/warn/hit); works with an API key. |
 | CAPY-638 | API: users | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-639 | API: models | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-639 | API: models | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | Existing `GET /api/v1/models` (phase2-04) proven with a bearer API key: catalog rows with connections; not duplicated. |

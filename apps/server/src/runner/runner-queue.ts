@@ -36,11 +36,17 @@ export class RunnerQueue {
   constructor(private readonly pool: pg.Pool) {}
   private async one(sql: string, args: unknown[]): Promise<ThreadInboxItem | null> { const r = (await this.pool.query(sql, args)).rows[0]; return r ? item(r) : null; }
 
+  async validateAttachments(ownerId: string, attachments?: string[]): Promise<Row[]> {
+    const files = attachments ?? [];
+    if (!Array.isArray(files) || files.some((f) => typeof f !== 'string')) throw new ApiFailure('ValidationFailed', 'attachments must be file ids');
+    const owned = files.length ? (await this.pool.query('SELECT id,uploaded_at FROM api_files WHERE owner_id=$1 AND id = ANY($2::text[])', [ownerId, files])).rows : [];
+    if (owned.length !== new Set(files).size) throw new ApiFailure('ValidationFailed', 'unknown attachment');
+    return owned;
+  }
+
   async add(input: { threadId: string; text: string; mode: DeliveryMode; plan?: boolean; by: string | null; ownerId: string; attachments?: string[]; rootId?: string; version?: number; priority?: number }): Promise<ThreadInboxItem> {
     const files = input.attachments ?? [];
-    if (!Array.isArray(files) || files.some((f) => typeof f !== 'string')) throw new ApiFailure('ValidationFailed', 'attachments must be file ids');
-    const owned = files.length ? (await this.pool.query('SELECT id,uploaded_at FROM api_files WHERE owner_id=$1 AND id = ANY($2::text[])', [input.ownerId, files])).rows : [];
-    if (owned.length !== new Set(files).size) throw new ApiFailure('ValidationFailed', 'unknown attachment');
+    const owned = await this.validateAttachments(input.ownerId, files);
     const id = `inb_${randomBytes(10).toString('base64url')}`;
     const priority = input.priority ?? 0;
     return (await this.one(`INSERT INTO thread_inbox (id,thread_id,root_id,version,mode,plan,state,text,attachments,by_user,priority) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
