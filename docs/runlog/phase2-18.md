@@ -1,0 +1,171 @@
+# phase2-18 runlog: Subagent lifecycle
+
+Rows: CAPY-052 to CAPY-062. Proven offline against a throwaway `postgres:16` container, scripted fake adapters (`plain`, `holder`, `broke`, `pricey`), a fake machine driver, a fake Docker API, a local bare git mirror and a fake GitHub client. No vendor calls or logins.
+
+## Rows
+
+| Row | Status | Proof |
+|---|---|---|
+| CAPY-052 | done | `CAPY-052` test: Subagent 1/2, 2.1, 2.1.1 at depth 3; level 4 → 403; child runs its own conversation |
+| CAPY-053 | done | `CAPY-053` test: draft has no run; PATCH title/prompt; 409 after start |
+| CAPY-054 | done | `CAPY-054` test: adapter gets the draft prompt only, `resumeSessionId: null`, no parent text in child events |
+| CAPY-055 | done | `CAPY-055` test: placement required; shared → `workspaceFrom` parent, Docker mount read-only, no new volume; fresh → own volume |
+| CAPY-056 | done | `CAPY-056` test: overlapping parallel paths → 409; stacked run uses previous sibling branch as base |
+| CAPY-057 | done | `CAPY-057/058` test: draft → working → done, failed, idle (stopped), waiting (budget pause) |
+| CAPY-058 | done | `CAPY-057/058` test: parent re-runs with `Subagent 1 "scan" finished` + summary; blocked question reaches parent inbox; progress mid-run shows tool calls |
+| CAPY-059 | done | `CAPY-059` test: diff from mirror applies with `git apply`; PR opened from child branch; feedback re-runs child |
+| CAPY-060 | done | `CAPY-060` test: own model/connection; foreign connection → 404; grant 6 of request 50 (cap 10, spent 4); nothing left → 403 |
+| CAPY-061 | blocked | No paired-device machine driver on `flotilla/p1` |
+| CAPY-062 | blocked | No agent-callable subagent tool for non-Captain threads (Captain tool registry out of scope) |
+
+## Failing first (measured)
+
+Test file written before the store/route existed:
+
+```text
+$ cd apps/server && npx vitest run src/subagent-core
+Error: Cannot find module '../routes/subagent-core.route.js' imported from '.../apps/server/src/subagent-core/subagent-core.test.ts'
+ Test Files  1 failed (1)
+      Tests  no tests
+```
+
+## Focused tests (measured, merged with `8aaf37c`, then `0662ec8`)
+
+```text
+$ cd apps/server && npx vitest run src/subagent-core --reporter=verbose
+ ✓ src/subagent-core/subagent-core.test.ts > subagent core > CAPY-052: child threads nest 3 levels, are addressed "Subagent 1.3"-style, and run their own conversation; level 4 is refused 300ms
+ ✓ src/subagent-core/subagent-core.test.ts > subagent core > CAPY-053: a subagent is an editable draft (title + prompt) and does not run until started 442ms
+ ✓ src/subagent-core/subagent-core.test.ts > subagent core > CAPY-054: a subagent starts from its prompt alone, with no parent history or session 230ms
+ ✓ src/subagent-core/subagent-core.test.ts > subagent core > CAPY-055: placement is explicit; shared mounts the parent workspace read-only, fresh gets its own machine 362ms
+ ✓ src/subagent-core/subagent-core.test.ts > subagent core > CAPY-056: parallel subagents must claim disjoint paths; a stacked subagent branches from the previous sibling branch 241ms
+ ✓ src/subagent-core/subagent-core.test.ts > subagent core > CAPY-057/058: lifecycle draft→working→done wakes the parent with the summary; progress reads on demand; failed, idle and waiting 1012ms
+ ✓ src/subagent-core/subagent-core.test.ts > subagent core > CAPY-059: the parent reviews the diff, applies it as a patch, opens a PR from the subagent branch, or sends feedback 467ms
+ ✓ src/subagent-core/subagent-core.test.ts > subagent core > CAPY-060: each subagent picks its own model/connection, and its budget is a slice of what the parent has left 260ms
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+```
+
+## Done signal (measured)
+
+```text
+$ pnpm --filter @flotilla/server test
+ Test Files  21 passed (21)
+      Tests  129 passed | 1 skipped (130)
+EXIT=0
+
+$ make check
+apps/gate test:  Test Files  2 passed (2)
+apps/gate test:       Tests  5 passed (5)
+packages/core test:  Test Files  6 passed (6)
+packages/core test:       Tests  15 passed (15)
+apps/web test$ vitest run --passWithNoTests src
+packages/adapters/host test:  Test Files  1 passed (1)
+packages/adapters/host test:       Tests  3 passed (3)
+apps/web test:  Test Files  3 passed (3)
+apps/web test:       Tests  6 passed (6)
+packages/adapters/codex test:  Test Files  1 passed (1)
+packages/adapters/codex test:       Tests  5 passed (5)
+packages/adapters/claude-code test:  Test Files  1 passed (1)
+packages/adapters/claude-code test:       Tests  7 passed (7)
+packages/adapters/generic-cli test:  Test Files  1 passed (1)
+packages/adapters/generic-cli test:       Tests  4 passed (4)
+packages/adapters/fake test:  Test Files  1 passed (1)
+packages/adapters/fake test:       Tests  3 passed (3)
+apps/server test:  Test Files  21 passed (21)
+apps/server test:       Tests  129 passed | 1 skipped (130)
+EXIT=0
+```
+
+`pnpm -r lint` (inside `make check`): 0 warnings in `apps/server`; one pre-existing `apps/gate` warning (`prefer-string-starts-ends-with`).
+
+## After merging `origin/flotilla/p1` `0662ec8` (measured)
+
+Two-parent merge `faad190` (conflicts only in PROGRESS/DECISIONS-LOG ledgers, both sides kept).
+
+```text
+$ make check   # other packages unchanged, all passed
+apps/server test:  Test Files  23 passed (23)
+apps/server test:       Tests  141 passed | 1 skipped (142)
+EXIT=0
+```
+
+## Unverified
+
+- Real Docker read-only shared mount and real git seeding/branching with a stacked base (proven with a fake Docker API and the runner hook only).
+- Real GitHub PR from a subagent branch (fake `openOrFindPr`; pushing still relies on the github module after-run hook).
+- Interim prose: the kernel delta scrubber buffers agent text until the run ends, so progress mid-run shows state and tool calls, not text.
+- Applying the patch inside the parent's own workspace is left to the parent agent; the API returns an applicable patch.
+- Adapter-native subagent events (`t: 'subagent'`) are not mapped to subagent rows.
+- No web UI; these rows are API behaviour.
+
+## Review findings
+
+Devin Review on `855dadf` (6 findings):
+
+| Finding | Verdict | Fix |
+|---|---|---|
+| Parent takeover exposes private subagents | resolved `302e154` | `list` returns only subagents owned by the caller |
+| Shared subagents keep revoked workspace access | resolved `302e154` | `placement` refuses a host thread with another owner; the runner fails the start (`failStart`) |
+| Subagent drafts run before Start | resolved `5a417bb` | `start` is 409 while the parent subagent is an unstarted draft |
+| Stacked starts accept unpublished bases | resolved `b5b9ccd` | `start` requires the predecessor branch in the project mirror |
+| Stacked subagent changes never publish | resolved `9e321c6` | reproduced `protected-branch: refusing push to flotilla/FLO-PREV-web`; `seedWorkspace` deletes a `flotilla/*` base branch after switching |
+| Parent and child double-spend budget | escalated | grants are capped at creation, but the parent's own runs are not reduced by child grants; a cross-thread reservation changes runner budget accounting (follow-up unit) |
+
+Failing first for the publish fix (before the `mirror.ts` change):
+
+```text
+× subagent core > CAPY-056: a stacked subagent seeded from a sibling branch publishes only its own branch
+Error: protected-branch: refusing push to flotilla/FLO-PREV-web
+```
+
+Devin Review on `75cc337`: "Stacked starts reject published branches" reproduced (`expected '' to contain 'flotilla/FLO-NEXT-api'` for the mirror after `collectAndPush`); fixed by an `update-ref` after each push in `git/mirror.ts`. The double-spend finding stays escalated.
+
+After the review fixes (measured):
+
+```text
+$ make check   # other packages unchanged, all passed
+apps/server test:  Test Files  23 passed (23)
+apps/server test:       Tests  143 passed | 1 skipped (144)
+EXIT=0
+```
+
+CI run 1 on `855dadf` failed in the pre-existing `runner-queue.test.ts` CAPY-465 (`holder.starts.at(-1)` still held the previous test's `a2`; no subagent hooks are installed in that file). It passed 5/5 locally and on rerun.
+
+## Merge of `eba906f` (phase2-17)
+
+Real merge `3131388` (parents `60550f3`, `eba906f`). Conflicts in `PARITY.md` (kept phase2-17 rows CAPY-043..051 and phase2-18 rows CAPY-052..062), `PROGRESS.md` and `DECISIONS-LOG.md` (kept both units' entries). Row counts recounted from `PARITY.md`.
+
+```text
+$ make check   # other packages unchanged, all passed
+apps/server test:  Test Files  24 passed (24)
+apps/server test:       Tests  156 passed | 1 skipped (157)
+EXIT=0
+```
+
+## Third review round (`1496855`) and merge of `6b5546a`
+
+- Subagent wakes bypassed owner holds, and phase2-17's `WakeRouter.onEvent` sent duplicate completion and approval wakes. Fixed in `df29eac`: `finished()` records the summary or question; wakes go through `WakeRouter.deliver`, and only for Captain parents (the router skips them) and failures. Before the fix the new hold test and the single-wake assertions failed.
+- Stacked starts used a stale mirror ref. Reverted `b307961` (`bb552de`); `published()` now runs `ensureMirror` (fetch --prune) first (`daf7829`). Before the fix, the upstream-deleted-branch assertion failed.
+- Double-spend stays escalated.
+- Real merge of `flotilla/p1` `6b5546a` (repair-10/12), with no conflicts.
+
+```text
+$ make check
+apps/web test:  Test Files  6 passed (6)
+apps/web test:       Tests  16 passed (16)
+apps/server test:  Test Files  24 passed (24)
+apps/server test:       Tests  158 passed | 1 skipped (159)
+EXIT=0
+```
+
+## Fourth review round (`7044426`)
+
+- Stale subagent diff: reproduced (`expected 'diff --git a/a.txt …' to contain '+three'`). Fixed in `9ca6dbb`: `diff` refreshes the mirror with the same `ensureMirror` helper as the stacked-start check, and falls back to the local mirror if the remote cannot be reached.
+- Missing wakes with `FLOTILLA_WAKES=0`: rejected. That setting is phase2-17's switch for turning event wakes off, and subagent wakes are event wakes.
+
+```text
+$ make check   # other packages unchanged, all passed
+apps/server test:  Test Files  24 passed (24)
+apps/server test:       Tests  158 passed | 1 skipped (159)
+EXIT=0
+```
