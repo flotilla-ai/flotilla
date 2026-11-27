@@ -19,7 +19,7 @@ export function createReadRoute(pool = new pg.Pool({ connectionString: process.e
     if (!owner.rows[0]) return c.json({ error: 'not found' }, 404);
     const after = Number(c.req.query('after') ?? 0);
     const limit = Math.min(Number(c.req.query('limit') ?? 100), 500);
-    const rows = await pool.query('SELECT * FROM events WHERE thread_id=$1 AND seq>$2 ORDER BY seq LIMIT $3', [c.req.param('id'), after, limit]);
+    const rows = await pool.query('SELECT id,thread_id,seq,run_id,kind,at,source,trust,payload,request_id FROM events WHERE thread_id=$1 AND seq>$2 ORDER BY seq LIMIT $3', [c.req.param('id'), after, limit]);
     return c.json(rows.rows.map(camel));
   });
   app.get('/approvals', async (c) => {

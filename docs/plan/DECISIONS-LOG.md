@@ -16,3 +16,8 @@
 
 - 2026-11-27: phases 2-4 run overrides the prior direct-push exception: `flotilla/p1` may move only by squash-merging gated PRs; any post-merge repair uses a `flotilla/repair-N` PR. Undo: none during this run; mehdi can change merge policy after the run.
 - 2026-11-27: initial parity ledger treats merged phase-1 implementation rows as done except rows whose proof explicitly requires live vendor/GitHub services; the three phase1fix units provide stronger local end-to-end proof before phase 2. Undo: reclassify rows as blocked if a fix proves the implementation wrong.
+
+- 2026-11-27: phase1fix-01 makes wake delivery at-least-once by marking wake rows processed only after delivery; a crash can duplicate a wake but not lose it. Undo: move to transactional outbox delivery if duplicate wakes become harmful.
+- 2026-11-27: wake coalescing now delays a new event wake until the end of the 30 second window instead of dropping wake-worthy events that arrive just after a delivered wake. Undo: make the window configurable per captain wake policy.
+- 2026-11-27: a wake acknowledgement is conditional on the exact reasons snapshot delivered; if a scan merges another reason during delivery the row stays pending and may be delivered again. Undo: replace polling with a transactional outbox once the runner has a durable inbox.
+- 2026-11-27: crew-event scanning orders events by `events.pos`, allocated only inside event transactions while they hold the single-row `event_order` lock. This serializes event commits enough to make the scan cursor restart-safe even when transaction-start timestamps are out of commit order. Undo: replace with a transactional outbox if global event-write serialization becomes a bottleneck.

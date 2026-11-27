@@ -36,7 +36,15 @@ export class CaptainToolService {
   private async recordDenied(captainId: string, name: string, err: KernelDenied): Promise<void> {
     for (let attempt = 0; attempt < 3; attempt++) {
       const seq = Number((await this.deps.pool.query('SELECT coalesce(max(seq),0)+1 n FROM events WHERE thread_id=$1', [captainId])).rows[0]?.n ?? 1);
-      try { await this.deps.pool.query(`INSERT INTO events (id,thread_id,seq,kind,source,trust,payload) VALUES ($1,$2,$3,'kernel.denied','kernel','trusted',$4)`, [`evt_${Math.random().toString(16).slice(2)}`, captainId, seq, JSON.stringify({ rule: err.rule, detail: err.detail, tool: name })]); return; }
+      try {
+        await this.deps.pool.query(
+          `WITH allocated AS (UPDATE event_order SET next_pos=next_pos+1 WHERE id=true RETURNING next_pos-1 AS pos)
+           INSERT INTO events (id,thread_id,seq,kind,source,trust,payload,pos)
+           SELECT $1,$2,$3,'kernel.denied','kernel','trusted',$4,allocated.pos FROM allocated`,
+          [`evt_${Math.random().toString(16).slice(2)}`, captainId, seq, JSON.stringify({ rule: err.rule, detail: err.detail, tool: name })]
+        );
+        return;
+      }
       catch { if (attempt === 2) return; }
     }
   }

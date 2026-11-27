@@ -38,9 +38,9 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-032 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-033 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-034 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-035 | Wakes & background | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-036 | Wakes & background | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-037 | Wakes & background | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-035 | Wakes & background | P1 | done | phase1fix-01 | https://github.com/flotilla-ai/flotilla/pull/20 | Restart-safe wake persistence/coalescing proved by real Postgres fake-clock test. |
+| CAPY-036 | Wakes & background | P1 | done | phase1fix-01 | https://github.com/flotilla-ai/flotilla/pull/20 | Restart-safe wake persistence/coalescing proved by real Postgres fake-clock test. |
+| CAPY-037 | Wakes & background | P1 | done | phase1fix-01 | https://github.com/flotilla-ai/flotilla/pull/20 | Restart-safe wake persistence/coalescing proved by real Postgres fake-clock test. |
 | CAPY-038 | Wakes & background | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-039 | Wakes & background | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-040 | Wakes & background | P2 | pending |  |  | Awaiting phase P2 unit. |
@@ -82,14 +82,14 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-076 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-077 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-078 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-079 | Captains | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-079 | Captains | P1 | done | phase1fix-01 | https://github.com/flotilla-ai/flotilla/pull/20 | Restart-safe wake persistence/coalescing proved by real Postgres fake-clock test. |
 | CAPY-080 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-081 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-082 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-083 | Captains | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-084 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-085 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-086 | Captains | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-086 | Captains | P1 | done | phase1fix-01 | https://github.com/flotilla-ai/flotilla/pull/20 | Restart-safe wake persistence/coalescing proved by real Postgres fake-clock test. |
 | CAPY-087 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-088 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-089 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
