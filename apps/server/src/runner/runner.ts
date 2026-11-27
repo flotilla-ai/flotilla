@@ -148,10 +148,14 @@ export class ThreadRunner {
     if (approval.gate === 'plan') {
       const owner = (await this.thread(approval.thread_id))!.owner_id as string;
       if (optionId === 'approve') { await this.pool.query(`UPDATE threads SET plan_mode=false,status='queued',needs_you='[]' WHERE id=$1`, [approval.thread_id]); await this.inbox.add({ threadId: approval.thread_id, ...(await this.approvedPlan(approval.thread_id)), mode: 'queue', by: null, ownerId: owner, priority: 1 }); }
-      else await this.pool.query(`UPDATE threads SET status='queued',needs_you='[]' WHERE id=$1`, [approval.thread_id]);
+      else {
+        await this.pool.query(`UPDATE threads SET status='queued',needs_you='[]' WHERE id=$1`, [approval.thread_id]);
+        const prior = await this.approvedPlan(approval.thread_id);
+        await this.inbox.add({ threadId: approval.thread_id, text: prior.text.replace('Plan approved. Implement the plan now.', 'Continue planning. Revise the plan; do not implement yet.'), attachments: prior.attachments, mode: 'queue', plan: true, by: null, ownerId: owner, priority: 1 });
+      }
       this.kick(approval.thread_id);
     }
-    if (optionId === 'raise') { await this.inbox.add({ threadId: approval.thread_id, text: 'Continue within the raised budget.', mode: 'queue', by: null, ownerId: (await this.thread(approval.thread_id))!.owner_id as string }); this.supervise(this.startNext(approval.thread_id, 'resume')); }
+    if (optionId === 'raise') { if (!(await this.inbox.hasPending(approval.thread_id))) await this.inbox.add({ threadId: approval.thread_id, text: 'Continue within the raised budget.', mode: 'queue', by: null, ownerId: (await this.thread(approval.thread_id))!.owner_id as string }); this.supervise(this.startNext(approval.thread_id, 'resume')); }
     return approval;
   }
 

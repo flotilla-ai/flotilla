@@ -82,6 +82,22 @@ describe('thread runner',()=>{
     expect(after.state).toBe('open'); expect(after.answer).toBeNull();
     await runner.stop(t.id as string,'usr_test');
   },20_000);
+  it('does not duplicate a prompt that was capped before its first run',async()=>{
+    const t=await runner.createThread({ownerId:'usr_test',title:'precapped',prompt:'hello',maxUsd:0,requestId:'req-precapped'});
+    const rows=await waitFor(`SELECT * FROM approvals WHERE thread_id=$1 AND kind='budget' AND state='open'`,[t.id as string]);
+    await runner.answerApproval(rows[0].id as string,'raise',1000,'usr_test');
+    expect((await pool.query(`SELECT count(*)::int n FROM thread_inbox WHERE thread_id=$1 AND text='hello'`,[t.id as string])).rows[0].n).toBe(1);
+    expect((await pool.query(`SELECT count(*)::int n FROM thread_inbox WHERE thread_id=$1`,[t.id as string])).rows[0].n).toBe(1);
+    await runner.stop(t.id as string,'usr_test');
+  },20_000);
+  it('keep planning queues a contextual plan revision instead of stalling',async()=>{
+    const t=await runner.createThread({ownerId:'usr_test',title:'plan revise',prompt:'/plan design it',requestId:'req-plan-revise'});
+    const rows=await waitFor(`SELECT * FROM approvals WHERE thread_id=$1 AND gate='plan' AND state='open'`,[t.id as string]);
+    await runner.answerApproval(rows[0].id as string,'revise',undefined,'usr_test');
+    const items=(await pool.query(`SELECT text,plan FROM thread_inbox WHERE thread_id=$1 ORDER BY created_at`,[t.id as string])).rows;
+    expect(items.length).toBe(2); expect(items[1].plan).toBe(true); expect(items[1].text).toContain('Continue planning'); expect(items[1].text).toContain('Request:\ndesign it');
+    await runner.stop(t.id as string,'usr_test');
+  },20_000);
   it('does not mutate another owner approval before the ownership check',async()=>{
     const t=await runner.createThread({ownerId:'usr_test',title:'approval-owner',prompt:'hello',maxUsd:1000,requestId:'req-approval-owner'});
     const rows=await waitFor(`SELECT * FROM approvals WHERE thread_id=$1 AND kind='budget' AND state='open'`,[t.id as string]);

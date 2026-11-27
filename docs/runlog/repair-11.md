@@ -21,3 +21,5 @@ The new-thread composer still does not expose attachment picking; this repair on
 
 Review round 1: first-prompt uploads no longer start an empty agent run before files arrive; unknown attachment ids are validated before the thread row/event exist, so retrying the same idempotency key can correct the request. Focused runner proof now passes 6/6.
 Follow-up while reviewing the start gate: budget raises now always enqueue the continuation message instead of relying on an empty run or a race with the paused run still being live.
+
+Review round 2: budget raises do not duplicate a still-pending first prompt; Keep planning now queues a contextual `plan:true` revision prompt instead of relying on an empty run. Focused runner proof passes 9/9 after integration with repair-10.
