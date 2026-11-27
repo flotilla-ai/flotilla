@@ -9,7 +9,7 @@ OUT OF SCOPE: shared files except the unit-owned route/module registration when 
 SHAPES
 Define TypeScript row/result types first in the owning module. Persist durable state in Postgres migrations owned by this unit. Use fake adapters and local fixtures only.
 DONE SIGNAL
-`pnpm --filter @flotilla/server exec vitest run src/08-models-connections*` or the unit's focused test passes, `pnpm --filter @flotilla/server exec tsc --noEmit -p tsconfig.json` passes, and `make check` passes before PR merge.
+`pnpm --filter @flotilla/server exec vitest run src/models-connections*` or the unit's focused test passes, `pnpm --filter @flotilla/server exec tsc --noEmit -p tsconfig.json` passes, and `make check` passes before PR merge.
 EXPECTED
 - `CAPY-323`: Azure (organization) models — Flotilla equivalent: AgentAdapter + per-user connections (vendor login inside the CLI, or API keys)
 - `CAPY-324`: Fast mode (priority tier) with fallback to standard — Flotilla equivalent: AgentAdapter + per-user connections (vendor login inside the CLI, or API keys)

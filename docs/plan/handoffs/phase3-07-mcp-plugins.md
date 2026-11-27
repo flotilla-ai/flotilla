@@ -9,7 +9,7 @@ OUT OF SCOPE: shared files except the unit-owned route/module registration when 
 SHAPES
 Define TypeScript row/result types first in the owning module. Persist durable state in Postgres migrations owned by this unit. Use fake adapters and local fixtures only.
 DONE SIGNAL
-`pnpm --filter @flotilla/server exec vitest run src/07-mcp-plugins*` or the unit's focused test passes, `pnpm --filter @flotilla/server exec tsc --noEmit -p tsconfig.json` passes, and `make check` passes before PR merge.
+`pnpm --filter @flotilla/server exec vitest run src/mcp-plugins*` or the unit's focused test passes, `pnpm --filter @flotilla/server exec tsc --noEmit -p tsconfig.json` passes, and `make check` passes before PR merge.
 EXPECTED
 - `CAPY-304`: Owner Organization/Only you; All projects/one project; private overrides org on key clash — Flotilla equivalent: MCP registry, passed to adapters as MCP config
 - `CAPY-306`: Per-person OAuth (Connection mode: Each member); Private threads only — Flotilla equivalent: MCP registry, passed to adapters as MCP config

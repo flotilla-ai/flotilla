@@ -9,7 +9,7 @@ OUT OF SCOPE: shared files except the unit-owned route/module registration when 
 SHAPES
 Define TypeScript row/result types first in the owning module. Persist durable state in Postgres migrations owned by this unit. Use fake adapters and local fixtures only.
 DONE SIGNAL
-`pnpm --filter @flotilla/server exec vitest run src/13-linear-integrations*` or the unit's focused test passes, `pnpm --filter @flotilla/server exec tsc --noEmit -p tsconfig.json` passes, and `make check` passes before PR merge.
+`pnpm --filter @flotilla/server exec vitest run src/linear-integrations*` or the unit's focused test passes, `pnpm --filter @flotilla/server exec tsc --noEmit -p tsconfig.json` passes, and `make check` passes before PR merge.
 EXPECTED
 - `CAPY-416`: Linear connection (one workspace per org); personal account link — Flotilla equivalent: Linear agent session integration
 - `CAPY-417`: Delegate issue → native agent session 1:1 with a thread — Flotilla equivalent: Linear agent session integration

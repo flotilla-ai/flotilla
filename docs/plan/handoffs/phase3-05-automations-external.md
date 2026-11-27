@@ -9,7 +9,7 @@ OUT OF SCOPE: shared files except the unit-owned route/module registration when 
 SHAPES
 Define TypeScript row/result types first in the owning module. Persist durable state in Postgres migrations owned by this unit. Use fake adapters and local fixtures only.
 DONE SIGNAL
-`pnpm --filter @flotilla/server exec vitest run src/05-automations-external*` or the unit's focused test passes, `pnpm --filter @flotilla/server exec tsc --noEmit -p tsconfig.json` passes, and `make check` passes before PR merge.
+`pnpm --filter @flotilla/server exec vitest run src/automations-external*` or the unit's focused test passes, `pnpm --filter @flotilla/server exec tsc --noEmit -p tsconfig.json` passes, and `make check` passes before PR merge.
 EXPECTED
 - `CAPY-156`: Slack trigger: channel messages grouped into bursts (window 1–300 s, 20 msgs, 100 KB) — Flotilla equivalent: Automation (pg-boss cron / webhook / GitHub triggers, P2) that starts Threads
 - `CAPY-157`: Slack reaction trigger — Flotilla equivalent: Automation (pg-boss cron / webhook / GitHub triggers, P2) that starts Threads

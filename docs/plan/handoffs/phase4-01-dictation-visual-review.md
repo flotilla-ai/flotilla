@@ -9,7 +9,7 @@ OUT OF SCOPE: shared files except the unit-owned route/module registration when 
 SHAPES
 Define TypeScript row/result types first in the owning module. Persist durable state in Postgres migrations owned by this unit. Use fake adapters and local fixtures only.
 DONE SIGNAL
-`pnpm --filter @flotilla/server exec vitest run src/01-dictation-visual-review*` or the unit's focused test passes, `pnpm --filter @flotilla/server exec tsc --noEmit -p tsconfig.json` passes, and `make check` passes before PR merge.
+`pnpm --filter @flotilla/server exec vitest run src/dictation-visual-review*` or the unit's focused test passes, `pnpm --filter @flotilla/server exec tsc --noEmit -p tsconfig.json` passes, and `make check` passes before PR merge.
 EXPECTED
 - `CAPY-011`: Dictation (mic) into the composer, auto-accept at 10 min, Undo — Flotilla equivalent: Thread + event log + web UI; [TX] Capy sends audio to ElevenLabs (SP); Flotilla: local or user-chosen STT
 - `CAPY-147`: Visual check: run app, click through, attach screenshots/video to PR; mobile via cloud phone — Flotilla equivalent: Review agent = a read-only Thread on the PR head

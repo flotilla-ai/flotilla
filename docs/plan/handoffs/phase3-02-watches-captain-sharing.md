@@ -9,7 +9,7 @@ OUT OF SCOPE: shared files except the unit-owned route/module registration when 
 SHAPES
 Define TypeScript row/result types first in the owning module. Persist durable state in Postgres migrations owned by this unit. Use fake adapters and local fixtures only.
 DONE SIGNAL
-`pnpm --filter @flotilla/server exec vitest run src/02-watches-captain-sharing*` or the unit's focused test passes, `pnpm --filter @flotilla/server exec tsc --noEmit -p tsconfig.json` passes, and `make check` passes before PR merge.
+`pnpm --filter @flotilla/server exec vitest run src/watches-captain-sharing*` or the unit's focused test passes, `pnpm --filter @flotilla/server exec tsc --noEmit -p tsconfig.json` passes, and `make check` passes before PR merge.
 EXPECTED
 - `CAPY-042`: Agent-set watches on GitHub event / Slack channel / webhook URL (up to 30 days) — Flotilla equivalent: Wake router (event subscriptions + DB-backed timers; pg-boss from P2)
 - `CAPY-087`: Share Captain: everyone at org or specific people; crew access follows Captain; narrowing/widening confirms — Flotilla equivalent: Captain scheduler + Captain Drive files

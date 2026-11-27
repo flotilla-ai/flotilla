@@ -9,7 +9,7 @@ OUT OF SCOPE: shared files except the unit-owned route/module registration when 
 SHAPES
 Define TypeScript row/result types first in the owning module. Persist durable state in Postgres migrations owned by this unit. Use fake adapters and local fixtures only.
 DONE SIGNAL
-`pnpm --filter @flotilla/server exec vitest run src/15-ui-viewers*` or the unit's focused test passes, `pnpm --filter @flotilla/server exec tsc --noEmit -p tsconfig.json` passes, and `make check` passes before PR merge.
+`pnpm --filter @flotilla/server exec vitest run src/ui-viewers*` or the unit's focused test passes, `pnpm --filter @flotilla/server exec tsc --noEmit -p tsconfig.json` passes, and `make check` passes before PR merge.
 EXPECTED
 - `CAPY-435`: File viewer: Markdown+Mermaid, CSV/XLSX sortable tables, sandboxed HTML, images, PDF, video/audio, 3D/CAD/G-code; Source toggle; 2 MB text cap — Flotilla equivalent: Web UI
 - `CAPY-436`: In-app browser (Cmd/Ctrl+Shift+L) and machine Desktop tab — Flotilla equivalent: Web UI

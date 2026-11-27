@@ -9,7 +9,7 @@ OUT OF SCOPE: shared files except the unit-owned route/module registration when 
 SHAPES
 Define TypeScript row/result types first in the owning module. Persist durable state in Postgres migrations owned by this unit. Use fake adapters and local fixtures only.
 DONE SIGNAL
-`pnpm --filter @flotilla/server exec vitest run src/06-machine-device-advanced*` or the unit's focused test passes, `pnpm --filter @flotilla/server exec tsc --noEmit -p tsconfig.json` passes, and `make check` passes before PR merge.
+`pnpm --filter @flotilla/server exec vitest run src/machine-device-advanced*` or the unit's focused test passes, `pnpm --filter @flotilla/server exec tsc --noEmit -p tsconfig.json` passes, and `make check` passes before PR merge.
 EXPECTED
 - `CAPY-200`: XFCE desktop with Chrome streamed to thread pane — Flotilla equivalent: Machine pool: Docker container per thread on the compose host
 - `CAPY-208`: Docker + Compose inside VM; local Kubernetes (Kind/Minikube/k3s) with caveats — Flotilla equivalent: Machine pool: Docker container per thread on the compose host; [BYOM] docker-in-docker needs privileged/sysbox — security tradeoff
