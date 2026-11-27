@@ -17,3 +17,5 @@ Tests  5 passed (5)
 No production behavior changes for non-feedback approvals.
 
 Review round 1: Needs you now renders feedback drafts as an explicit "Open thread to send or discard" link instead of dead generic Approve/Raise/Stop buttons. Focused web proof: `src/features/needs-you/index.test.ts`, 1 passed.
+
+Review round 2: Needs you now queries only `state=open` approvals, so answered/discarded/dismissed feedback drafts do not render stale action links.
