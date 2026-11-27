@@ -1,11 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 3, wave 1 starting in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-Current `flotilla/p1` head before this PR: `471ac82` (phase3-19 merge).
+Current `flotilla/p1` head before this PR: `17cef95` (phase3-20 merge).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after all phase-2 units: done 345, pending 166, needs-human-login 24, n-a 22, blocked 82.
+Counted in `docs/plan/PARITY.md` after all phase-2 units: done 358, pending 153, needs-human-login 24, n-a 22, blocked 82.
 
 ## Unit table
 
@@ -63,10 +63,10 @@ Counted in `docs/plan/PARITY.md` after all phase-2 units: done 345, pending 166,
 | phase2-exit | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/80 | exit report, compose verify, missing projects ledger rows restored |
 | plan3+4 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/81 | exact handoff coverage for 192 P3 and 22 P4 rows |
 | phase3-17-api-folders-files | merged | 1 | #82 | public folders/pins/files download/users API; see `docs/runlog/phase3-17.md` |
-| phase3-18-api-issues | in review | 1 |  | public issues/comments/timeline/relations/files/states/labels/prefix API; see `docs/runlog/phase3-18.md` |
-| phase3-18-api-issues | in review | 1 |  | public issues/comments/timeline/relations/files/states/labels/prefix API; see `docs/runlog/phase3-18.md` |
-| phase3-19-api-tasks-reviews | in review | 1 |  | legacy task aliases and public review settings/runs/rounds/pulls/finding statuses; see `docs/runlog/phase3-19.md` |
-| phase3-09-billing-usage | in review | 1 |  | workspace/activity/by-member analytics API and web page; see `docs/runlog/phase3-09.md` |
+| phase3-18-api-issues | merged | 1 | #84 | public issues/comments/timeline/relations/files/states/labels/prefix API; see `docs/runlog/phase3-18.md` |
+| phase3-20-api-review-rules | merged | 1 | #86 | public review rule/filter/ignore-path CRUD API; see `docs/runlog/phase3-20.md` |
+| phase3-19-api-tasks-reviews | merged | 1 | #85 | legacy task aliases and public review settings/runs/rounds/pulls/finding statuses; see `docs/runlog/phase3-19.md` |
+| phase3-09-billing-usage | in review | 1 | #87 | workspace/activity/by-member analytics API and web page; see `docs/runlog/phase3-09.md` |
 ## Next action
 
 1. Merge open phase-3 units after their gates, then continue independent phase-3 units.

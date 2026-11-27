@@ -571,37 +571,37 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-565 | API: folders | P3 | done | phase3-17 | #82 |  Unfile API clears a thread folder through lifecycle events.  |
 | CAPY-566 | API: folders | P3 | done | phase3-17 | #82 |  Pin API pins a thread through lifecycle events.  |
 | CAPY-567 | API: folders | P3 | done | phase3-17 | #82 |  Unpin API clears the pinned flag through lifecycle events.  |
-| CAPY-568 | API: issues | P3 | done | phase3-18 |  |  List issues supports state, assignee, label and text filters.  |
-| CAPY-569 | API: issues | P3 | done | phase3-18 |  |  Create issue validates state, assignee, labels, due date and uploaded file ids.  |
-| CAPY-570 | API: issues | P3 | done | phase3-18 |  |  Get issue works by durable id or identifier.  |
-| CAPY-571 | API: issues | P3 | done | phase3-18 |  |  Update issue edits core fields and records timeline events.  |
-| CAPY-572 | API: issues | P3 | done | phase3-18 |  |  List issue comments returns durable comments in order.  |
-| CAPY-573 | API: issues | P3 | done | phase3-18 |  |  Comment on issue stores author and body.  |
-| CAPY-574 | API: issues | P3 | done | phase3-18 |  |  Issue timeline merges durable events and comments chronologically.  |
-| CAPY-575 | API: issues | P3 | done | phase3-18 |  |  List issue relations returns outgoing and incoming relations.  |
-| CAPY-576 | API: issues | P3 | done | phase3-18 |  |  Relate issues supports relates, blocks and parent types.  |
-| CAPY-577 | API: issues | P3 | done | phase3-18 |  |  Remove issue relation deletes either side of a relation.  |
-| CAPY-578 | API: issues | P3 | done | phase3-18 |  |  Link pull request or thread stores typed durable links.  |
-| CAPY-579 | API: issues | P3 | done | phase3-18 |  |  Unlink pull request or thread removes durable links.  |
-| CAPY-580 | API: issues | P3 | done | phase3-18 |  |  Download issue file streams attached bytes exactly.  |
-| CAPY-581 | API: issues | P3 | done | phase3-18 |  |  List issue states returns ordered custom states.  |
-| CAPY-582 | API: issues | P3 | done | phase3-18 |  |  Create issue state appends a durable custom state.  |
-| CAPY-583 | API: issues | P3 | done | phase3-18 |  |  Reorder issue states atomically rewrites the full order.  |
-| CAPY-584 | API: issues | P3 | done | phase3-18 |  |  Delete issue state refuses default or in-use states and otherwise removes it.  |
-| CAPY-585 | API: issues | P3 | done | phase3-18 |  |  Update issue state renames a durable custom state.  |
-| CAPY-586 | API: issues | P3 | done | phase3-18 |  |  Set default issue state makes exactly one state default.  |
-| CAPY-587 | API: issues | P3 | done | phase3-18 |  |  List issue labels returns durable labels.  |
-| CAPY-588 | API: issues | P3 | done | phase3-18 |  |  Create issue label validates name, color and description.  |
-| CAPY-589 | API: issues | P3 | done | phase3-18 |  |  Delete issue label removes references from issues.  |
-| CAPY-590 | API: issues | P3 | done | phase3-18 |  |  Update issue label edits name, color and description.  |
-| CAPY-591 | API: issues | P3 | done | phase3-18 |  |  Get issue prefix returns the organization prefix.  |
-| CAPY-592 | API: issues | P3 | done | phase3-18 |  |  Set issue prefix validates and uses the prefix for new identifiers.  |
+| CAPY-568 | API: issues | P3 | done | phase3-18 | #84 |  List issues supports state, assignee, label and text filters.  |
+| CAPY-569 | API: issues | P3 | done | phase3-18 | #84 |  Create issue validates state, assignee, labels, due date and uploaded file ids.  |
+| CAPY-570 | API: issues | P3 | done | phase3-18 | #84 |  Get issue works by durable id or identifier.  |
+| CAPY-571 | API: issues | P3 | done | phase3-18 | #84 |  Update issue edits core fields and records timeline events.  |
+| CAPY-572 | API: issues | P3 | done | phase3-18 | #84 |  List issue comments returns durable comments in order.  |
+| CAPY-573 | API: issues | P3 | done | phase3-18 | #84 |  Comment on issue stores author and body.  |
+| CAPY-574 | API: issues | P3 | done | phase3-18 | #84 |  Issue timeline merges durable events and comments chronologically.  |
+| CAPY-575 | API: issues | P3 | done | phase3-18 | #84 |  List issue relations returns outgoing and incoming relations.  |
+| CAPY-576 | API: issues | P3 | done | phase3-18 | #84 |  Relate issues supports relates, blocks and parent types.  |
+| CAPY-577 | API: issues | P3 | done | phase3-18 | #84 |  Remove issue relation deletes either side of a relation.  |
+| CAPY-578 | API: issues | P3 | done | phase3-18 | #84 |  Link pull request or thread stores typed durable links.  |
+| CAPY-579 | API: issues | P3 | done | phase3-18 | #84 |  Unlink pull request or thread removes durable links.  |
+| CAPY-580 | API: issues | P3 | done | phase3-18 | #84 |  Download issue file streams attached bytes exactly.  |
+| CAPY-581 | API: issues | P3 | done | phase3-18 | #84 |  List issue states returns ordered custom states.  |
+| CAPY-582 | API: issues | P3 | done | phase3-18 | #84 |  Create issue state appends a durable custom state.  |
+| CAPY-583 | API: issues | P3 | done | phase3-18 | #84 |  Reorder issue states atomically rewrites the full order.  |
+| CAPY-584 | API: issues | P3 | done | phase3-18 | #84 |  Delete issue state refuses default or in-use states and otherwise removes it.  |
+| CAPY-585 | API: issues | P3 | done | phase3-18 | #84 |  Update issue state renames a durable custom state.  |
+| CAPY-586 | API: issues | P3 | done | phase3-18 | #84 |  Set default issue state makes exactly one state default.  |
+| CAPY-587 | API: issues | P3 | done | phase3-18 | #84 |  List issue labels returns durable labels.  |
+| CAPY-588 | API: issues | P3 | done | phase3-18 | #84 |  Create issue label validates name, color and description.  |
+| CAPY-589 | API: issues | P3 | done | phase3-18 | #84 |  Delete issue label removes references from issues.  |
+| CAPY-590 | API: issues | P3 | done | phase3-18 | #84 |  Update issue label edits name, color and description.  |
+| CAPY-591 | API: issues | P3 | done | phase3-18 | #84 |  Get issue prefix returns the organization prefix.  |
+| CAPY-592 | API: issues | P3 | done | phase3-18 | #84 |  Set issue prefix validates and uses the prefix for new identifiers.  |
 | CAPY-593 | API: subagents | P2 | done | phase2-19 |  | `GET /threads/:id/subagents` lists child subagents; regression in `subagent-core.test.ts`. |
 | CAPY-594 | API: subagents | P2 | done | phase2-19 |  | `GET /subagents/:id` returns one owned subagent; regression in `subagent-core.test.ts`. |
 | CAPY-595 | API: subagents | P2 | done | phase2-19 |  | `GET /subagents/:id/messages` serves ordered event-store messages with owner validation; regression in `subagent-core.test.ts`. |
-| CAPY-596 | API: tasks | P3 | done | phase3-19 |  |  List tasks legacy alias returns visible thread-backed tasks.  |
-| CAPY-597 | API: tasks | P3 | done | phase3-19 |  |  Get task legacy alias returns one visible thread-backed task.  |
-| CAPY-598 | API: tasks | P3 | done | phase3-19 |  |  List task messages legacy alias returns durable user and agent messages.  |
+| CAPY-596 | API: tasks | P3 | done | phase3-19 | #85 |  List tasks legacy alias returns visible thread-backed tasks.  |
+| CAPY-597 | API: tasks | P3 | done | phase3-19 | #85 |  Get task legacy alias returns one visible thread-backed task.  |
+| CAPY-598 | API: tasks | P3 | done | phase3-19 | #85 |  List task messages legacy alias returns durable user and agent messages.  |
 | CAPY-599 | API: messages | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-600 | API: messages | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-601 | API: messages | P2 | done | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | GET `/threads/:id/inbox/:item/versions` lists all versions of a message. |
@@ -614,30 +614,30 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-608 | API: streams | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-609 | API: streams | P2 | done | phase2-19 |  | `GET /subagents/:id/stream` serves SSE directly from the Flotilla event store; regression in `subagent-core.test.ts`. |
 | CAPY-610 | API: streams | P2 | done | phase2-19 |  | `GET /threads/:id/stream` task SSE is served from the Flotilla event store; regression in `subagent-core.test.ts`. |
-| CAPY-611 | API: reviews | P3 | done | phase3-19 |  |  Get review settings returns durable per-repo automatic/posting options.  |
-| CAPY-612 | API: reviews | P3 | done | phase3-19 |  |  Configure review settings updates durable per-repo automatic/posting options.  |
+| CAPY-611 | API: reviews | P3 | done | phase3-19 | #85 |  Get review settings returns durable per-repo automatic/posting options.  |
+| CAPY-612 | API: reviews | P3 | done | phase3-19 | #85 |  Configure review settings updates durable per-repo automatic/posting options.  |
 | CAPY-613 | API: reviews | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-614 | API: reviews | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-615 | API: reviews | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-616 | API: reviews | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-617 | API: reviews | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
-| CAPY-618 | API: reviews | P3 | done | phase3-19 |  |  Start review creates a validated exact-head read-only review run.  |
-| CAPY-619 | API: reviews | P3 | done | phase3-19 |  |  Round returns one owned review run and its findings.  |
-| CAPY-620 | API: reviews | P3 | done | phase3-19 |  |  Pull returns pull-request review state, findings and readiness.  |
-| CAPY-621 | API: reviews | P3 | done | phase3-19 |  |  Update finding statuses batch-triages findings with GitHub-thread state projection.  |
-| CAPY-622 | API: reviewRules | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-623 | API: reviewRules | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-624 | API: reviewRules | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-625 | API: reviewRules | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-626 | API: reviewRules | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-627 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-628 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-629 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-630 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-631 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-632 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-633 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-634 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-618 | API: reviews | P3 | done | phase3-19 | #85 |  Start review creates a validated exact-head read-only review run.  |
+| CAPY-619 | API: reviews | P3 | done | phase3-19 | #85 |  Round returns one owned review run and its findings.  |
+| CAPY-620 | API: reviews | P3 | done | phase3-19 | #85 |  Pull returns pull-request review state, findings and readiness.  |
+| CAPY-621 | API: reviews | P3 | done | phase3-19 | #85 |  Update finding statuses batch-triages findings with GitHub-thread state projection.  |
+| CAPY-622 | API: reviewRules | P3 | done | phase3-20 | #86 |  Get review rule returns one owner-scoped durable rule.  |
+| CAPY-623 | API: reviewRules | P3 | done | phase3-20 | #86 |  Delete review rule removes one owner-scoped durable rule.  |
+| CAPY-624 | API: reviewRules | P3 | done | phase3-20 | #86 |  Update review rule edits text and enabled state.  |
+| CAPY-625 | API: reviewRules | P3 | done | phase3-20 | #86 |  List review rules supports optional repo filtering.  |
+| CAPY-626 | API: reviewRules | P3 | done | phase3-20 | #86 |  Create review rule validates repo and text with duplicate conflicts.  |
+| CAPY-627 | API: reviewFilters | P3 | done | phase3-20 | #86 |  List review filter rules supports optional repo filtering.  |
+| CAPY-628 | API: reviewFilters | P3 | done | phase3-20 | #86 |  Create review filter rule validates scope, action and pattern.  |
+| CAPY-629 | API: reviewFilters | P3 | done | phase3-20 | #86 |  Delete review filter rule removes one owner-scoped row.  |
+| CAPY-630 | API: reviewFilters | P3 | done | phase3-20 | #86 |  Update review filter rule edits scope, action, pattern and enabled state.  |
+| CAPY-631 | API: reviewFilters | P3 | done | phase3-20 | #86 |  List review ignore paths supports optional repo filtering.  |
+| CAPY-632 | API: reviewFilters | P3 | done | phase3-20 | #86 |  Create review ignore path validates repo and path.  |
+| CAPY-633 | API: reviewFilters | P3 | done | phase3-20 | #86 |  Delete review ignore path removes one owner-scoped row.  |
+| CAPY-634 | API: reviewFilters | P3 | done | phase3-20 | #86 |  Update review ignore path edits path and enabled state.  |
 | CAPY-635 | API: usage | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `GET /api/v1/usage?from&to` returns `UsageReport` (totals + byMember/byModel/byThread/byItem + machine); session or API key. |
 | CAPY-636 | API: usage | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `GET /api/v1/usage/series` returns `UsageSeries` points per UTC hour/day bucket and group key. |
 | CAPY-637 | API: usage | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `GET /api/v1/usage/balance` returns `BudgetWindow[]` (spent, reserved holds, remaining, ok/warn/hit); works with an API key. |
