@@ -5,7 +5,7 @@ Current `flotilla/p1` head: `7dd84d1` (phase2-19 subagent API).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` on this branch after Drive UX: done 203, pending 359, needs-human-login 18, n-a 22, blocked 34.
+Counted in `docs/plan/PARITY.md` on this branch after GitHub integration: done 206, pending 351, needs-human-login 19, n-a 22, blocked 38.
 
 ## Unit table
 
@@ -44,6 +44,7 @@ Counted in `docs/plan/PARITY.md` on this branch after Drive UX: done 203, pendin
 | phase2-34-mcp | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/55 | MCP registry/plugins; rows/statuses in `docs/runlog/phase2-34.md` |
 | phase2-19-subagent-forks-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/60 | subagent list/get/messages plus subagent/task SSE APIs; 5 rows done, fork/side-chat rows blocked for missing workspace/session-copy primitive; see `docs/runlog/phase2-19.md` |
 | phase2-37-support-docs | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/58 | troubleshooting guide/index covering all 12 required operator topics; CAPY-464 done; see `docs/runlog/phase2-37.md` |
+| phase2-35-github-integration | in review | 1 |  | account/installation fixture store, permission floor, commit identity settings, admin unlink; CAPY-399/405/518 done, CAPY-400 needs-human-login, CAPY-401/402/403/404 blocked; see `docs/runlog/phase2-35.md` |
 
 ## Next action
 

@@ -399,13 +399,13 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-396 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
 | CAPY-397 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
 | CAPY-398 | GitHub | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | install/validate the GitHub app webhook and permission flow live. |
-| CAPY-399 | GitHub | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-400 | GitHub | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-401 | GitHub | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-402 | GitHub | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-403 | GitHub | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-404 | GitHub | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-405 | GitHub | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-399 | GitHub | P2 | done | phase2-35 |  | Fixture-backed account/installation store manages multiple personal/org accounts and installations with repositories and dependency-reader metadata (`github-integration.test.ts`). |
+| CAPY-400 | GitHub | P2 | needs-human-login | phase2-35 |  | Personal-account API shape and acting identity settings exist, but live OAuth/PAT verification and acting as the user on GitHub need a human login. Operator command: connect a PAT/OAuth token, then run a fixture PR creation against a test repository. |
+| CAPY-401 | GitHub | P2 | blocked | phase2-35 |  | Account-level and per-PR commit identity settings validate all four options, but commit/PR creation does not consume them yet. |
+| CAPY-402 | GitHub | P2 | blocked | phase2-35 |  | Commit email is stored/validated, but Flotilla has no managed GPG key or signed-commit path. |
+| CAPY-403 | GitHub | P2 | blocked | phase2-35 |  | Generic PR comment wakes exist, but `@capy` command parsing and the eyes reaction are not implemented. |
+| CAPY-404 | GitHub | P2 | blocked | phase2-35 |  | Installations can record dependency-reader metadata, but no read-only dependency reader GitHub App/credential flow exists. |
+| CAPY-405 | GitHub | P2 | done | phase2-35 |  | Installations fail closed unless contents/write, pull-requests/write, checks/read, issues/write and metadata/read are present (`github-integration.test.ts`). |
 | CAPY-406 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-407 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-408 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
@@ -518,7 +518,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-515 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-516 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-517 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-518 | GitHub | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-518 | GitHub | P2 | done | phase2-35 |  | Admin `DELETE /github/accounts/:id` revokes the account and installations; non-owner members get 404 (`github-integration.test.ts`). |
 | CAPY-519 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | rename / enable / widen proposals answered via `/approvals/:id/answer` apply in one click; decline leaves the server unchanged. |
 | CAPY-520 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | OAuth start returns "Finish in your browser"; row shows Cancel; cancelled flows cannot complete (404). |
 | CAPY-521 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |

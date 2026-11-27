@@ -177,3 +177,4 @@
 - phase2-31: concurrent conflicts merge only when both current and incoming contents are append-only extensions of the caller's base version; all other conflicts still fail closed.
 - phase2-37: troubleshooting content is static operator documentation; its typed index exists only as test-owned coverage inventory, so no runtime table is warranted.
 - phase2-19: subagent message/stream APIs are implemented as owner-validated aliases over the child thread's event store; fork/side-chat rows remain blocked until a workspace/session-copy primitive exists.
+- phase2-35: GitHub tokens are never stored in these tables; `tokenRef` is only an external vault reference. Installation permission validation is fail-closed at write time; live GitHub verification remains needs-human-login.
