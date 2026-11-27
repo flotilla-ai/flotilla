@@ -1,5 +1,5 @@
-import {Hono,type Context} from 'hono';import pg from 'pg';import {CaptainOpsStore} from '../captain-ops/index.js';
-const user=(c:Context)=>c.get('userId')as string;const body=async(c:Context)=>((await c.req.json().catch(()=>null))??{})as Record<string,unknown>;let one:CaptainOpsStore|null=null;
+import {Hono,type Context} from 'hono';import pg from 'pg';import {ApiFailure} from '../api-platform/types.js';import {CaptainOpsStore} from '../captain-ops/index.js';
+const user=(c:Context)=>c.get('userId')as string;const body=async(c:Context)=>{try{return ((await c.req.json())??{})as Record<string,unknown>}catch{throw new ApiFailure('ValidationFailed','request body must be valid JSON')}};let one:CaptainOpsStore|null=null;
 export function captainOpsStore(databaseUrl=process.env.DATABASE_URL??'postgres://postgres@postgres:5432/flotilla'){one??=new CaptainOpsStore(new pg.Pool({connectionString:databaseUrl}));return one}
 export function createCaptainOpsRoute(getStore=()=>captainOpsStore()){const app=new Hono();
  app.get('/captains/:id/digest',async c=>c.json(await getStore().digest(user(c),c.req.param('id'))));
