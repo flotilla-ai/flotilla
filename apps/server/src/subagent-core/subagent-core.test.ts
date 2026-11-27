@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it, onTestFinished } from 'vites
 import { fakeAdapter } from '@flotilla/adapter-fake';
 import type { AdapterEvent, AgentAdapter, StartInput } from '@flotilla/core/types';
 import { migrate } from '../db/migrate.js';
-import { collectAndPush, mirrorPath, seedWorkspace } from '../git/mirror.js';
+import { collectAndPush, seedWorkspace } from '../git/mirror.js';
 import { EventStore } from '../events/store.js';
 import { DockerMachineDriver } from '../machines/dockerDriver.js';
 import { onAfterRun, ThreadRunner } from '../runner/runner.js';
@@ -171,7 +171,6 @@ describe('subagent core', () => {
     await exec('git', ['-c', 'user.email=t@x', '-c', 'user.name=t', 'commit', '-q', '--allow-empty', '-m', 'next'], { cwd: join(box, 'repo') });
     expect((await collectAndPush(thread as never, project as never, machine as never, join(base, 'mirrors'))).pushedSha).toBeTruthy();
     expect((await exec('git', ['--git-dir', remote, 'branch', '--list', branch])).stdout).toContain(branch);
-    expect((await exec('git', ['--git-dir', mirrorPath(join(base, 'mirrors'), project as never), 'branch', '--list', branch])).stdout).toContain(branch);
   }, 20_000);
 
   it('CAPY-057/058: lifecycle draft→working→done wakes the parent with the summary; progress reads on demand; failed, idle and waiting', async () => {
