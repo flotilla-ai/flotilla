@@ -59,3 +59,10 @@ typecheck: 9 packages Done; lint: 9 packages Done; EXIT 0
 - Secrets copied outside `/workspace /root /home /run /tmp` are not scanned.
 - Snapshot images are local to the Docker host; no registry push or garbage collection of old builds.
 - The after-run hook holds container removal while a build runs (up to the setup timeout).
+
+## Parent integration after machine core (`ff759a5`)
+- Runner machine startup now calls `SnapshotStore.bootPlan(projectId)` for project threads, starts the selected image, and prepends the repair prompt when the newest build failed. `defaultRunner` wires `snapshots: snapshotStore()`.
+- Regression proof: `runner.test.ts` `CAPY-192/197` starts with `snapshot:image` and the adapter prompt contains the repair instruction.
+- Focused proof: snapshots + runner tests `20 passed`.
+- Full `make check` on the integration commit: `apps/server` 32 files / 230 passed, 1 skipped; typecheck and lint passed; exit 0.
+- CAPY-192 and CAPY-197 are now `done` because boot wiring exists.
