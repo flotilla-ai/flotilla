@@ -27,12 +27,16 @@ export class ApiPlatformStore {
     return (await this.pool.query(sql, params)).rows;
   }
 
-  async mintKey(authorId: string, input: { name?: unknown; expiresAt?: unknown; serviceUser?: { name?: unknown } }): Promise<{ key: ApiKey; token: string }> {
+  async mintKey(authorId: string, input: { name?: unknown; expiresAt?: unknown; serviceUser?: { name?: unknown; id?: unknown } }): Promise<{ key: ApiKey; token: string }> {
     if (typeof input.name !== 'string' || !input.name.trim() || input.name.length > 100) throw new ApiFailure('ValidationFailed', 'name required (max 100 chars)');
     const expiresAt = input.expiresAt == null ? null : new Date(String(input.expiresAt));
     if (expiresAt && (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now())) throw new ApiFailure('ValidationFailed', 'expiresAt must be a future ISO timestamp');
     let userId = authorId;
-    if (input.serviceUser) {
+    if (input.serviceUser?.id !== undefined) {
+      const [svc] = await this.q(`SELECT id FROM users WHERE id=$1 AND role='service' AND created_by=$2`, [String(input.serviceUser.id), authorId]);
+      if (!svc) throw new ApiFailure('NotFound', 'service user not found');
+      userId = svc.id;
+    } else if (input.serviceUser) {
       userId = rid('usr');
       await this.q(`INSERT INTO users (id,email,role,created_by) VALUES ($1,$2,'service',$3)`, [userId, `${userId}@service.flotilla.invalid`, authorId]);
     }

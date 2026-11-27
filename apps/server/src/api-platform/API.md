@@ -4,7 +4,7 @@ Base URL: `https://<your-flotilla-host>/api/v1`. Every request sends `Authorizat
 
 ## Keys and principals
 
-Keys are minted only in the Flotilla app (a signed-in browser session); an API key cannot mint another key. A key may carry an optional `expiresAt`. There is no rotate verb: mint a new key, switch, then revoke the old one. A key acts as the human who minted it, or as a service user created with it (`serviceUser: { name }`). `GET /api/v1/principal` returns `{ kind, userId, authorId, via, keyId }`; `authorId` is always the human who minted the key.
+Keys are minted only in the Flotilla app (a signed-in browser session); an API key cannot mint another key. A key may carry an optional `expiresAt`. There is no rotate verb: mint a new key, switch, then revoke the old one. A key acts as the human who minted it, or as a service user created with it (`serviceUser: { name }`); to replace a service key, mint with `serviceUser: { id }` so the new key keeps the same service user and its resources. `GET /api/v1/principal` returns `{ kind, userId, authorId, via, keyId }`; `authorId` is always the human who minted the key.
 
 GET /api/v1/principal
 POST /api/v1/api-keys

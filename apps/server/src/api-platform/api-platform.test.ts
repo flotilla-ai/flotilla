@@ -77,6 +77,9 @@ describe('api platform', () => {
     const project = await call('/api/v1/projects', { method: 'POST', bearer: svc.token, json: { name: 'svc-proj', repo: { owner: 'o', name: 'r' } } });
     expect(project.status).toBe(201);
     expect(await project.json()).toMatchObject({ ownerId: svc.key.userId });
+    const replacement = await mint({ name: 'bot-2', serviceUser: { id: svc.key.userId } });
+    expect(replacement.key.userId).toBe(svc.key.userId);
+    expect((await call('/api/v1/api-keys', { method: 'POST', session: true, json: { name: 'x', serviceUser: { id: humanId } } })).status).toBe(404);
   });
 
   it('CAPY-455: replays a create with the same requestId instead of creating twice', async () => {
