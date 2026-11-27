@@ -14,7 +14,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-008 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-009 | Threads | P2 | blocked | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | Server/API proven in runner-queue.test.ts: PATCH/DELETE `/threads/:id/inbox/:item` edit or discard a pending message; 409 once the agent read it. Blocked: web UI (edit/discard control on queued messages) not built in phase2-05 (server-only slice within diff budget); needs a web unit. |
 | CAPY-010 | Threads | P2 | blocked | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | Server/API proven in runner-queue.test.ts: POST `/threads/:id/inbox/:item/versions` adds version n+1 (same root) and continues from it in a new session (no adapter rewind yet). Blocked: web UI (sent-message edit and version switcher) not built in phase2-05 (server-only slice within diff budget); needs a web unit. |
-| CAPY-011 | Threads | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-011 | Threads | P4 | blocked | phase4-01-dictation-visual-review |  | Blocked: no local/user-configured speech-to-text provider integration or composer microphone lifecycle exists; implementing it requires a browser/device verification surface. |
 | CAPY-012 | Threads | P2 | done | phase2-06 | https://github.com/flotilla-ai/flotilla/pull/40 | Composer uploads files through `POST /files` + `PUT /uploads/:id` and sends the file ids with the message to `POST /threads/:id/inbox` (thread-composer.spec.ts); phase2-05 copies them to `/run/flotilla/attachments` on the agent machine (runner-queue.test.ts). |
 | CAPY-013 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-014 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
@@ -104,13 +104,13 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-098 | Captains | P2 | blocked | phase2-22 |  | Captains-first/hybrid sidebar with pinned faces and waiting questions is not implemented. |
 | CAPY-099 | Captains | P2 | blocked | phase2-22 |  | No chat observer starts work from a passing mention. |
 | CAPY-100 | Captains | P2 | done | phase2-22 |  | Feature, Triage and Janitor captain templates are exposed by the API and web copy. |
-| CAPY-101 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-102 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-103 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-104 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-105 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-106 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-107 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-101 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
+| CAPY-102 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
+| CAPY-103 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
+| CAPY-104 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
+| CAPY-105 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
+| CAPY-106 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
+| CAPY-107 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
 | CAPY-108 | Pull requests & autofix | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate with a real GitHub PAT: create a test project/thread, let it push and open a PR. |
 | CAPY-109 | Pull requests & autofix | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-110 | Pull requests & autofix | P2 | done | phase2-23 |  | Branch prefix setting is durable and release/release/* is rejected. |
@@ -119,18 +119,18 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-113 | Pull requests & autofix | P2 | blocked | phase2-23 |  | Pulls exist at /pulls, but exact /pull/<owner>/<repo>/<n> routing and Cmd+K lookup are outside the implemented slice. |
 | CAPY-114 | Pull requests & autofix | P2 | blocked | phase2-23 |  | Pull detail exposes chat/new-thread links, but they do not yet create a thread preloaded with PR context. |
 | CAPY-115 | Pull requests & autofix | P2 | needs-human-login | phase2-23 |  | Fixture gateway proves merge methods/comment/update/auto-merge and blocked reasons; live GitHub mutation still requires a connected account. |
-| CAPY-116 | Pull requests & autofix | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-116 | Pull requests & autofix | P3 | blocked | phase3-04-pr-advanced |  | Blocked: this requires live GitHub/desktop PR workspaces and a browser or mobile visual-check runner that Flotilla does not yet have. |
 | CAPY-117 | Pull requests & autofix | P2 | needs-human-login | phase2-23 |  | Fixture gateway receives the connected-login actor vs flotilla fallback; live posting identity needs GitHub verification. |
 | CAPY-118 | Pull requests & autofix | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate with live GitHub CI: failing and passing checks wake the owning thread. |
 | CAPY-119 | Pull requests & autofix | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-120 | Pull requests & autofix | P2 | done | phase2-23 |  | Open PRs with no CI wake their owning thread once about 30 minutes after the last push. |
-| CAPY-121 | Pull requests & autofix | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-122 | Pull requests & autofix | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-121 | Pull requests & autofix | P3 | blocked | phase3-04-pr-advanced |  | Blocked: this requires live GitHub/desktop PR workspaces and a browser or mobile visual-check runner that Flotilla does not yet have. |
+| CAPY-122 | Pull requests & autofix | P3 | blocked | phase3-04-pr-advanced |  | Blocked: this requires live GitHub/desktop PR workspaces and a browser or mobile visual-check runner that Flotilla does not yet have. |
 | CAPY-123 | Pull requests & autofix | P2 | needs-human-login | phase2-23 |  | Fixture gateway proves summary/comment/request-changes/approve actor selection; live review submission needs GitHub verification. |
-| CAPY-124 | Pull requests & autofix | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-124 | Pull requests & autofix | P3 | blocked | phase3-04-pr-advanced |  | Blocked: this requires live GitHub/desktop PR workspaces and a browser or mobile visual-check runner that Flotilla does not yet have. |
 | CAPY-125 | Pull requests & autofix | P2 | done | phase2-23 |  | /pulls lists installed-repository PRs and supports author:/repo:/status:/label:/since: filters. |
 | CAPY-126 | Pull requests & autofix | P2 | blocked | phase2-23 |  | PR status exists in pull data but the thread sidebar has no extension point inside this unit scope. |
-| CAPY-127 | Pull requests & autofix | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-127 | Pull requests & autofix | P3 | blocked | phase3-04-pr-advanced |  | Blocked: this requires live GitHub/desktop PR workspaces and a browser or mobile visual-check runner that Flotilla does not yet have. |
 | CAPY-128 | Pull requests & autofix | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | measure live CI pickup latency with a real GitHub check suite. |
 | CAPY-129 | Pull requests & autofix | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate Actions log reading and rerun permissions with a real GitHub token. |
 | CAPY-130 | Review | P2 | blocked | phase2-24 |  | Review runs are durable/read-only/head-pinned metadata, but no real machine checkout or review agent execution is wired yet. |
@@ -150,7 +150,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-144 | Review | P2 | done| phase2-25 |  | Ignore-path filters exclude matching files before review guide construction. |
 | CAPY-145 | Review | P2 | needs-human-login| phase2-25 |  | The optional capy/review commit-status setting is durable, but live GitHub status writeback requires a real GitHub login. |
 | CAPY-146 | Review | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
-| CAPY-147 | Review | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-147 | Review | P4 | blocked | phase4-01-dictation-visual-review |  | Blocked: this requires live GitHub/desktop PR workspaces and a browser or mobile visual-check runner that Flotilla does not yet have. |
 | CAPY-148 | Review | P2 | done| phase2-25 |  | Guide generation returns overview, ordered steps, before/after diagram and per-area chapters. |
 | CAPY-149 | Review | P2 | done| phase2-25 |  | Guide generation skips lockfiles, generated files and deleted files, and timeout retry helper retries once. |
 | CAPY-150 | Review | P2 | done| phase2-25 |  | Finding evidence stores and returns rules, memory and production telemetry lists. |
@@ -159,9 +159,9 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-153 | Automations | P2 | blocked | phase2-26 |  | Automation API exists, but neither an Automations page nor agent-accessible full management tools are implemented. |
 | CAPY-154 | Automations | P2 | done | phase2-26 |  | 5-field cron + IANA timezone validation, 5-minute floor, timezone-correct matching and coalesced catch-up scans. |
 | CAPY-155 | Automations | P2 | done | phase2-26 |  | Signed GitHub webhook events map PR/comment/review/label/check/push/workflow_run fixtures into automation runs. |
-| CAPY-156 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-157 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-158 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-156 | Automations | P3 | blocked | phase3-05-automations-external |  | Blocked: durable automations exist, but vendor inbound triggers, Slack posting behavior, and run-as-principal enforcement connectors are not implemented. |
+| CAPY-157 | Automations | P3 | blocked | phase3-05-automations-external |  | Blocked: durable automations exist, but vendor inbound triggers, Slack posting behavior, and run-as-principal enforcement connectors are not implemented. |
+| CAPY-158 | Automations | P3 | blocked | phase3-05-automations-external |  | Blocked: durable automations exist, but vendor inbound triggers, Slack posting behavior, and run-as-principal enforcement connectors are not implemented. |
 | CAPY-159 | Automations | P2 | done | phase2-26 |  | Per-automation hashed webhook capability URL, optional HMAC, Idempotency-Key duplicate handling and 256 KB cap. |
 | CAPY-160 | Automations | P2 | done | phase2-26 |  | Webhook batches collect events and support list, flush and cancel. |
 | CAPY-161 | Automations | P2 | done | phase2-26 |  | Manual automation trigger API creates a run. |
@@ -170,14 +170,14 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-164 | Automations | P2 | done | phase2-26 |  | Pinned models fail closed when unavailable; unpinned models may resolve to the free default. |
 | CAPY-165 | Automations | P2 | done | phase2-26 |  | Thread mode supports new threads and a single standing thread. |
 | CAPY-166 | Automations | P2 | done | phase2-26 |  | Runs may target an existing thread or create private threads. |
-| CAPY-167 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-168 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-167 | Automations | P3 | blocked | phase3-05-automations-external |  | Blocked: durable automations exist, but vendor inbound triggers, Slack posting behavior, and run-as-principal enforcement connectors are not implemented. |
+| CAPY-168 | Automations | P3 | blocked | phase3-05-automations-external |  | Blocked: durable automations exist, but vendor inbound triggers, Slack posting behavior, and run-as-principal enforcement connectors are not implemented. |
 | CAPY-169 | Automations | P2 | done | phase2-27 |  | Webhook payloads are stored as data in automation runs and never concatenated into the stored prompt; prompt remains the only instruction source. |
 | CAPY-170 | Automations | P2 | done | phase2-27 |  | max_runs_per_day is validated and enforced atomically before thread creation; over-cap events are durable skipped runs. |
 | CAPY-171 | Automations | P2 | blocked | phase2-27 |  | Automation drive_scope metadata is durable, but Drive state is not yet mounted into automation runs. |
 | CAPY-172 | Automations | P2 | blocked | phase2-27 |  | Per-automation machine_size is durable, but runner machine placement does not consume it yet. |
 | CAPY-173 | Automations | P2 | done | phase2-27 |  | Pause/resume/delete/restore, manual trigger, run list/cancel and webhook rotation APIs are proven. |
-| CAPY-174 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-174 | Automations | P3 | blocked | phase3-05-automations-external |  | Blocked: durable automations exist, but vendor inbound triggers, Slack posting behavior, and run-as-principal enforcement connectors are not implemented. |
 | CAPY-175 | Automations | P2 | blocked | phase2-27 |  | Failed automation runs and thread references are retained, but runner output/completion is not yet written back to automation_runs.output. |
 | CAPY-176 | Projects | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-177 | Projects | P2 | done | phase2-29 | https://github.com/flotilla-ai/flotilla/pull/42 | Repoless projects create threads with project codes and runner starts them in `/workspace` without cloning. Test: `apps/server/src/projects/projects.test.ts`, `apps/server/src/runner/runner.test.ts`. |
@@ -203,7 +203,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-197 | Environment & snapshots | P2 | done | phase2-11 | https://github.com/flotilla-ai/flotilla/pull/50 | `bootPlan` falls back to the last good/base image and the runner prepends the repair prompt instead of blocking boot: `snapshots.test.ts` CAPY-197, `runner.test.ts` CAPY-192/197. |
 | CAPY-198 | Cloud machines | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-199 | Cloud machines | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-200 | Cloud machines | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-200 | Cloud machines | P3 | blocked | phase3-06-machine-device-advanced |  | Blocked: the machine driver does not provide streamed GUI desktops, nested Docker/Kubernetes, or cross-machine filesystem transfer workflows. |
 | CAPY-201 | Cloud machines | P2 | done | phase2-12 |  | Sizes small/medium/large/big-guy (2/4/8/16 GB, 1/2/4/8 CPU) set the pool container RAM/CPU and the awake $/h charged into `threads.spent` and `cost_entries` (`machine-estimate`); sizes above `FLOTILLA_MACHINE_MAX_SIZE` (default large) are refused with `PaidFeatureUnavailable`: `machine-core.test.ts`, web `machine-core.test.tsx`. |
 | CAPY-202 | Cloud machines | P2 | done | phase2-12 |  | Project `machine_size` via `PUT /projects/:id/machine`, the agent tool `machine.set_size`, and the `/machine` size picker; the next boot uses the new size: `machine-core.test.ts`. |
 | CAPY-203 | Cloud machines | P2 | done | phase2-12 |  | Charged only from wake to sleep, sleep = last release + 120 s wind-down (420 s for 5 min of work), nothing while sleeping: `machine-core.test.ts`. |
@@ -211,7 +211,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-205 | Cloud machines | P2 | done | phase2-12 |  | Threads owned by a `service` user may use at most half of the RAM limit together: `machine-core.test.ts`. |
 | CAPY-206 | Cloud machines | P2 | blocked | phase2-12 |  | Thread image has Node 22, Python 3, git and the pinned claude/codex CLIs only. Blocked: Go/Rust/Java/Ruby, Docker, Kubernetes tools, DB clients and GitHub CLI are not installed (large image work; no Docker-in-container under `--cap-drop ALL`). |
 | CAPY-207 | Cloud machines | P2 | blocked | phase2-12 |  | `nodeVersionFrom` picks `.node-version` then `.nvmrc` (numeric only) and boot exports it as `FLOTILLA_NODE_VERSION` to setup/startup scripts: `machine-core.test.ts`. Blocked: the image has only Node 22 and no version manager, so nothing switches the binary. |
-| CAPY-208 | Cloud machines | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-208 | Cloud machines | P3 | blocked | phase3-06-machine-device-advanced |  | Blocked: the machine driver does not provide streamed GUI desktops, nested Docker/Kubernetes, or cross-machine filesystem transfer workflows. |
 | CAPY-209 | Cloud machines | P2 | done | phase2-12 |  | `KERNEL_LIMITS` (no /dev/kvm, no kernel modules, not privileged, no nested containers, netfilter gaps from dropped CAP_NET_ADMIN/CAP_NET_RAW) served by `GET /machines/limits` and shown on `/machine`; matches `dockerDriver` hardening checked by `machines.test.ts`. |
 | CAPY-210 | Cloud machines | P2 | done | phase2-12 |  | After the wind-down the container is removed and the `flt-workspace-<thread>` volume kept; startup processes are stopped (`EnvironmentExecutor.stop`) and every startup entry reruns through `EnvironmentStore.prepare` on wake: `machine-core.test.ts` (local-process machine). |
 | CAPY-211 | Cloud machines | P2 | done | phase2-12 |  | `POST /threads/:id/machine/wake` + Wake machine button on `/machine`; agent wake when a new message runs on a sleeping machine, and the `machine.wake` tool: `machine-core.test.ts`, web `machine-core.test.tsx`. |
@@ -219,7 +219,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-213 | Cloud machines | P2 | done | phase2-12 |  | `PUT /threads/:id/machine/keep-awake` holds the machine 4 h (wakes it first), `DELETE` cancels and the normal wind-down resumes; open preview `awake_until` windows also hold it: `machine-core.test.ts`, web `machine-core.test.tsx`. |
 | CAPY-214 | Cloud machines | P2 | done | phase2-13 |  | Network posture API persists public/private/OIDC modes for pool machines; all modes keep no published host ports, private uses the per-thread internal Docker network, and OIDC fails closed when `FLOTILLA_OIDC_ISSUER` is absent: `machine-ux.test.ts`; UI selector in `machine-core.test.tsx`. |
 | CAPY-215 | Cloud machines | P2 | blocked | phase2-13 |  | `/machine` + menu exposes a web shell with no SSH and the desktop action fails closed with 409. Blocked: pool machines do not run a desktop server yet, so the desktop half of the row is unavailable: `machine-ux.test.ts`, web `machine-core.test.tsx`. |
-| CAPY-216 | Cloud machines | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-216 | Cloud machines | P3 | blocked | phase3-06-machine-device-advanced |  | Blocked: the machine driver does not provide streamed GUI desktops, nested Docker/Kubernetes, or cross-machine filesystem transfer workflows. |
 | CAPY-217 | Cloud machines | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-218 | Cloud machines | P2 | done | phase2-09 | PR pending | Pool containers set MemorySwap=Memory and OomKillDisable=false (mocked-docker test); live docker run with the same flags: allocator OOM-killed (137), container and `sleep` survive (runlog). |
 | CAPY-219 | Cloud machines | P2 | done | phase2-09 | PR pending | DockerMachineDriver.platforms is linux only; macOS/iOS start requests are refused with a paired-device (BYOM) pointer. Device execution itself is phase2-14/15. |
@@ -230,7 +230,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-224 | Previews | P2 | done | phase2-09 | PR pending | Preview URL is derived from thread code + port only and survives sleep; when nothing listens the stored start command reruns in the machine (debounced 30 s) behind a 503 auto-refresh card. |
 | CAPY-225 | Previews | P2 | done | phase2-09 | PR pending | Per-preview hostname (e.g. `web.localhost:1355`) is sent as the upstream Host header so portless-style routers resolve the app; localUrl uses it too. |
 | CAPY-226 | Previews | P2 | done | phase2-09 | PR pending | Previews work on threads with no PR; each preview carries an in-machine localUrl for the machine browser alongside the private preview URL. |
-| CAPY-227 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-227 | Devices & desktop app | P3 | blocked | phase3-06-machine-device-advanced |  | Blocked: the desktop application shell, OS packaging/updater, tray integration, multi-window UI, and device transfer runtime are not implemented. |
 | CAPY-228 | Devices & desktop app | P2 | blocked | phase2-14 |  | Pairing-code claim, device bearer tokens, approval and revocation are proven, but Google/GitHub sign-in and a real flotilla-runner desktop pairing flow are absent. |
 | CAPY-229 | Devices & desktop app | P2 | done | phase2-14 |  | Machine picker API returns cloud plus approved paired devices with status, platform, workspace policy and zero local machine metering metadata. |
 | CAPY-230 | Devices & desktop app | P2 | done | phase2-14 |  | Device workspace policy persists new-worktree default, existing-worktree or current-checkout paths with validation. |
@@ -240,18 +240,18 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-234 | Devices & desktop app | P2 | blocked | phase2-14 |  | Device status and a 24 h wait-until timestamp are durable, but runner placement does not yet wait for device reconnect. |
 | CAPY-235 | Devices & desktop app | P2 | blocked | phase2-14 |  | The cloud-checkpoints setting is durable, but checkpoint capture/upload of device worktrees is not implemented. |
 | CAPY-236 | Devices & desktop app | P2 | blocked | phase2-14 |  | The move-to-cloud toggle is durable, but offline automatic migration is not implemented. |
-| CAPY-237 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-238 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-239 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-237 | Devices & desktop app | P3 | blocked | phase3-06-machine-device-advanced |  | Blocked: the desktop application shell, OS packaging/updater, tray integration, multi-window UI, and device transfer runtime are not implemented. |
+| CAPY-238 | Devices & desktop app | P3 | blocked | phase3-06-machine-device-advanced |  | Blocked: the desktop application shell, OS packaging/updater, tray integration, multi-window UI, and device transfer runtime are not implemented. |
+| CAPY-239 | Devices & desktop app | P3 | blocked | phase3-06-machine-device-advanced |  | Blocked: the desktop application shell, OS packaging/updater, tray integration, multi-window UI, and device transfer runtime are not implemented. |
 | CAPY-240 | Devices & desktop app | P2 | blocked | phase2-14 |  | The keep-awake setting is durable, but no flotilla-runner power-management enforcement exists yet. |
-| CAPY-241 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-242 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-243 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-241 | Devices & desktop app | P3 | blocked | phase3-06-machine-device-advanced |  | Blocked: the desktop application shell, OS packaging/updater, tray integration, multi-window UI, and device transfer runtime are not implemented. |
+| CAPY-242 | Devices & desktop app | P3 | blocked | phase3-06-machine-device-advanced |  | Blocked: the desktop application shell, OS packaging/updater, tray integration, multi-window UI, and device transfer runtime are not implemented. |
+| CAPY-243 | Devices & desktop app | P3 | blocked | phase3-06-machine-device-advanced |  | Blocked: the desktop application shell, OS packaging/updater, tray integration, multi-window UI, and device transfer runtime are not implemented. |
 | CAPY-244 | Devices & desktop app | P2 | blocked | phase2-15 |  |  Placement records container isolation and a git identity shape, but the runner does not yet execute on the paired device as the user or prove linked-folder sandboxing.  |
 | CAPY-245 | Devices & desktop app | P2 | blocked | phase2-15 |  |  History import accepts explicit local-only requests but does not parse Claude Code/Codex histories or create threads.  |
 | CAPY-246 | Devices & desktop app | P2 | blocked | phase2-15 |  |  No free-model execution policy exists for This Mac/no-plan device runs.  |
-| CAPY-247 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-248 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-247 | Devices & desktop app | P3 | blocked | phase3-06-machine-device-advanced |  | Blocked: the desktop application shell, OS packaging/updater, tray integration, multi-window UI, and device transfer runtime are not implemented. |
+| CAPY-248 | Devices & desktop app | P3 | blocked | phase3-06-machine-device-advanced |  | Blocked: the desktop application shell, OS packaging/updater, tray integration, multi-window UI, and device transfer runtime are not implemented. |
 | CAPY-249 | Devices & desktop app | P2 | done | phase2-15 |  |  Per-device worktree validation requires an absolute local folder with at least 1 GB free.  |
 | CAPY-250 | Dock CLI | P2 | blocked | phase2-16 |  |  Headless runner pairing/execution is not wired; this slice proves only local install, verification, directory and command semantics.  |
 | CAPY-251 | Dock CLI | P2 | blocked | phase2-16 |  |  No curl-shell or PowerShell installer distribution path exists yet; root/admin refusal is proven in installer option validation only.  |
@@ -264,17 +264,17 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-258 | Dock CLI | P2 | done | phase2-16 |  |  status, doctor, dirs, verify and version commands return structured results, with verbose detail.  |
 | CAPY-259 | Dock CLI | P2 | done | phase2-16 |  |  One-device-per-OS-user validation recommends dedicated accounts on shared servers.  |
 | CAPY-260 | Dock CLI | P2 | blocked | phase2-16 |  |  Revocation is detected, but the next foreground run does not yet automatically re-pair.  |
-| CAPY-261 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-262 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-263 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-264 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-265 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-266 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-267 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-268 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-269 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-270 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-271 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-261 | Cloud phones | P4 | blocked | phase4-02-cloud-phones |  | Blocked: no pluggable iOS/Android cloud-phone provider, mobile build runner, device-control bridge, log capture, or pricing meter exists. |
+| CAPY-262 | Cloud phones | P4 | blocked | phase4-02-cloud-phones |  | Blocked: no pluggable iOS/Android cloud-phone provider, mobile build runner, device-control bridge, log capture, or pricing meter exists. |
+| CAPY-263 | Cloud phones | P4 | blocked | phase4-02-cloud-phones |  | Blocked: no pluggable iOS/Android cloud-phone provider, mobile build runner, device-control bridge, log capture, or pricing meter exists. |
+| CAPY-264 | Cloud phones | P4 | blocked | phase4-02-cloud-phones |  | Blocked: no pluggable iOS/Android cloud-phone provider, mobile build runner, device-control bridge, log capture, or pricing meter exists. |
+| CAPY-265 | Cloud phones | P4 | blocked | phase4-02-cloud-phones |  | Blocked: no pluggable iOS/Android cloud-phone provider, mobile build runner, device-control bridge, log capture, or pricing meter exists. |
+| CAPY-266 | Cloud phones | P4 | blocked | phase4-02-cloud-phones |  | Blocked: no pluggable iOS/Android cloud-phone provider, mobile build runner, device-control bridge, log capture, or pricing meter exists. |
+| CAPY-267 | Cloud phones | P4 | blocked | phase4-02-cloud-phones |  | Blocked: no pluggable iOS/Android cloud-phone provider, mobile build runner, device-control bridge, log capture, or pricing meter exists. |
+| CAPY-268 | Cloud phones | P4 | blocked | phase4-02-cloud-phones |  | Blocked: no pluggable iOS/Android cloud-phone provider, mobile build runner, device-control bridge, log capture, or pricing meter exists. |
+| CAPY-269 | Cloud phones | P4 | blocked | phase4-02-cloud-phones |  | Blocked: no pluggable iOS/Android cloud-phone provider, mobile build runner, device-control bridge, log capture, or pricing meter exists. |
+| CAPY-270 | Cloud phones | P4 | blocked | phase4-02-cloud-phones |  | Blocked: no pluggable iOS/Android cloud-phone provider, mobile build runner, device-control bridge, log capture, or pricing meter exists. |
+| CAPY-271 | Cloud phones | P4 | blocked | phase4-02-cloud-phones |  | Blocked: no pluggable iOS/Android cloud-phone provider, mobile build runner, device-control bridge, log capture, or pricing meter exists. |
 | CAPY-272 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | Scopes `org`, `user`, `project`, `project-user`, `automation`, `captain` in `drive_items` (Postgres) + content-addressed blobs in `FLOTILLA_DRIVE_DIR`; access: org read all/write admin, personal owner, project owner, automation admin, Captain owner (drive-core.test.ts). |
 | CAPY-273 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | Each thread mount copies its Drives to `/run/flotilla/drive/<scope>` before the agent starts (`onBeforeRun`); root `AGENTS.md` text is appended to the prompt (drive-core.test.ts, fake driver + fake adapter). |
 | CAPY-274 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | `skills/<name>/SKILL.md` files are mounted and listed by name/path in the run prompt and `GET /threads/:id/drive` (drive-core.test.ts). |
@@ -315,7 +315,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-309 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | Import Claude Code JSON, Codex TOML subset, URL, command line (`POST /mcp/import`). |
 | CAPY-310 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | Statuses, Test (config/auth/connect/initialize/tools) with failing step, 403 checklist; web row on `#/mcp`. STDIO connect checked on the thread machine only. |
 | CAPY-311 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | Test/OAuth errors scrubbed of every configured value >=8 chars (exact, via core `scrubString`); MCP values also join run event scrubbing. |
-| CAPY-312 | MCP & plugins | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-312 | MCP & plugins | P4 | blocked | phase4-03-plugin-marketplace |  | Blocked: plugins already combine MCP servers and skills, but the hosted public marketplace verification service implied by the row does not exist in the self-hosted build. |
 | CAPY-313 | MCP & plugins | P3 | done | phase3-07 |  |  GitHub repo/folder plugins load plugin.json plus mcp.json and support manual Sync.  |
 | CAPY-314 | MCP & plugins | P3 | done | phase3-07 |  |  Install collects key values sealed in the vault; API exposes only key names and per-server connect state.  |
 | CAPY-315 | MCP & plugins | P3 | done | phase3-07 |  |  Sync applies safe updates, requires approval when scopes/keys widen, and rollback restores a prior revision.  |
@@ -326,10 +326,10 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-320 | Models & connections | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-321 | Models & connections | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate Claude/Codex subscription login behavior on mehdi's machine. |
 | CAPY-322 | Models & connections | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate Claude Agent SDK harness behavior with a real Claude login. |
-| CAPY-323 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-324 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-323 | Models & connections | P3 | blocked | phase3-08-models-connections |  | Blocked: the model catalog exists, but provider-specific organization connections, fast/ultrafast modes, approval sharing, and Slack/Linear default-model policy surfaces are not implemented. |
+| CAPY-324 | Models & connections | P3 | blocked | phase3-08-models-connections |  | Blocked: the model catalog exists, but provider-specific organization connections, fast/ultrafast modes, approval sharing, and Slack/Linear default-model policy surfaces are not implemented. |
 | CAPY-325 | Models & connections | P2 | needs-human-login | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | none…max validated per catalog model, unsupported fails with no fallback, effort reaches StartInput (fake); CLI effort-flag mapping unverified with real claude/codex. |
-| CAPY-326 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-326 | Models & connections | P3 | blocked | phase3-08-models-connections |  | Blocked: the model catalog exists, but provider-specific organization connections, fast/ultrafast modes, approval sharing, and Slack/Linear default-model policy surfaces are not implemented. |
 | CAPY-327 | Models & connections | P2 | done | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | owner → org → free order, reorder, per-connection models, edit/test/reconnect/disable (fixture endpoint). |
 | CAPY-328 | Models & connections | P2 | needs-human-login | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | provider list from adapter auth capabilities, searchable; subscription = CLI vendor/device login; real logins and gateway list need mehdi. |
 | CAPY-329 | Models & connections | P2 | needs-human-login | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | check access via local OpenAI-compatible fixture; exclusions; new models auto-covered; real provider endpoints need a key. |
@@ -337,7 +337,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-331 | Models & connections | P2 | done | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | pinned connection never falls back; its key alone reaches the run env (fake). |
 | CAPY-332 | Models & connections | P2 | blocked | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | blocked: the row is the web model picker (badges, connection tooltip, Alt+1…9 favorites) and `apps/web` is outside phase2-03 SCOPE; the server API returning badges, tooltips, favorites and shortcuts is proven (models-catalog.test.ts). Needs a web picker unit. |
 | CAPY-333 | Models & connections | P2 | needs-human-login | phase2-04 | https://github.com/flotilla-ai/flotilla/pull/36 | Proven offline (model-policy-api.test.ts, web model-policy-api.test.tsx): per-user `runOut` ask (default, pause-and-ask) / ask-before-free / keep-going; a `run_out` run opens a Wait/Use <next connection> card, `/wait` and `/continue` typed into the thread answer it, Use reruns the prompt on the next connection. Live: the Claude Code/Codex adapters do not yet map a vendor usage-limit exit to `run_out`; operator check: `claude auth login` then run a thread until the subscription limit, and `codex login` likewise, and record the CLI's final event. |
-| CAPY-334 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-334 | Models & connections | P3 | blocked | phase3-08-models-connections |  | Blocked: the model catalog exists, but provider-specific organization connections, fast/ultrafast modes, approval sharing, and Slack/Linear default-model policy surfaces are not implemented. |
 | CAPY-335 | Models & connections | P2 | done | phase2-04 | https://github.com/flotilla-ai/flotilla/pull/36 | Policy `neverFree` and `excludedAdapters` drop the free models / a company's adapter from `GET /api/v1/models`, the picker, resolve (pinned or not) and run-out next-connection; web policy form sets both (model-policy-api.test.ts, model-policy-api.test.tsx). |
 | CAPY-336 | Models & connections | P2 | done | phase2-04 | https://github.com/flotilla-ai/flotilla/pull/36 | `GET /api/v1/models` returns one row per adapter:model with display name, context window, efforts, free/ZDR and the connections in run order; web Models page lists it (model-policy-api.test.ts, model-policy-api.test.tsx). |
 | CAPY-337 | Models & connections | P2 | needs-human-login | phase2-04 | https://github.com/flotilla-ai/flotilla/pull/36 | Catalog `contextWindow` is listed, carried on the thread engine and passed to Codex as `-c model_context_window=1050000` (argv proven with a fixture GPT-6 row). Live: `codex login && codex exec --json --model gpt-6 -c model_context_window=1050000 'say ok'` with a real GPT-6 catalog row (model id/window unverified). |
@@ -360,22 +360,22 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-354 | Usage & analytics | P3 | done | phase3-09 |  |  Activity analytics expose counts/cost metadata only and never private thread titles.  |
 | CAPY-355 | Usage & analytics | P3 | done | phase3-09 |  |  Activity page shows Flotilla share of merged PRs, review-found issues, contributed PRs and agent hours.  |
 | CAPY-356 | Usage & analytics | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-357 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-358 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-359 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-360 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-361 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-362 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-363 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-364 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-365 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-366 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-367 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-368 | SSO & sign-in | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-369 | SSO & sign-in | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-370 | SSO & sign-in | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-371 | SSO & sign-in | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-372 | SSO & sign-in | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-357 | Org, members & access | P3 | blocked | phase3-10-org-access |  | Blocked: Flotilla still lacks a first-class multi-organization membership/administration service for roles, invitations, visibility, transfer, deletion, and audit-log workflows. |
+| CAPY-358 | Org, members & access | P3 | blocked | phase3-10-org-access |  | Blocked: Flotilla still lacks a first-class multi-organization membership/administration service for roles, invitations, visibility, transfer, deletion, and audit-log workflows. |
+| CAPY-359 | Org, members & access | P3 | blocked | phase3-10-org-access |  | Blocked: Flotilla still lacks a first-class multi-organization membership/administration service for roles, invitations, visibility, transfer, deletion, and audit-log workflows. |
+| CAPY-360 | Org, members & access | P3 | blocked | phase3-10-org-access |  | Blocked: Flotilla still lacks a first-class multi-organization membership/administration service for roles, invitations, visibility, transfer, deletion, and audit-log workflows. |
+| CAPY-361 | Org, members & access | P3 | blocked | phase3-10-org-access |  | Blocked: Flotilla still lacks a first-class multi-organization membership/administration service for roles, invitations, visibility, transfer, deletion, and audit-log workflows. |
+| CAPY-362 | Org, members & access | P3 | blocked | phase3-10-org-access |  | Blocked: Flotilla still lacks a first-class multi-organization membership/administration service for roles, invitations, visibility, transfer, deletion, and audit-log workflows. |
+| CAPY-363 | Org, members & access | P3 | blocked | phase3-10-org-access |  | Blocked: Flotilla still lacks a first-class multi-organization membership/administration service for roles, invitations, visibility, transfer, deletion, and audit-log workflows. |
+| CAPY-364 | Org, members & access | P3 | blocked | phase3-10-org-access |  | Blocked: Flotilla still lacks a first-class multi-organization membership/administration service for roles, invitations, visibility, transfer, deletion, and audit-log workflows. |
+| CAPY-365 | Org, members & access | P3 | blocked | phase3-10-org-access |  | Blocked: Flotilla still lacks a first-class multi-organization membership/administration service for roles, invitations, visibility, transfer, deletion, and audit-log workflows. |
+| CAPY-366 | Org, members & access | P3 | blocked | phase3-10-org-access |  | Blocked: Flotilla still lacks a first-class multi-organization membership/administration service for roles, invitations, visibility, transfer, deletion, and audit-log workflows. |
+| CAPY-367 | Org, members & access | P3 | blocked | phase3-10-org-access |  | Blocked: Flotilla still lacks a first-class multi-organization membership/administration service for roles, invitations, visibility, transfer, deletion, and audit-log workflows. |
+| CAPY-368 | SSO & sign-in | P3 | blocked | phase3-11-sso-security |  | Blocked: no OIDC/SAML SSO, DNS domain verification, passkey/TOTP two-step, or multi-email security service is implemented. |
+| CAPY-369 | SSO & sign-in | P3 | blocked | phase3-11-sso-security |  | Blocked: no OIDC/SAML SSO, DNS domain verification, passkey/TOTP two-step, or multi-email security service is implemented. |
+| CAPY-370 | SSO & sign-in | P3 | blocked | phase3-11-sso-security |  | Blocked: no OIDC/SAML SSO, DNS domain verification, passkey/TOTP two-step, or multi-email security service is implemented. |
+| CAPY-371 | SSO & sign-in | P3 | blocked | phase3-11-sso-security |  | Blocked: no OIDC/SAML SSO, DNS domain verification, passkey/TOTP two-step, or multi-email security service is implemented. |
+| CAPY-372 | SSO & sign-in | P3 | blocked | phase3-11-sso-security |  | Blocked: no OIDC/SAML SSO, DNS domain verification, passkey/TOTP two-step, or multi-email security service is implemented. |
 | CAPY-373 | SSO & sign-in | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-374 | Security & data | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-375 | Security & data | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
@@ -393,14 +393,14 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-387 | Secrets | P2 | done | phase2-02 | https://github.com/flotilla-ai/flotilla/pull/28 | GitHub token names/values refused by the vault and filtered at prepare; mirror keeps tokens server-side. |
 | CAPY-388 | Secrets | P2 | done | phase2-02 | https://github.com/flotilla-ai/flotilla/pull/28 | PUT/GET/DELETE /api/v1/projects/:id/environment-variables; values write-only. |
 | CAPY-389 | Secrets | P2 | done | phase2-02 | https://github.com/flotilla-ai/flotilla/pull/28 | POST /threads accepts environmentVariables [{name,value}], validated before insert, stored thread-scoped write-only. |
-| CAPY-390 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-391 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-392 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-393 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-394 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-395 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-396 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-397 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-390 | Cloud credentials (OIDC) | P4 | blocked | phase4-04-cloud-oidc |  | Blocked: Flotilla does not implement an OIDC issuer, cloud workload identity federation, Vault JWT auth, token-file issuance, or cloud-access revocation service. |
+| CAPY-391 | Cloud credentials (OIDC) | P4 | blocked | phase4-04-cloud-oidc |  | Blocked: Flotilla does not implement an OIDC issuer, cloud workload identity federation, Vault JWT auth, token-file issuance, or cloud-access revocation service. |
+| CAPY-392 | Cloud credentials (OIDC) | P4 | blocked | phase4-04-cloud-oidc |  | Blocked: Flotilla does not implement an OIDC issuer, cloud workload identity federation, Vault JWT auth, token-file issuance, or cloud-access revocation service. |
+| CAPY-393 | Cloud credentials (OIDC) | P4 | blocked | phase4-04-cloud-oidc |  | Blocked: Flotilla does not implement an OIDC issuer, cloud workload identity federation, Vault JWT auth, token-file issuance, or cloud-access revocation service. |
+| CAPY-394 | Cloud credentials (OIDC) | P4 | blocked | phase4-04-cloud-oidc |  | Blocked: Flotilla does not implement an OIDC issuer, cloud workload identity federation, Vault JWT auth, token-file issuance, or cloud-access revocation service. |
+| CAPY-395 | Cloud credentials (OIDC) | P4 | blocked | phase4-04-cloud-oidc |  | Blocked: Flotilla does not implement an OIDC issuer, cloud workload identity federation, Vault JWT auth, token-file issuance, or cloud-access revocation service. |
+| CAPY-396 | Cloud credentials (OIDC) | P4 | blocked | phase4-04-cloud-oidc |  | Blocked: Flotilla does not implement an OIDC issuer, cloud workload identity federation, Vault JWT auth, token-file issuance, or cloud-access revocation service. |
+| CAPY-397 | Cloud credentials (OIDC) | P4 | blocked | phase4-04-cloud-oidc |  | Blocked: Flotilla does not implement an OIDC issuer, cloud workload identity federation, Vault JWT auth, token-file issuance, or cloud-access revocation service. |
 | CAPY-398 | GitHub | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | install/validate the GitHub app webhook and permission flow live. |
 | CAPY-399 | GitHub | P2 | done | phase2-35 |  | Fixture-backed account/installation store manages multiple personal/org accounts and installations with repositories and dependency-reader metadata (`github-integration.test.ts`). |
 | CAPY-400 | GitHub | P2 | needs-human-login | phase2-35 |  | Personal-account API shape and acting identity settings exist, but live OAuth/PAT verification and acting as the user on GitHub need a human login. Operator command: connect a PAT/OAuth token, then run a fixture PR creation against a test repository. |
@@ -409,27 +409,27 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-403 | GitHub | P2 | blocked | phase2-35 |  | Generic PR comment wakes exist, but `@capy` command parsing and the eyes reaction are not implemented. |
 | CAPY-404 | GitHub | P2 | blocked | phase2-35 |  | Installations can record dependency-reader metadata, but no read-only dependency reader GitHub App/credential flow exists. |
 | CAPY-405 | GitHub | P2 | done | phase2-35 |  | Installations fail closed unless contents/write, pull-requests/write, checks/read, issues/write and metadata/read are present (`github-integration.test.ts`). |
-| CAPY-406 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-407 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-408 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-409 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-410 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-411 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-412 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-413 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-414 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-415 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-416 | Linear | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-417 | Linear | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-418 | Linear | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-419 | Linear | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-420 | Linear | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-421 | Linear | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-422 | Other integrations | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-406 | Slack | P3 | blocked | phase3-12-slack |  | Blocked: the Slack app connector, event ingestion, thread synchronisation, agent Slack tools, user-read mode, and PR card/DM surfaces are not implemented. |
+| CAPY-407 | Slack | P3 | blocked | phase3-12-slack |  | Blocked: the Slack app connector, event ingestion, thread synchronisation, agent Slack tools, user-read mode, and PR card/DM surfaces are not implemented. |
+| CAPY-408 | Slack | P3 | blocked | phase3-12-slack |  | Blocked: the Slack app connector, event ingestion, thread synchronisation, agent Slack tools, user-read mode, and PR card/DM surfaces are not implemented. |
+| CAPY-409 | Slack | P3 | blocked | phase3-12-slack |  | Blocked: the Slack app connector, event ingestion, thread synchronisation, agent Slack tools, user-read mode, and PR card/DM surfaces are not implemented. |
+| CAPY-410 | Slack | P3 | blocked | phase3-12-slack |  | Blocked: the Slack app connector, event ingestion, thread synchronisation, agent Slack tools, user-read mode, and PR card/DM surfaces are not implemented. |
+| CAPY-411 | Slack | P3 | blocked | phase3-12-slack |  | Blocked: the Slack app connector, event ingestion, thread synchronisation, agent Slack tools, user-read mode, and PR card/DM surfaces are not implemented. |
+| CAPY-412 | Slack | P3 | blocked | phase3-12-slack |  | Blocked: the Slack app connector, event ingestion, thread synchronisation, agent Slack tools, user-read mode, and PR card/DM surfaces are not implemented. |
+| CAPY-413 | Slack | P3 | blocked | phase3-12-slack |  | Blocked: the Slack app connector, event ingestion, thread synchronisation, agent Slack tools, user-read mode, and PR card/DM surfaces are not implemented. |
+| CAPY-414 | Slack | P3 | blocked | phase3-12-slack |  | Blocked: the Slack app connector, event ingestion, thread synchronisation, agent Slack tools, user-read mode, and PR card/DM surfaces are not implemented. |
+| CAPY-415 | Slack | P3 | blocked | phase3-12-slack |  | Blocked: the Slack app connector, event ingestion, thread synchronisation, agent Slack tools, user-read mode, and PR card/DM surfaces are not implemented. |
+| CAPY-416 | Linear | P3 | blocked | phase3-13-linear-integrations |  | Blocked: the Linear connector, native agent sessions, routing maps, progress sync, and stop-signal webhook handling are not implemented. |
+| CAPY-417 | Linear | P3 | blocked | phase3-13-linear-integrations |  | Blocked: the Linear connector, native agent sessions, routing maps, progress sync, and stop-signal webhook handling are not implemented. |
+| CAPY-418 | Linear | P3 | blocked | phase3-13-linear-integrations |  | Blocked: the Linear connector, native agent sessions, routing maps, progress sync, and stop-signal webhook handling are not implemented. |
+| CAPY-419 | Linear | P3 | blocked | phase3-13-linear-integrations |  | Blocked: the Linear connector, native agent sessions, routing maps, progress sync, and stop-signal webhook handling are not implemented. |
+| CAPY-420 | Linear | P3 | blocked | phase3-13-linear-integrations |  | Blocked: the Linear connector, native agent sessions, routing maps, progress sync, and stop-signal webhook handling are not implemented. |
+| CAPY-421 | Linear | P3 | blocked | phase3-13-linear-integrations |  | Blocked: the Linear connector, native agent sessions, routing maps, progress sync, and stop-signal webhook handling are not implemented. |
+| CAPY-422 | Other integrations | P3 | blocked | phase3-13-linear-integrations |  | Blocked: the corresponding external integration connector (Vercel, Paper, marketplace vendor, or web retrieval provider) is not implemented. |
 | CAPY-423 | Other integrations | P2 | needs-human-login | phase2-15 |  |  Fixture validation covers tagged ephemeral nodes, ACL shape, vault/secret OAuth references and disconnect state. Operator verification: set a real Tailscale OAuth client in the vault, put /api/v1/devices/:id/tailscale, then verify the tagged ephemeral node appears and disappears on disconnect.  |
-| CAPY-424 | Other integrations | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-425 | Other integrations | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-426 | Other integrations | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-424 | Other integrations | P3 | blocked | phase3-13-linear-integrations |  | Blocked: the corresponding external integration connector (Vercel, Paper, marketplace vendor, or web retrieval provider) is not implemented. |
+| CAPY-425 | Other integrations | P3 | blocked | phase3-13-linear-integrations |  | Blocked: the corresponding external integration connector (Vercel, Paper, marketplace vendor, or web retrieval provider) is not implemented. |
+| CAPY-426 | Other integrations | P3 | blocked | phase3-13-linear-integrations |  | Blocked: the corresponding external integration connector (Vercel, Paper, marketplace vendor, or web retrieval provider) is not implemented. |
 | CAPY-427 | UI surfaces | P3 | done | phase3-14 |  |  Sidebar model renders Captains, Pinned, folders and threads grouped by project, folder or none in a hybrid layout.  |
 | CAPY-428 | UI surfaces | P3 | done | phase3-14 |  |  Bottom bar items support reorder and hide through persisted navigation preferences.  |
 | CAPY-429 | UI surfaces | P3 | done | phase3-14 |  |  Folder visibility/no-nesting, pinned threads and at most twenty tags are modeled and validated.  |
@@ -486,22 +486,22 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-479 | Cloud machines | P2 | done | phase2-13 |  | Web shell commands first wait briefly; still-running commands become durable `machine_background_commands` rows with pid/state/output and can be listed/stopped: `machine-ux.test.ts`, web `machine-core.test.tsx`. |
 | CAPY-480 | Billing & plans | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-481 | Billing & plans | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | On run-out the switch onto the free models always asks (even with keep-going); admin `PUT /usage/settings {runOutFree:'never'}` drops the free option (Wait only). Fake run_out adapter; real vendor run-out detection stays under CAPY-333. |
-| CAPY-482 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-483 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-482 | Models & connections | P3 | blocked | phase3-08-models-connections |  | Blocked: the model catalog exists, but provider-specific organization connections, fast/ultrafast modes, approval sharing, and Slack/Linear default-model policy surfaces are not implemented. |
+| CAPY-483 | Models & connections | P3 | blocked | phase3-08-models-connections |  | Blocked: the model catalog exists, but provider-specific organization connections, fast/ultrafast modes, approval sharing, and Slack/Linear default-model policy surfaces are not implemented. |
 | CAPY-484 | Models & connections | P2 | needs-human-login | phase2-04 | https://github.com/flotilla-ai/flotilla/pull/36 | Proven offline: one list row per Claude model; a connected Claude subscription is first in run order (before an API key added earlier) and resolve picks it; production `defaultRunner` now registers the claude-code and codex adapters. Live: `claude auth login`, connect the subscription, run a thread on a Claude model and confirm it runs without ANTHROPIC_API_KEY. |
 | CAPY-485 | Models & connections | P2 | blocked | phase2-04 | https://github.com/flotilla-ai/flotilla/pull/36 | Proven offline: PATCH `/api/v1/connections/:id` `{baseUrl}` (http/https only) reaches the next run as `ANTHROPIC_BASE_URL`/`OPENAI_BASE_URL` (manifest `baseUrlEnvVar`). Blocked: no web connections editor yet (same web unit as CAPY-332). Live gateway: `ANTHROPIC_BASE_URL=<gateway> claude -p ok --bare` with the operator's key, unverified. |
 | CAPY-486 | Models & connections | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-487 | Usage & analytics | P3 | done | phase3-09 |  |  By-member analytics rank by cost or tokens while cached tokens are reported separately rather than double-counted.  |
 | CAPY-488 | Devices & desktop app | P2 | done | phase2-15 |  |  Worktree folder policy is stored per paired device and exposed by the API.  |
-| CAPY-489 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-489 | Devices & desktop app | P3 | blocked | phase3-06-machine-device-advanced |  | Blocked: the desktop application shell, OS packaging/updater, tray integration, multi-window UI, and device transfer runtime are not implemented. |
 | CAPY-490 | Devices & desktop app | P2 | blocked | phase2-15 |  |  Placement API distinguishes cloud/paired device and waiting-reconnect, but thread rows do not yet render that placement or execute the reconnect handoff.  |
-| CAPY-491 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-491 | Devices & desktop app | P3 | blocked | phase3-06-machine-device-advanced |  | Blocked: the desktop application shell, OS packaging/updater, tray integration, multi-window UI, and device transfer runtime are not implemented. |
 | CAPY-492 | Captains | P2 | done | phase2-21 |  | API creates a crew thread in the Captain project and adds/removes crew membership. |
 | CAPY-493 | Captains | P2 | done | phase2-21 |  | Captain photo upload stores bounded png/jpeg/webp bytes and org library selection is supported. |
 | CAPY-494 | Captains | P3 | blocked |  |  | captain= Linear mention parsing exists, but Linear mention ingestion/routing does not exist. |
 | CAPY-495 | Captains | P2 | blocked | phase2-22 |  | Large crew/subagent lists are not virtualized. |
-| CAPY-496 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-497 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-496 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
+| CAPY-497 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
 | CAPY-498 | Review | P2 | done | phase2-24 |  | Review state and finding triage are exposed through the REST API. |
 | CAPY-499 | Review | P2 | done| phase2-25 |  | Stack badge detection covers graphite, spr and manual branch chains. |
 | CAPY-500 | Automations | P2 | done | phase2-26 |  | Multiple schedule triggers per automation are stored and scanned independently. |
@@ -518,10 +518,10 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-511 | UI surfaces | P3 | blocked | phase3-15 |  | local theme persistence exists but cross-device sync needs server settings outside scope.  |
 | CAPY-512 | UI surfaces | P3 | done | phase3-14 |  |  Onboarding steps persist locally and joiners skip organization setup.  |
 | CAPY-513 | UI surfaces | P3 | done | phase3-15 |  | single-HTML generated page shell uses viewport and baseline Flotilla styling.  |
-| CAPY-514 | SSO & sign-in | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-515 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-516 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-517 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-514 | SSO & sign-in | P3 | blocked | phase3-11-sso-security |  | Blocked: no OIDC/SAML SSO, DNS domain verification, passkey/TOTP two-step, or multi-email security service is implemented. |
+| CAPY-515 | Slack | P3 | blocked | phase3-12-slack |  | Blocked: the Slack app connector, event ingestion, thread synchronisation, agent Slack tools, user-read mode, and PR card/DM surfaces are not implemented. |
+| CAPY-516 | Slack | P3 | blocked | phase3-12-slack |  | Blocked: the Slack app connector, event ingestion, thread synchronisation, agent Slack tools, user-read mode, and PR card/DM surfaces are not implemented. |
+| CAPY-517 | Slack | P3 | blocked | phase3-12-slack |  | Blocked: the Slack app connector, event ingestion, thread synchronisation, agent Slack tools, user-read mode, and PR card/DM surfaces are not implemented. |
 | CAPY-518 | GitHub | P2 | done | phase2-35 |  | Admin `DELETE /github/accounts/:id` revokes the account and installations; non-owner members get 404 (`github-integration.test.ts`). |
 | CAPY-519 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | rename / enable / widen proposals answered via `/approvals/:id/answer` apply in one click; decline leaves the server unchanged. |
 | CAPY-520 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | OAuth start returns "Finish in your browser"; row shows Cancel; cancelled flows cannot complete (404). |
