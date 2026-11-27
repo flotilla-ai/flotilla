@@ -8,7 +8,7 @@ function cleanPath(path: string): string {
   url.searchParams.delete('share'); url.searchParams.delete('token');
   return `${url.pathname}${url.search}` || '/';
 }
-export function createPreviewServer(tokens = previewTokens, gateHost = 'gate') {
+export function createPreviewServer(tokens = previewTokens, gateHost = 'gate-edge') {
   return createServer((req, res) => { void (async () => {
     const m = /^\/p\/([^/]+)\/(\d+)(\/.*)?$/.exec(new URL(req.url ?? '/', 'http://preview').pathname);
     if (!m) { res.writeHead(404); res.end(); return; }

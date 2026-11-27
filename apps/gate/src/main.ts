@@ -105,7 +105,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const gate = createGate();
   gate.proxy.listen(3128, () => console.log('gate proxy listening on 3128'));
   gate.relay.listen(80, () => console.log('gate relay listening on 80'));
-  const edgeIps = Object.values(networkInterfaces()).flat().filter((x) => x && x.family === 'IPv4' && !x.internal).map((x) => x!.address);
+  let edgeIps: string[] = [];
+  if (process.env.GATE_EDGE_HOST) {
+    edgeIps = (await lookup(process.env.GATE_EDGE_HOST, { all: true, verbatim: true })).map((x) => x.address);
+  } else {
+    edgeIps = Object.values(networkInterfaces()).flat().filter((x) => x && x.family === 'IPv4' && !x.internal).map((x) => x!.address);
+  }
   gate.state.edgeAddresses = new Set(edgeIps);
   for (const edgeIp of edgeIps) gate.state.byInterface.set(edgeIp, { allow: [], edge: true });
   gate.admin.listen(3129, () => console.log('gate admin listening on 3129'));

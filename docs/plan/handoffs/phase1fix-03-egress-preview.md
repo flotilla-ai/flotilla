@@ -11,7 +11,7 @@ SCOPE:
 - `apps/server/src/gateClient/`
 - `apps/server/src/previews/`
 - `scripts/test-egress-preview-e2e.sh`
-- `docker-compose.yml` only if required
+- `docker-compose.yml`
 - `docs/plan/handoffs/phase1fix-03-egress-preview.md`
 - `docs/runlog/phase1fix-03.md`
 - `docs/plan/PROGRESS.md`, `docs/plan/PARITY.md`, `docs/plan/DECISIONS-LOG.md`

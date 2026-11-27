@@ -22,4 +22,4 @@ Tests  41 passed | 1 skipped (42)
 exit 0
 ```
 
-Repair made while proving this: gate admin/preview edge detection now treats all interfaces present at startup as the deployment edge plane instead of picking one arbitrary interface; thread networks attached later remain non-edge. Docker Hub rate limiting was bypassed locally by pulling the same Node base image through `mirror.gcr.io` and tagging it locally; no production image reference changed.
+Repair made while proving this: gate admin/preview edge detection now resolves the compose-scoped `gate-edge` alias instead of picking an arbitrary interface; thread networks remain non-edge even if containers restart. Docker Hub rate limiting was bypassed locally by pulling the same Node base image through `mirror.gcr.io` and tagging it locally; no production image reference changed.

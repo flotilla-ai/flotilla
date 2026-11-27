@@ -48,7 +48,7 @@ docker run -d --name flt-FLO-PV01 --network "$thread_net" flotilla-thread:dev no
 
 gate_ip=$(docker inspect -f '{{with index .NetworkSettings.Networks "'$thread_net'"}}{{.IPAddress}}{{end}}' "${project}-gate-1")
 allow='["fixture.public.test","fixture.private.test"]'
-docker exec -e ALLOW="$allow" -e GIP="$gate_ip" -e NET="$thread_net" "${project}-server-1" node -e 'const fs=require("fs");const gt=fs.readFileSync("/run/flotilla-gate/token","utf8").trim();fetch(`http://gate:3129/networks/${process.env.NET}`,{method:"PUT",headers:{authorization:`Bearer ${gt}`,"content-type":"application/json"},body:JSON.stringify({allow:JSON.parse(process.env.ALLOW),gateIp:process.env.GIP})}).then(r=>process.exit(r.status===204?0:1))'
+docker exec -e ALLOW="$allow" -e GIP="$gate_ip" -e NET="$thread_net" "${project}-server-1" node -e 'const fs=require("fs");const gt=fs.readFileSync("/run/flotilla-gate/token","utf8").trim();fetch(`http://gate-edge:3129/networks/${process.env.NET}`,{method:"PUT",headers:{authorization:`Bearer ${gt}`,"content-type":"application/json"},body:JSON.stringify({allow:JSON.parse(process.env.ALLOW),gateIp:process.env.GIP})}).then(r=>process.exit(r.status===204?0:1))'
 proxy_env=(--network "$thread_net" -e HTTP_PROXY=http://gate:3128 -e HTTPS_PROXY=http://gate:3128)
 public_out=$(docker run --rm "${proxy_env[@]}" flotilla-thread:dev wget -qO- --timeout=5 -e use_proxy=yes -e http_proxy=http://gate:3128 -e https_proxy=http://gate:3128 http://fixture.public.test:8088/ 2>/dev/null || true)
 private_out=$(docker run --rm "${proxy_env[@]}" flotilla-thread:dev wget -qO- --timeout=5 -e use_proxy=yes -e http_proxy=http://gate:3128 -e https_proxy=http://gate:3128 http://fixture.private.test:8088/ 2>/dev/null || true)
