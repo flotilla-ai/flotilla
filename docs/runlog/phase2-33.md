@@ -38,7 +38,7 @@ Error: Cannot find module './index.js' imported from '/home/ubuntu/repos/flotill
  ✓ src/skills/skills.test.ts > skills > CAPY-295: $, /, @ or plain words invoke a skill; the agent is told which SKILL.md to read and the invocation is recorded 114ms
  ✓ src/skills/skills.test.ts > skills > CAPY-301: skills from Claude Code, Cursor and the skills CLI are reused by copying their folders 119ms
  Test Files  1 passed (1)
-      Tests  7 passed (7)  (pre-review-fix run; same 7 pass after the fix round)
+      Tests  7 passed (7)
 ```
 ```
  ✓ src/features/skills/skills.test.tsx (1 test) 11ms
@@ -47,10 +47,10 @@ Error: Cannot find module './index.js' imported from '/home/ubuntu/repos/flotill
 ```
 
 ## Done signal
-Branch real-merged `6b5546a` (repair-10/12) on top of `eba906f`. Final head after the Devin Review fix round (folder size cap on save, binary repo files skipped, shebang files mounted 0755, import uses the root-most `skills` dir and validates every folder before saving any, Skills page project picker; each with a red-first assertion in the focused tests). `pnpm --filter @flotilla/server test` lines from the `make check` run:
+Branch real-merged `6b5546a` (repair-10/12) on top of `eba906f`, then `2aefb24` (phase2-18; runner keeps both the `createThread` draft/placement changes and `onBeforePrompt`). Final head after the Devin Review fix round (folder size cap on save, binary repo files skipped, shebang files mounted 0755, import uses the root-most `skills` dir and validates every folder before saving any, Skills page project picker; each with a red-first assertion in the focused tests). `pnpm --filter @flotilla/server test` lines from the `make check` run:
 ```
-apps/server test:  Test Files  24 passed (24)
-apps/server test:       Tests  154 passed | 1 skipped (155)
+apps/server test:  Test Files  25 passed (25)
+apps/server test:       Tests  165 passed | 1 skipped (166)
 ```
 `make check` (lint, typecheck, every package's tests):
 ```
@@ -59,10 +59,10 @@ packages/core test:       Tests  15 passed (15)
 packages/adapters/host test:       Tests  3 passed (3)
 apps/web test:       Tests  17 passed (17)
 packages/adapters/codex test:       Tests  5 passed (5)
-packages/adapters/claude-code test:       Tests  7 passed (7)  (pre-review-fix run; same 7 pass after the fix round)
+packages/adapters/claude-code test:       Tests  7 passed (7)
 packages/adapters/generic-cli test:       Tests  4 passed (4)
 packages/adapters/fake test:       Tests  3 passed (3)
-apps/server test:       Tests  154 passed | 1 skipped (155)
+apps/server test:       Tests  165 passed | 1 skipped (166)
 exit=0
 ```
 An earlier `make check` (before repair-12 merged) failed once in phase2-17's CAPY-041 wake timer test (out of scope; 3 isolated reruns passed 13/13; repair-12 since synchronized that test).
