@@ -5,7 +5,7 @@ Current `flotilla/p1` head before this PR: `b518a16` (phase2-14 devices pairing)
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after automations core, Captain machine/API and devices pairing: done 244, pending 296, needs-human-login 19, n-a 22, blocked 57.
+Counted in `docs/plan/PARITY.md` after automation control: done 244, pending 296, needs-human-login 19, n-a 22, blocked 57.
 
 ## Unit table
 

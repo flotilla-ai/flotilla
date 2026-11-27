@@ -21,3 +21,12 @@ The test proves webhook payloads remain data rather than prompt instructions, da
 ## Unverified
 
 Runner execution does not yet consume `machineSize`/`driveScope` or write terminal output back to automation runs.
+
+Full verification:
+
+```text
+Test Files  39 passed (39)
+Tests  248 passed | 1 skipped (249)
+apps/server lint: Done
+CHECK_RC=0
+```
