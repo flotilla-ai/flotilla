@@ -11,7 +11,7 @@ export interface Automation {
   triggers: AutomationTrigger[]; conditions: Record<string, unknown>; runWhen: string | null;
   gateModel: Record<string, unknown>; model: { name: string | null; pinned: boolean };
   threadMode: 'new' | 'standing' | 'existing' | 'private'; existingThreadId: string | null; standingThreadId: string | null;
-  machineSize: string; maxRunsPerDay: number | null; driveScope: Record<string, unknown>; state: 'active' | 'paused' | 'deleted'; webhookUrl: string | null; webhookToken?: string; createdAt: string; updatedAt: string;
+  machineSize: string; maxRunsPerDay: number | null; driveScope: Record<string, unknown>; state: 'active' | 'paused' | 'deleted'; stateChangedAt: string; webhookUrl: string | null; webhookToken?: string; createdAt: string; updatedAt: string;
 }
 export interface AutomationRun {
   id: string; automationId: string; triggerType: TriggerType; triggerKey: string; status: 'queued' | 'running' | 'completed' | 'skipped' | 'duplicate' | 'failed' | 'cancelled';
@@ -116,7 +116,7 @@ const toAutomation = (r: Row, token?: string): Automation => ({
   triggers: r.triggers as AutomationTrigger[], conditions: (r.conditions ?? {}) as Record<string, unknown>, runWhen: r.run_when as string | null,
   gateModel: r.gate_model as Record<string, unknown>, model: r.model as Automation['model'], threadMode: r.thread_mode as Automation['threadMode'],
   existingThreadId: r.existing_thread_id as string | null, standingThreadId: r.standing_thread_id as string | null,
-  machineSize: String(r.machine_size ?? 'small'), maxRunsPerDay: r.max_runs_per_day == null ? null : Number(r.max_runs_per_day), driveScope: (r.drive_scope ?? {}) as Record<string, unknown>, state: r.state as Automation['state'], webhookUrl: r.webhook_hash ? `/api/v1/automation-webhooks/${token ?? '<token>'}` : null,
+  machineSize: String(r.machine_size ?? 'small'), maxRunsPerDay: r.max_runs_per_day == null ? null : Number(r.max_runs_per_day), driveScope: (r.drive_scope ?? {}) as Record<string, unknown>, state: r.state as Automation['state'], stateChangedAt: iso(r.state_changed_at ?? r.created_at), webhookUrl: r.webhook_hash ? `/api/v1/automation-webhooks/${token ?? '<token>'}` : null,
   ...(token ? { webhookToken: token } : {}), createdAt: iso(r.created_at), updatedAt: iso(r.updated_at)
 });
 const toRun = (r: Row): AutomationRun => ({ id: String(r.id), automationId: String(r.automation_id), triggerType: r.trigger_type as TriggerType, triggerKey: String(r.trigger_key), status: r.status as AutomationRun['status'], threadId: r.thread_id as string | null, payload: (r.payload ?? {}) as Record<string, unknown>, skipReason: r.skip_reason as string | null, createdAt: iso(r.created_at) });
@@ -296,7 +296,7 @@ export class AutomationStore {
   async setState(userId: string, automationId: string, state: unknown): Promise<Automation> {
     if (!['active','paused','deleted'].includes(String(state))) throw new ApiFailure('ValidationFailed', 'state must be active, paused or deleted');
     if (!(await this.q('SELECT id FROM automations WHERE id=$1 AND owner_id=$2', [automationId, userId])).length) throw new ApiFailure('NotFound', 'automation not found');
-    const [r] = await this.q('UPDATE automations SET state=$3,deleted_at=CASE WHEN $3=$4 THEN now() ELSE NULL END,updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING *', [automationId, userId, String(state), 'deleted']);
+    const [r] = await this.q('UPDATE automations SET state=$3,deleted_at=CASE WHEN $3=$4 THEN now() ELSE NULL END,state_changed_at=now(),updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING *', [automationId, userId, String(state), 'deleted']);
     if (!r) throw new ApiFailure('NotFound', 'automation not found');
     return toAutomation(r);
   }
@@ -392,7 +392,7 @@ export class AutomationStore {
       for (const t of a.triggers.filter((x) => x.type === 'schedule')) {
         const key = `${t.cron}:${t.timezone}`;
         const [last] = await this.q("SELECT max(created_at) AS at FROM automation_runs WHERE automation_id=$1 AND trigger_type='schedule' AND trigger_key=$2", [a.id, key]);
-        const base = Math.max(new Date(a.createdAt).getTime(), t.since ? new Date(t.since).getTime() : 0, last?.at ? new Date(last.at as string).getTime() : 0);
+        const base = Math.max(new Date(a.createdAt).getTime(), new Date(a.stateChangedAt).getTime(), t.since ? new Date(t.since).getTime() : 0, last?.at ? new Date(last.at as string).getTime() : 0);
         let latest: Date | null = null;
         const end = Math.floor(now.getTime() / 60_000) * 60_000;
         // Croner calculates the next occurrence directly, so even a months-old missed schedule is
