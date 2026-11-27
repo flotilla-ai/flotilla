@@ -21,7 +21,7 @@ beforeAll(async()=>{
   await pool.query(`INSERT INTO users (id,email,role) VALUES ('usr_test','r@x','admin') ON CONFLICT (id) DO NOTHING`);
   await pool.query(`INSERT INTO users (id,email,role) VALUES ('usr_other','o@x','member') ON CONFLICT (id) DO NOTHING`);
 },30_000);
-afterAll(async()=>{await pool.end(); if(container)await exec('docker',['rm','-f',container]).catch(()=>undefined);});
+afterAll(async()=>{await runner.drain(); await pool.end(); if(container)await exec('docker',['rm','-f',container]).catch(()=>undefined);});
 async function waitFor(sql:string,args:string[],n=1){for(let i=0;i<80;i++){const r=await pool.query(sql,args);if(r.rows.length>=n)return r.rows;await new Promise(r=>setTimeout(r,100));}return (await pool.query(sql,args)).rows;}
 
 describe('thread runner',()=>{

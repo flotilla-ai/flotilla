@@ -28,7 +28,16 @@ export class ThreadRunner {
   readonly queued = new Map<string, string[]>();
   readonly cancelled = new Set<string>();
   readonly containers = new Map<string,string>();
+  private readonly supervised = new Set<Promise<void>>();
   constructor(readonly deps: RunnerDeps) {}
+
+  private supervise(promise: Promise<void>): void {
+    const tracked = promise.catch(() => undefined).finally(() => this.supervised.delete(tracked));
+    this.supervised.add(tracked);
+  }
+  async drain(): Promise<void> {
+    while (this.supervised.size) await Promise.allSettled(this.supervised);
+  }
   get pool() { return this.deps.store.pool; }
 
   private async owned(threadId: string, userId?: string): Promise<boolean> { if (!userId) return true; const t=await this.thread(threadId); return t?.owner_id===userId; }
@@ -46,7 +55,7 @@ export class ThreadRunner {
     const createSecrets = { ...this.deps.secrets, ...Object.fromEntries(env.flatMap((m) => m.op === 'set' ? [[m.name, m.value]] : [])) };
     await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'thread.created', source: 'kernel', trust: 'trusted', payload: scrub({ title: input.title }, createSecrets) }, { runId: null, kind: 'user.message', source: 'user', trust: 'trusted', payload: scrub({ text: input.prompt }, createSecrets) }] as never, { requestId: input.requestId });
     this.queued.set(threadId,[input.prompt]);
-    void this.startNext(threadId, 'message');
+    this.supervise(this.startNext(threadId, 'message'));
     return row;
   }
 
@@ -54,7 +63,7 @@ export class ThreadRunner {
     const thread = await this.thread(threadId); if (!thread || (userId && thread.owner_id!==userId)) throw new Error('not found');
     await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'user.message', source: userId ? 'user' : 'kernel', trust: userId ? 'trusted' : 'untrusted', payload: scrub({ text, mode, by: userId }, this.deps.secrets ?? {}) }] as never);
     if (mode === 'interrupt') await this.interrupt(threadId); else this.queued.set(threadId, [...(this.queued.get(threadId) ?? []), text]);
-    if (!this.running.has(threadId)) void this.startNext(threadId, 'message');
+    if (!this.running.has(threadId)) this.supervise(this.startNext(threadId, 'message'));
   }
   async interrupt(threadId: string, userId?: string): Promise<void> { if (!(await this.owned(threadId,userId))) throw new Error('not found'); this.cancelled.add(threadId); await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'control.interrupt', source: 'user', trust: 'trusted', payload: {} }] as never); }
   async stop(threadId: string, userId?: string): Promise<void> { if (!(await this.owned(threadId,userId))) throw new Error('not found'); this.cancelled.add(threadId); this.queued.delete(threadId); await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'control.stop', source: 'user', trust: 'trusted', payload: {} }] as never); await this.pool.query(`UPDATE threads SET status='idle',updated_at=now() WHERE id=$1`, [threadId]); }
@@ -67,7 +76,7 @@ export class ThreadRunner {
     if (approval.kind === 'budget' && optionId === 'raise' && value) await this.pool.query(`UPDATE threads SET budget=jsonb_set(budget,'{maxUsd}',to_jsonb($2::int)),status='queued' WHERE id=$1`, [approval.thread_id, value]);
     if (approval.kind === 'budget' && optionId === 'stop') await this.stop(approval.thread_id);
     await this.deps.store.appendEvents(approval.thread_id, [{ runId: null, kind: 'approval.resolved', source: 'kernel', trust: 'trusted', payload: { approvalId, optionId, value } }] as never);
-    if (optionId === 'raise') { if (this.running.has(approval.thread_id)) this.queued.set(approval.thread_id,[...(this.queued.get(approval.thread_id)??[]),'Continue within the raised budget.']); void this.startNext(approval.thread_id, 'resume'); }
+    if (optionId === 'raise') { if (this.running.has(approval.thread_id)) this.queued.set(approval.thread_id,[...(this.queued.get(approval.thread_id)??[]),'Continue within the raised budget.']); this.supervise(this.startNext(approval.thread_id, 'resume')); }
     return approval;
   }
 
@@ -77,7 +86,7 @@ export class ThreadRunner {
     this.running.set(threadId, promise);
     await promise;
     const current = await this.thread(threadId);
-    const budgetNow=current?.budget as {maxUsd:number|null}|undefined;const spentNow=(current?.spent as {usd:number}|undefined)?.usd??0;if ((this.queued.get(threadId) ?? []).length && !this.cancelled.has(threadId) && (budgetNow?.maxUsd==null||spentNow<budgetNow.maxUsd)) void this.startNext(threadId, 'message');
+    const budgetNow=current?.budget as {maxUsd:number|null}|undefined;const spentNow=(current?.spent as {usd:number}|undefined)?.usd??0;if ((this.queued.get(threadId) ?? []).length && !this.cancelled.has(threadId) && (budgetNow?.maxUsd==null||spentNow<budgetNow.maxUsd)) this.supervise(this.startNext(threadId, 'message'));
   }
 
   private async thread(threadId: string): Promise<Row | null> { return (await this.pool.query('SELECT * FROM threads WHERE id=$1', [threadId])).rows[0] ?? null; }
