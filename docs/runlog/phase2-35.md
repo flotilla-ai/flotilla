@@ -10,7 +10,8 @@ ROWS: CAPY-399, CAPY-400, CAPY-401, CAPY-402, CAPY-403, CAPY-404, CAPY-405, CAPY
   - add/list installations with repository metadata and a dependency-reader flag;
   - validate the minimum installation permission set and refuse insufficient installations;
   - validate the four commit-author modes and per-PR overrides;
-  - admin unlink revokes the account and installations.
+  - admin unlink revokes the account and installations; reconnecting preserves unspecified settings and can reattach a revoked installation.
+- Review hardening: GitHub logins are case-insensitive, plaintext token values are rejected, installation ids cannot be squatted across accounts, and per-PR identities are user-scoped/installation-scoped.
 - Regression: `apps/server/src/github-integration/github-integration.test.ts`.
 
 ## Proof
