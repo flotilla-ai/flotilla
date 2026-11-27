@@ -196,9 +196,9 @@ export class ThreadRunner {
   private async thread(threadId: string): Promise<Row | null> { return (await this.pool.query('SELECT * FROM threads WHERE id=$1', [threadId])).rows[0] ?? null; }
   private async project(thread: Row): Promise<Row | null> { return thread.project_id ? (await this.pool.query('SELECT * FROM projects WHERE id=$1', [thread.project_id])).rows[0] ?? null : null; }
 
-  private pooled(thread: Row, place: RunPlacement = {}): boolean { return !!this.deps.machines && thread.role !== 'captain' && !place.workspaceFrom; }
+  private pooled(thread: Row, place: RunPlacement = {}): boolean { return !!this.deps.machines && !place.workspaceFrom; }
   private async free(containerId: string): Promise<void> { await ((this.deps.driver as Driver & {remove?(id:string):Promise<void>}).remove?.(containerId) ?? this.deps.driver.stop(containerId)); }
-  /** Starts the run's container: per-run for captains / without machine core, else the thread's pool machine (held until release). */
+  /** Starts the run's container: per-run without machine core, else the thread's pool machine (held until release). */
   private async machineFor(thread: Row, project: Row | null, env: Record<string, string>, place: RunPlacement = {}): Promise<{ containerId: string; repairPrompt?: string | null }> {
     const threadId = thread.id as string;
     let image = process.env.FLOTILLA_THREAD_IMAGE ?? 'flotilla-thread:dev'; let repairPrompt: string | null = null;

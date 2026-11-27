@@ -162,6 +162,16 @@ describe('machine core', () => {
     expect((await boot('["example.org"]')).containerId).not.toBe(a.containerId); expect(calls).toContain(`remove ${a.containerId}`);
     await core.release(t); clock += 3 * MIN; await core.tick();
   });
+  it('review: promotion to Captain preserves pool-machine wake and keep-awake behavior', async () => {
+    const t = await thread(null);
+    await core.boot(t, null, () => driver.startThreadContainer({}), driver as never); await core.release(t);
+    await pool.query(`UPDATE threads SET role='captain' WHERE id=$1`, [t]);
+    await runner.wakeMachine(t);
+    expect((await lease(t))).toMatchObject({ state: 'awake' });
+    const state = await core.keepAwake(t, true);
+    expect(state.keepAwakeUntil).toBeTruthy();
+  });
+
   it('review: restart recovery keeps a live starting machine reserved; wake refuses shared subagent placement', async () => {
     const t = await thread(null);
     await core.boot(t, null, () => driver.startThreadContainer({}), driver as never); await core.release(t);
