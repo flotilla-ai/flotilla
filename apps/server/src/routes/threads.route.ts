@@ -25,7 +25,7 @@ export function createThreadsRoute(runner = defaultRunner(), policy = modelPolic
     const env = parseVariables(body.environmentVariables);
     const resolved = await modelsCatalogStore().resolve(userId(c), body.engine ?? { adapter: 'fake' });
     const engine = { adapter: resolved.adapter, model: resolved.model, effort: resolved.effort, connectionId: resolved.connectionId, ...(resolved.contextWindow ? { contextWindow: resolved.contextWindow } : {}) };
-    const row = await runner.createThread({ ownerId: userId(c), projectId: body.projectId ?? null, title: body.title, prompt: body.prompt, engine, maxUsd: body.maxUsd ?? null, requestId: body.requestId, env });
+    const row = await runner.createThread({ ownerId: userId(c), projectId: body.projectId ?? null, title: body.title, prompt: body.prompt, engine, maxUsd: body.maxUsd ?? null, requestId: body.requestId, env, attachments: body.attachments });
     return c.json(row, 201);
   });
   app.post('/threads/:id/message', async (c) => { const body = await c.req.json().catch(() => ({})); const cmd = await policy().slash(c.req.param('id'), userId(c), String(body.text ?? '')); if (cmd) { await runner.answerApproval(cmd.approvalId, cmd.optionId, undefined, userId(c)); return c.body(null, 202); } await runner.message(c.req.param('id'), body.text ?? '', body.mode ?? 'queue', userId(c)); return c.body(null, 202); });
