@@ -5,7 +5,7 @@ Current `flotilla/p1` head before this PR: `ca5b8e5` (phase2-36 usage/billing AP
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` on this branch after merging skills and MCP: done 180, pending 390, needs-human-login 18, n-a 22, blocked 29.
+Counted in `docs/plan/PARITY.md` on this branch after merging MCP and machine core: done 187, pending 378, needs-human-login 18, n-a 22, blocked 31.
 
 ## Unit table
 

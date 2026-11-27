@@ -44,7 +44,7 @@ export class DockerMachineDriver {
     await container.start();
     if (input.egressAllow) {
       const inspect = await network.inspect().catch(() => null);
-      const gateIds = new Set((await this.docker.listContainers({ filters: { label: ['flotilla.role=gate'] } })).map((x) => x.Id));
+      const gateIds = new Set((await this.docker.listContainers({ all: true, filters: { label: ['flotilla.role=gate'] } })).map((x) => x.Id));
       const gateIp = Object.entries(inspect?.Containers ?? {}).find(([id]) => gateIds.has(id))?.[1]?.IPv4Address?.split('/')[0];
       await gateClient(input.gate?.adminUrl, input.gate?.token).putNetwork(`flt-${input.threadId}`, input.egressAllow, gateIp).catch(() => undefined);
     }
@@ -70,13 +70,16 @@ export class DockerMachineDriver {
     const container = this.docker.getContainer(containerId);
     const info = await container.inspect().catch(() => null);
     await container.remove({ force: true }).catch(() => undefined);
+    const gateIds = new Set((await this.docker.listContainers({ all: true, filters: { label: ['flotilla.role=gate'] } })).map((x) => x.Id));
     for (const name of Object.keys(info?.NetworkSettings?.Networks ?? {})) {
-      await gateClient().deleteNetwork(name).catch(() => undefined);
       const network = this.docker.getNetwork(name);
       const inspect = await network.inspect().catch(() => null);
-      for (const attached of Object.keys(inspect?.Containers ?? {})) {
-        await network.disconnect({ Container: attached, Force: true }).catch(() => undefined);
-      }
+      const attached = Object.entries(inspect?.Containers ?? {});
+      // A wake may have started the replacement on the same thread network while the old
+      // container was being removed. Leave that network and its gate rules intact.
+      if (attached.some(([id]) => !gateIds.has(id))) continue;
+      await gateClient().deleteNetwork(name).catch(() => undefined);
+      for (const [attachedId] of attached) await network.disconnect({ Container: attachedId, Force: true }).catch(() => undefined);
       await network.remove().catch(() => undefined);
     }
   }
