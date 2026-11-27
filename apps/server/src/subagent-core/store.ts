@@ -3,7 +3,7 @@ import { promisify } from 'node:util';
 import type { Thread } from '@flotilla/core/types';
 import { ApiFailure } from '../api-platform/types.js';
 import { GitHubClient } from '../github/client.js';
-import { mirrorPath } from '../git/mirror.js';
+import { ensureMirror, mirrorPath } from '../git/mirror.js';
 import { defaultRunner } from '../routes/threads.route.js';
 import { onAfterRun, onPlacement, type RunPlacement, type ThreadRunner } from '../runner/runner.js';
 import { SUBAGENT_MAX_DEPTH, type Subagent, type SubagentDiff, type SubagentDraft, type SubagentProgress, type SubagentState } from './types.js';
@@ -179,8 +179,11 @@ export class SubagentStore {
   private async published(projectId: string | null, branch: string): Promise<boolean> {
     const project = projectId ? (await this.pool.query('SELECT * FROM projects WHERE id=$1', [projectId])).rows[0] : null;
     if (!project) return false;
-    const mirror = mirrorPath(this.deps.mirrorRoot ?? '/data/mirrors', project as never);
-    return exec('git', ['--git-dir', mirror, 'rev-parse', '--verify', '--quiet', `refs/heads/${branch}`]).then(() => true, () => false);
+    try {
+      const mirror = await ensureMirror({ id: project.id, repo: project.repo, trust: project.trust, token: process.env.GITHUB_TOKEN }, this.deps.mirrorRoot ?? '/data/mirrors');
+      await exec('git', ['--git-dir', mirror, 'rev-parse', '--verify', '--quiet', `refs/heads/${branch}`]);
+      return true;
+    } catch { return false; }
   }
   private async row(id: string, userId: string): Promise<Row> {
     const s = (await this.pool.query(`${SELECT} WHERE s.thread_id=$1`, [id])).rows[0] as Row | undefined;
