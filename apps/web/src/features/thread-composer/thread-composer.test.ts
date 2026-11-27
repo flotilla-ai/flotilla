@@ -36,4 +36,8 @@ describe('thread composer helpers',()=>{
   const s=sections(1,'# A\n````md\n```\n# inner\n```\n````\n# B\n```js``` inline\n# C\nend');
   expect(s.map(x=>x.heading)).toEqual(['A','B','C']);
  });
+ it('CAPY-027: fences nested in list items and CRLF replies still delimit code',()=>{
+  expect(sections(1,'# A\n- step\n    ```sh\n    # c\n    ```\n# B\nok').map(x=>x.heading)).toEqual(['A','B']);
+  expect(sections(1,'# A\r\n```sh\r\n# c\r\n```\r\n# B\r\nok').map(x=>x.heading)).toEqual(['A','B']);
+ });
 });

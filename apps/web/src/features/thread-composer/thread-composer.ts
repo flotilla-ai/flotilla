@@ -14,7 +14,7 @@ export function sections(seq:number,text:string):ThreadSection[]{
  const out:ThreadSection[]=[];let heading:string|null=null;let buf:string[]=[];
  const flush=()=>{const t=buf.join('\n').trim();if(t||heading)out.push({seq,index:out.length,heading,text:t});buf=[]};
  let fence='';
- for(const line of text.split('\n')){const f=/^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);if(f&&(fence?f[1][0]===fence[0]&&f[1].length>=fence.length&&!f[2].trim():!(f[1][0]==='`'&&f[2].includes('`'))))fence=fence?'':f[1];else if(fence){buf.push(line);continue}const m=f?null:/^#{1,6}\s+(.*)$/.exec(line);if(m){flush();heading=m[1].trim()}else buf.push(line)}
+ for(const line of text.split(/\r?\n/)){const f=/^\s*(`{3,}|~{3,})(.*)$/.exec(line);if(f&&(fence?f[1][0]===fence[0]&&f[1].length>=fence.length&&!f[2].trim():!(f[1][0]==='`'&&f[2].includes('`'))))fence=fence?'':f[1];else if(fence){buf.push(line);continue}const m=f?null:/^#{1,6}\s+(.*)$/.exec(line);if(m){flush();heading=m[1].trim()}else buf.push(line)}
  flush();return out;
 }
 export const quote=(s:ThreadSection)=>[...(s.heading?[`**${s.heading}**`]:[]),...s.text.split('\n')].map(l=>`> ${l}`).join('\n')+'\n\n';
