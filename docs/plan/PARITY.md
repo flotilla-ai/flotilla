@@ -53,19 +53,19 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-047 | Wakes & background | P2 | done | phase2-17 | https://github.com/flotilla-ai/flotilla/pull/45 | Existing runner `/plan` gate writes the plan and opens a blocking approval with no vendor plan mode; timer wakes do not bypass it. Test `wakes.test.ts`. |
 | CAPY-048 | Wakes & background | P2 | done | phase2-17 | https://github.com/flotilla-ai/flotilla/pull/45 | `GET /threads/:id/peek?q=&save=1` returns status/PRs/history, filters, saves markdown to `api_files`; creates no event, inbox item or run. Test `wakes.test.ts`. |
 | CAPY-049 | Wakes & background | P2 | done | phase2-17 | https://github.com/flotilla-ai/flotilla/pull/45 | `POST /threads/:id/send` delivers as a steer and adds a `thread` watch; the target's next completed run wakes the sender once. Test `wakes.test.ts`. |
-| CAPY-050 | Wakes & background | P2 | blocked | phase2-17 | https://github.com/flotilla-ai/flotilla/pull/45 | Hold/allow proven: `PUT /threads/:id/hold`, held items in `wake_inbox`, owner-only allow/decline. Blocked: BYOM threads do not auto-enable hold and there is no held-messages UI (BYOM is a later unit). |
-| CAPY-051 | Wakes & background | P2 | blocked | phase2-17 | https://github.com/flotilla-ai/flotilla/pull/45 | Only `rsyncArgv` (rsync over ssh, BatchMode) through the background-job path is tested with a fake executor. Blocked: needs a BYOM machine with SSH (later unit). |
-| CAPY-052 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-053 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-054 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-055 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-056 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-057 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-058 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-059 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-060 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-061 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-062 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-050 | Wakes & background | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-051 | Wakes & background | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-052 | Subagents & forks | P2 | done | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | Child thread (`parent_id`) + `subagents` row; addressed `Subagent 1.3`, depth limit 3 in `SubagentStore.create` (403 beyond). Own conversation/run. Flotilla-delegate path; adapter-native `subagent` events are not mapped. |
+| CAPY-053 | Subagents & forks | P2 | done | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | Draft = thread `idle` with no inbox item; PATCH title/prompt until `POST /subagents/:id/start` (409 after). |
+| CAPY-054 | Subagents & forks | P2 | done | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | Start queues only the draft prompt; fresh session (`resumeSessionId: null`); no parent events copied. |
+| CAPY-055 | Subagents & forks | P2 | done | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | `placement` required: `shared` mounts the nearest non-shared ancestor workspace read-only (no seed), `fresh` gets its own container/volume/branch. |
+| CAPY-056 | Subagents & forks | P2 | done | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | `parallel` fresh siblings must claim disjoint `paths` (409); `stacked` uses the previous sibling branch as base (409 until it exists). |
+| CAPY-057 | Subagents & forks | P2 | done | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | States map from thread status: draft/working/waiting (budget or run-out pause)/idle (stopped)/done/failed. |
+| CAPY-058 | Subagents & forks | P2 | done | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | After-run hook queues `Subagent N "title" finished. Summary:` or `... is blocked and asks: <question>` on the parent inbox; `GET /subagents/:id/progress` reads state, tool calls and text (prose is buffered by the kernel scrubber until the run ends). |
+| CAPY-059 | Subagents & forks | P2 | done | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | `GET /subagents/:id/diff` (mirror `base...branch`, applies with `git apply`), `POST /subagents/:id/pr` (head = child branch), `POST /subagents/:id/feedback`. Applying the patch inside the parent workspace is left to the parent agent. |
+| CAPY-060 | Subagents & forks | P2 | done | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | Per-subagent engine resolved through the model catalog (`resolveEngine`); granted budget = min(request, parent cap − spent − sibling grants), 403 when nothing is left. |
+| CAPY-061 | Subagents & forks | P2 | blocked | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | No paired-device machine driver on `flotilla/p1`; needs the BYOM/device-pairing unit to add a placement target. |
+| CAPY-062 | Subagents & forks | P2 | blocked | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | Siblings are created and messaged through the user-authenticated subagent API; no agent-callable tool for non-Captain threads exists (Captain `crew.*` MCP tools are outside this unit). |
 | CAPY-063 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-064 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-065 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
