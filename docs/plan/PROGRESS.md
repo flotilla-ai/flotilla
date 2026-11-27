@@ -23,7 +23,7 @@ Initialized in `docs/plan/PARITY.md`: P2/P3/P4 rows are pending; phase 1 rows ar
 | repair-4-secrets-hardening | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/29 | persist vault key; keyed idempotency fingerprints |
 | phase2-03-models-catalog | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/30 | model catalog + connections; 2 rows done, 5 needs-human-login, 1 blocked (CAPY-332 web picker) |
 | repair-5 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/33 | runner continuation supervision |
-| phase2-04-model-policy-api | in review | 1 | PR_URL | model policy + model API; 2 rows done (335, 336), 3 needs-human-login (333, 337, 484), 2 blocked (338 no title/summary generator, 485 no web connections editor) |
+| phase2-04-model-policy-api | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/36 | model policy + model API; 2 rows done (335, 336), 3 needs-human-login (333, 337, 484), 2 blocked (338 no title/summary generator, 485 no web connections editor) |
 
 ## Next action
 
