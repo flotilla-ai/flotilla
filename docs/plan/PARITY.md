@@ -383,16 +383,16 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-377 | Security & data | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-378 | Security & data | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-379 | Security & data | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-380 | Security & data | P2 | done | phase2-02 | PR-pending | AES-256-GCM envelope (per-value DEK, HKDF KEK from FLOTILLA_MASTER_KEY[_FILE], AAD scope:id:name) in Postgres `secrets` (secrets.test.ts). |
+| CAPY-380 | Security & data | P2 | done | phase2-02 | https://github.com/flotilla-ai/flotilla/pull/28 | AES-256-GCM envelope (per-value DEK, HKDF KEK from FLOTILLA_MASTER_KEY[_FILE], AAD scope:id:name) in Postgres `secrets` (secrets.test.ts). |
 | CAPY-381 | Security & data | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
-| CAPY-382 | Security & data | P2 | done | phase2-02 | PR-pending | GET /api/v1/threads/:id/export returns thread, runs, events and env names only; no values. |
-| CAPY-383 | Secrets | P2 | done | phase2-02 | PR-pending | Project (shared), personal and thread scopes; precedence thread > personal > shared. |
-| CAPY-384 | Secrets | P2 | done | phase2-02 | PR-pending | APIs, grants, export and events show names + configured only; values scrubbed from events and never put in prompts (fake adapter spy). |
-| CAPY-385 | Secrets | P2 | done | phase2-02 | PR-pending | Decrypt only in SecretsStore.prepare during runner machine prep; written to /run/flotilla/secrets.env (0600, uid 1000) outside /workspace/repo. |
-| CAPY-386 | Secrets | P2 | done | phase2-02 | PR-pending | The thread owner's personal values apply to the thread whoever drives it (prepare resolves by owner). |
-| CAPY-387 | Secrets | P2 | done | phase2-02 | PR-pending | GitHub token names/values refused by the vault and filtered at prepare; mirror keeps tokens server-side. |
-| CAPY-388 | Secrets | P2 | done | phase2-02 | PR-pending | PUT/GET/DELETE /api/v1/projects/:id/environment-variables; values write-only. |
-| CAPY-389 | Secrets | P2 | done | phase2-02 | PR-pending | POST /threads accepts environmentVariables [{name,value}], validated before insert, stored thread-scoped write-only. |
+| CAPY-382 | Security & data | P2 | done | phase2-02 | https://github.com/flotilla-ai/flotilla/pull/28 | GET /api/v1/threads/:id/export returns thread, runs, events and env names only; no values. |
+| CAPY-383 | Secrets | P2 | done | phase2-02 | https://github.com/flotilla-ai/flotilla/pull/28 | Project (shared), personal and thread scopes; precedence thread > personal > shared. |
+| CAPY-384 | Secrets | P2 | done | phase2-02 | https://github.com/flotilla-ai/flotilla/pull/28 | APIs, grants, export and events show names + configured only; values scrubbed from events and never put in prompts (fake adapter spy). |
+| CAPY-385 | Secrets | P2 | done | phase2-02 | https://github.com/flotilla-ai/flotilla/pull/28 | Decrypt only in SecretsStore.prepare during runner machine prep; written to /run/flotilla/secrets.env (0600, uid 1000) outside /workspace/repo. |
+| CAPY-386 | Secrets | P2 | done | phase2-02 | https://github.com/flotilla-ai/flotilla/pull/28 | The thread owner's personal values apply to the thread whoever drives it (prepare resolves by owner). |
+| CAPY-387 | Secrets | P2 | done | phase2-02 | https://github.com/flotilla-ai/flotilla/pull/28 | GitHub token names/values refused by the vault and filtered at prepare; mirror keeps tokens server-side. |
+| CAPY-388 | Secrets | P2 | done | phase2-02 | https://github.com/flotilla-ai/flotilla/pull/28 | PUT/GET/DELETE /api/v1/projects/:id/environment-variables; values write-only. |
+| CAPY-389 | Secrets | P2 | done | phase2-02 | https://github.com/flotilla-ai/flotilla/pull/28 | POST /threads accepts environmentVariables [{name,value}], validated before insert, stored thread-scoped write-only. |
 | CAPY-390 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
 | CAPY-391 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
 | CAPY-392 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
@@ -541,9 +541,9 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-535 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-536 | API: projects | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-537 | API: projects | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-538 | API: projects | P2 | done | phase2-02 | PR-pending | GET /api/v1/projects/:id/environment-variables lists names/configured state. |
-| CAPY-539 | API: projects | P2 | done | phase2-02 | PR-pending | PUT /api/v1/projects/:id/environment-variables sets values (write-only). |
-| CAPY-540 | API: projects | P2 | done | phase2-02 | PR-pending | DELETE /api/v1/projects/:id/environment-variables?names= deletes. |
+| CAPY-538 | API: projects | P2 | done | phase2-02 | https://github.com/flotilla-ai/flotilla/pull/28 | GET /api/v1/projects/:id/environment-variables lists names/configured state. |
+| CAPY-539 | API: projects | P2 | done | phase2-02 | https://github.com/flotilla-ai/flotilla/pull/28 | PUT /api/v1/projects/:id/environment-variables sets values (write-only). |
+| CAPY-540 | API: projects | P2 | done | phase2-02 | https://github.com/flotilla-ai/flotilla/pull/28 | DELETE /api/v1/projects/:id/environment-variables?names= deletes. |
 | CAPY-541 | API: threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-542 | API: threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-543 | API: threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
