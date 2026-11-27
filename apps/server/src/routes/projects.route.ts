@@ -25,7 +25,7 @@ const ICON = /^(?:\p{Extended_Pictographic}|\p{Regional_Indicator})(?:\p{Extende
 function repoFrom(src: ProjectSource, role: ProjectRepoRole): ProjectRepository {
   const baseBranch = 'baseBranch' in src && src.baseBranch !== undefined ? src.baseBranch : 'main';
   if (typeof baseBranch !== 'string' || !BRANCH.test(baseBranch)) throw new Invalid('invalid baseBranch');
-  const repo = { id: `rep_${hex(4)}`, baseBranch, role, machineId: null, description: null, clonedAt: null };
+  const repo = { id: `rep_${hex(4)}`, baseBranch, branchPinned: 'baseBranch' in src && src.baseBranch !== undefined, role, machineId: null, description: null, clonedAt: null };
   if (src?.kind === 'github') {
     if (typeof src.fullName !== 'string' || !GITHUB_NAME.test(src.fullName)) throw new Invalid('github source needs owner/repo');
     return { ...repo, provider: 'github', fullName: src.fullName };
@@ -99,7 +99,9 @@ export function createProjectsRoute(pool = new pg.Pool({ connectionString: proce
   }
   async function materialize(row: Row, repo: ProjectRepository): Promise<ProjectRepository> {
     const path = await mirror({ id: (repo.role === 'primary' ? row.id : `${row.id as string}--${repo.id}`) as never, repo: primaryOf(repo) as never, trust: row.trust as never, token: process.env.GITHUB_TOKEN }, root);
-    const baseBranch = await hasBranch(path, repo.baseBranch) ? repo.baseBranch : await mirrorDefaultBranch(path, repo.baseBranch, process.env);
+    const found = await hasBranch(path, repo.baseBranch);
+    if (!found && repo.branchPinned) throw new Invalid(`base branch ${repo.baseBranch} not found`, 409);
+    const baseBranch = found ? repo.baseBranch : await mirrorDefaultBranch(path, repo.baseBranch, process.env);
     const patch = { baseBranch, description: await describeMirror(path, baseBranch), clonedAt: new Date().toISOString() };
     if (repo.role === 'primary') await pool.query("UPDATE projects SET repo = repo || jsonb_build_object('baseBranch', $2::text) WHERE id=$1 AND repo IS NOT NULL", [row.id, baseBranch]);
     await pool.query("UPDATE projects SET repos=(SELECT jsonb_agg(CASE WHEN r->>'id'=$2 THEN r || $3::jsonb ELSE r END ORDER BY o) FROM jsonb_array_elements(repos) WITH ORDINALITY t(r,o)) WHERE id=$1", [row.id, repo.id, JSON.stringify(patch)]);
@@ -155,7 +157,7 @@ export function createProjectsRoute(pool = new pg.Pool({ connectionString: proce
     if (!row || !repo) return c.json({ error: 'not found' }, 404);
     if (repo.machineId) return c.json({ error: `repository lives on machine ${repo.machineId}; that machine's runner clones it` }, 409);
     try { await assertTokenAccess(userId(c), [repo]); } catch (err) { return fail(c, err); }
-    try { return c.json(await materialize(row, repo)); } catch { return c.json({ error: 'clone failed' }, 502); }
+    try { return c.json(await materialize(row, repo)); } catch (err) { return err instanceof Invalid ? fail(c, err) : c.json({ error: 'clone failed' }, 502); }
   });
   return { basePath: '/api/v1/projects', app, public: false };
 }

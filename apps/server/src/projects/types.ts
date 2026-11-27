@@ -8,6 +8,7 @@ export interface ProjectRepository {
   provider: ProjectRepoProvider;
   fullName: string;          // github `owner/repo`, an https/file git URL, or an absolute folder path
   baseBranch: string;
+  branchPinned?: boolean;   // baseBranch was chosen by the user; never replaced by the mirror default
   role: ProjectRepoRole;     // primary: mirrored at creation and seeded into every thread; lazy: mirrored on demand
   machineId: string | null;  // folder source on a paired device; null = the server host
   description: string | null;

@@ -133,6 +133,11 @@ describe('projects (phase2-29)', () => {
     const old = await create({ name: 'Billing', source: { kind: 'github', fullName: 'acme/billing' } });
     const oldReady = await untilCloned(old.body.id, old.body.repos[0].id);
     expect([oldReady.repo?.baseBranch, oldReady.repos[0].baseBranch, oldReady.repos[0].description]).toEqual(['master', 'master', 'Legacy billing service.']);
+    const pinned = await create({ name: 'Pinned', source: { kind: 'empty' }, lazy: [{ kind: 'git-url', url: `file://${fixtures.engine}`, baseBranch: 'release' }] });
+    const miss = await app.request(`http://local/api/v1/projects/${pinned.body.id}/repos/${pinned.body.repos[0].id}/clone`, json({}));
+    expect([miss.status, await miss.json()]).toEqual([409, { error: 'base branch release not found' }]);
+    const kept = await (await app.request(`http://local/api/v1/projects/${pinned.body.id}`, as('usr_a'))).json() as { repos: { baseBranch: string; clonedAt: string | null }[] };
+    expect([kept.repos[0].baseBranch, kept.repos[0].clonedAt]).toEqual(['release', null]);
   });
 
   it('CAPY-181: validates GitHub, git URL and folder sources and suggests recently pushed repos', async () => {
