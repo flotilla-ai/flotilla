@@ -47,15 +47,15 @@ Error: Cannot find module './index.js' imported from '/home/ubuntu/repos/flotill
 ```
 
 ## Done signal
-`pnpm --filter @flotilla/server test`:
+Final commit (after the `text`-only invocation parse and import cap). `pnpm --filter @flotilla/server test` lines from the `make check` run:
 ```
- Test Files  24 passed (24)
-      Tests  153 passed | 1 skipped (154)
+apps/server test:  Test Files  24 passed (24)
+apps/server test:       Tests  153 passed | 1 skipped (154)
 ```
 `make check` (lint, typecheck, every package's tests):
 ```
-packages/core test:       Tests  15 passed (15)
 apps/gate test:       Tests  5 passed (5)
+packages/core test:       Tests  15 passed (15)
 packages/adapters/host test:       Tests  3 passed (3)
 apps/web test:       Tests  16 passed (16)
 packages/adapters/claude-code test:       Tests  7 passed (7)
@@ -64,6 +64,12 @@ packages/adapters/generic-cli test:       Tests  4 passed (4)
 packages/adapters/fake test:       Tests  3 passed (3)
 apps/server test:       Tests  153 passed | 1 skipped (154)
 exit=0
+```
+The previous `make check` on the same commit failed once in phase2-17's wake test (out of scope; 3 isolated reruns of `src/wakes` passed 13/13, and the rerun above is green):
+```
+apps/server test:    × wake router > CAPY-041: timers up to 7 days fire from the DB sweep; capped threads never wake 349ms
+apps/server test: AssertionError: expected 2 to be 1 // Object.is equality
+apps/server test:       Tests  1 failed | 152 passed | 1 skipped (154)
 ```
 
 ## Unverified
