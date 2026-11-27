@@ -101,3 +101,4 @@ EXIT 0
 - Escalated: to attach files to a thread's first prompt, `ThreadRunner.createThread` and `POST /threads` need to accept attachment ids (outside this unit).
 - `make check` after round-1 fixes: exit 0; server 21 files, 123 passed, 1 skipped; web unit 5/5 composer; Playwright 16 passed.
 - Round 2: `sections()` skips `#` lines inside ``` / ~~~ fences (unit test added); composer unit 6/6, composer Playwright 6/6. Feedback-on-Needs-you finding stays escalated.
+- Round 3: fences follow CommonMark closing rules (same char, at least as long, nothing after; a backtick opener cannot contain backticks); composer unit 7/7, composer Playwright 6/6.

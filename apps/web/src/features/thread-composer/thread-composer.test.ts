@@ -32,4 +32,8 @@ describe('thread composer helpers',()=>{
   const s=sections(1,'# Fix\n```sh\n# install\npnpm i\n```\n# Done\nok');
   expect(s.map(x=>x.heading)).toEqual(['Fix','Done']);expect(s[0].text).toBe('```sh\n# install\npnpm i\n```');
  });
+ it('CAPY-027: only a matching closing fence ends a code block',()=>{
+  const s=sections(1,'# A\n````md\n```\n# inner\n```\n````\n# B\n```js``` inline\n# C\nend');
+  expect(s.map(x=>x.heading)).toEqual(['A','B','C']);
+ });
 });
