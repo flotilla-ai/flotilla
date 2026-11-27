@@ -1,6 +1,6 @@
 # phase2-11 snapshots
 
-Branch `flotilla/phase2-11-snapshots` from `origin/flotilla/p1` (`0662ec8`), then real merge of `eba906f` (phase2-17). PR: https://github.com/flotilla-ai/flotilla/pull/50. Fixtures: temporary Postgres 16 container, local Docker containers (`postgres:16` image as the thread machine), mocked-API browser test. No vendor calls or logins.
+Branch `flotilla/phase2-11-snapshots` from `origin/flotilla/p1` (`0662ec8`), then real merges of `eba906f` (phase2-17) and `6b5546a` (repair-10). PR: https://github.com/flotilla-ai/flotilla/pull/50. Fixtures: temporary Postgres 16 container, local Docker containers (`postgres:16` image as the thread machine), mocked-API browser test. No vendor calls or logins.
 
 ## Rows
 - done: CAPY-193 (repo selection + disk budget), CAPY-194 (64/128/256 GB tiers, smaller tiers), CAPY-195 (scrub + verify, leak refuses capture), CAPY-196 (history, per-step logs, "Ask why it failed").
@@ -27,6 +27,15 @@ Error: Cannot find module './store.js' imported from '/home/ubuntu/repos/flotill
 ```
   ✓  1 e2e/snapshots.spec.ts:5:1 › CAPY-193/194 snapshot settings save repos, tier and smaller sizes; CAPY-196 history shows per-step logs and asks why it failed (750ms)
   1 passed (1.8s)
+```
+
+## make check after merging 6b5546a
+```
+apps/web test:  Test Files  6 passed (6)
+apps/server test:  ✓ src/snapshots/snapshots.test.ts (6 tests) 34774ms
+apps/server test:  Test Files  24 passed (24)
+apps/server test:       Tests  153 passed | 1 skipped (154)
+typecheck: 9 packages Done; lint: 9 packages Done; EXIT 0
 ```
 
 ## make check (after merging eba906f; includes `pnpm --filter @flotilla/server test`)
