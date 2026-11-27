@@ -14,6 +14,7 @@ export default {
       emit: async (threadId, payload) => { await runner.deps.store.appendEvents(threadId as never, [{ runId: null, kind: 'machine.state', source: 'kernel', trust: 'trusted', payload }] as never); }
     });
     threadLifecycle().onDelete((threadId) => core.prepareDestroy(threadId));
+    void core.recoverCleanups().catch(() => undefined);
     void core.reset().catch(() => undefined);
     const timer = setInterval(() => { void core.tick().catch(() => undefined); }, 15_000);
     return async () => { clearInterval(timer); clearInterval(inbox); await runner.drain(); };

@@ -192,7 +192,17 @@ export class MachineCore {
       const env = this.envs.get(threadId); if (env) { this.envs.delete(threadId); await env.ex.stop().catch(() => undefined); env.off(); }
       await this.q('DELETE FROM machine_leases WHERE thread_id=$1', [threadId]);
       await this.hooks.driver?.deleteWorkspace?.(threadId).catch(() => undefined);
+      await this.q('DELETE FROM machine_cleanups WHERE thread_id=$1', [threadId]);
     };
+  }
+  /** Reconciles deletion cleanup that was committed but interrupted before Docker/workspace disposal finished. */
+  async recoverCleanups(): Promise<void> {
+    for (const r of await this.q('SELECT * FROM machine_cleanups ORDER BY created_at')) {
+      const containerId = r.container_id ?? await this.hooks.driver?.findContainer?.(r.thread_id).catch(() => null) ?? null;
+      if (containerId) await (this.hooks.driver?.remove?.(containerId) ?? this.hooks.driver?.stop(containerId))?.catch(() => undefined);
+      await this.hooks.driver?.deleteWorkspace?.(r.thread_id).catch(() => undefined);
+      await this.q('DELETE FROM machine_cleanups WHERE thread_id=$1', [r.thread_id]);
+    }
   }
   /** User-initiated thread deletion: dispose any live container immediately instead of letting the FK cascade orphan it. */
   async destroyThread(threadId: string): Promise<void> { await (await this.prepareDestroy(threadId))(); }

@@ -149,6 +149,7 @@ export class ThreadLifecycleStore {
       await client.query('UPDATE threads SET parent_id=NULL WHERE parent_id=$1', [threadId]);
       await client.query('UPDATE threads SET crew_of=NULL WHERE crew_of=$1', [threadId]);
       await client.query('UPDATE approvals SET captain_id=NULL WHERE captain_id=$1', [threadId]);
+      await client.query('INSERT INTO machine_cleanups (thread_id,container_id) VALUES ($1,(SELECT container_id FROM machine_leases WHERE thread_id=$1)) ON CONFLICT (thread_id) DO NOTHING', [threadId]);
       await client.query(`DELETE FROM secrets WHERE scope='thread' AND scope_id=$1`, [threadId]);
       await client.query('DELETE FROM threads WHERE id=$1', [threadId]);
       await client.query('COMMIT');

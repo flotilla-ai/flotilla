@@ -162,6 +162,15 @@ describe('machine core', () => {
     expect((await boot('["example.org"]')).containerId).not.toBe(a.containerId); expect(calls).toContain(`remove ${a.containerId}`);
     await core.release(t); clock += 3 * MIN; await core.tick();
   });
+  it('review: interrupted deletion cleanup is recovered durably', async () => {
+    await pool.query(`INSERT INTO machine_cleanups (thread_id,container_id) VALUES ('thr_orphan_cleanup','c-orphan')`);
+    calls.length = 0;
+    await core.recoverCleanups();
+    expect(calls).toContain('remove c-orphan');
+    expect(calls).toContain('delete-workspace thr_orphan_cleanup');
+    expect((await pool.query(`SELECT 1 FROM machine_cleanups WHERE thread_id='thr_orphan_cleanup'`)).rows).toEqual([]);
+  });
+
   it('review: deleting a Captain disposes its pooled machine before the lease cascade', async () => {
     const t = await thread(null);
     const { threadLifecycle } = await import('../thread-lifecycle/store.js');
