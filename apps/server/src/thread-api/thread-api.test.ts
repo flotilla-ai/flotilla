@@ -138,7 +138,10 @@ describe('thread lifecycle public API (bearer keys)', () => {
     const priv = await thread({ visibility: 'shared' });
     await verb('carol', priv, 'join');
     await pool.query(`UPDATE threads SET visibility='private' WHERE id=$1`, [priv]);
-    expect((await verb('carol', priv, 'leave')).status).toBe(204);
+    const leave = () => app.request(`http://local/api/v1/threads/${priv}/leave`, { method: 'POST', headers: { authorization: `Bearer ${users.carol.token}`, 'idempotency-key': `leave-${priv}` } });
+    expect((await leave()).status).toBe(204);
+    const replay = await leave();
+    expect([replay.status, replay.headers.get('idempotent-replayed')]).toEqual([204, 'true']);
   });
 
   it('collaborators: joined or shared viewers can open detail, messages and the live stream; strangers cannot', async () => {

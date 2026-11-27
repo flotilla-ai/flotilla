@@ -32,7 +32,7 @@ export async function withIdempotency(c: Context, next: Next): Promise<Response 
   const begun = await store.beginRequest(principal.userId, requestId, c.req.method, c.req.path, fingerprint, legacyIdempotencyFingerprint(body));
   if (begun.state === 'conflict') return apiError(c, 'Conflict', 'requestId was already used for a different request');
   if (begun.state === 'pending') return apiError(c, 'RequestInProgress', 'a request with this requestId is still in progress');
-  if (begun.state === 'replay') return new Response(begun.body, { status: begun.status, headers: { 'content-type': begun.contentType, 'idempotent-replayed': 'true' } });
+  if (begun.state === 'replay') return new Response(begun.status === 204 ? null : begun.body, { status: begun.status, headers: { 'content-type': begun.contentType, 'idempotent-replayed': 'true' } });
   try {
     await next();
   } catch (err) {
