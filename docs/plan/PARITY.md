@@ -250,17 +250,17 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-247 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-248 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-249 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-250 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-251 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-252 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-253 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-254 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-255 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-256 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-257 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-258 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-259 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-260 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-250 | Dock CLI | P2 | blocked | phase2-16 |  |  Headless runner pairing/execution is not wired; this slice proves only local install, verification, directory and command semantics.  |
+| CAPY-251 | Dock CLI | P2 | blocked | phase2-16 |  |  No curl-shell or PowerShell installer distribution path exists yet; root/admin refusal is proven in installer option validation only.  |
+| CAPY-252 | Dock CLI | P2 | done | phase2-16 |  |  Fixture release verification checks sha256, macOS team and an ed25519 signed manifest.  |
+| CAPY-253 | Dock CLI | P2 | done | phase2-16 |  |  Dock install env/flags cover base/home/bin/version/no-modify-path/allow-root.  |
+| CAPY-254 | Dock CLI | P2 | done | phase2-16 |  |  Install layout creates versioned files, executable symlink and shell rc PATH unless disabled.  |
+| CAPY-255 | Dock CLI | P2 | blocked | phase2-16 |  |  QR/link/code interactive first-run approval is not connected to the CLI.  |
+| CAPY-256 | Dock CLI | P2 | done | phase2-16 |  |  Dock directories can be added, deduplicated, listed and removed.  |
+| CAPY-257 | Dock CLI | P2 | blocked | phase2-16 |  |  Foreground supervision and tmux/systemd/launchd integration are not implemented.  |
+| CAPY-258 | Dock CLI | P2 | done | phase2-16 |  |  status, doctor, dirs, verify and version commands return structured results, with verbose detail.  |
+| CAPY-259 | Dock CLI | P2 | done | phase2-16 |  |  One-device-per-OS-user validation recommends dedicated accounts on shared servers.  |
+| CAPY-260 | Dock CLI | P2 | blocked | phase2-16 |  |  Revocation is detected, but the next foreground run does not yet automatically re-pair.  |
 | CAPY-261 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
 | CAPY-262 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
 | CAPY-263 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
