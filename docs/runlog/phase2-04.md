@@ -167,3 +167,14 @@ exit=0
 CI `check` failed once in phase2-05's `runner-queue.test.ts` CAPY-469: the test reads `run.ended` right after the `runs` row turns `failed`, but the runner writes that row before it appends the event. It passed 5/5 locally. The one-line test wait was reverted to keep the phase2-04 diff in budget, and the race is escalated for a parent repair (fix: `until(() => kinds(t.id, 'run.ended'), (e) => e.length > 0)`).
 
 Parent merge-gate asked for at most 18 files (15 preferred): `ModelPolicyApi` moved from `models-catalog/model-policy-api.ts` into `models-catalog/store.ts`, and the Claude `--model` assertion moved from `packages/adapters/claude-code/src/index.test.ts` into the CAPY-337 test in `model-policy-api.test.ts`. 16 files remain.
+
+```text
+$ cd apps/server && npx vitest run src/models-catalog src/runner
+      Tests  33 passed (33)
+$ make check
+apps/web test:       Tests  6 passed (6)
+packages/adapters/claude-code test:       Tests  7 passed (7)
+apps/server test:  Test Files  20 passed (20)
+apps/server test:       Tests  118 passed | 1 skipped (119)
+exit=0
+```
