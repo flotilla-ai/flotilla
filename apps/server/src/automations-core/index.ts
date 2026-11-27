@@ -183,18 +183,19 @@ export class AutomationStore {
     if (!r) throw new ApiFailure('NotFound', 'automation not found');
     return toAutomation(r);
   }
-  private async ensureThread(a: Automation): Promise<string> {
+  private async ensureThread(a: Automation, query?: (sql: string, params?: unknown[]) => Promise<Row[]>): Promise<string> {
+    const q = query ?? ((sql: string, params: unknown[] = []) => this.q(sql, params));
     if (a.threadMode === 'existing' && a.existingThreadId) return a.existingThreadId;
     if (a.threadMode === 'standing' && a.standingThreadId) {
-      const [t] = await this.q('SELECT id FROM threads WHERE id=$1 AND status<>$2', [a.standingThreadId, 'archived']);
+      const [t] = await q('SELECT id FROM threads WHERE id=$1 AND status<>$2', [a.standingThreadId, 'archived']);
       if (t) return a.standingThreadId;
     }
     const tid = id('thr');
-    const [project] = await this.q('SELECT visibility FROM projects WHERE id=$1', [a.projectId]);
+    const [project] = await q('SELECT visibility FROM projects WHERE id=$1', [a.projectId]);
     const visibility = a.threadMode === 'private' ? 'private' : String(project?.visibility ?? 'private');
-    await this.q(`INSERT INTO threads (id,code,project_id,role,owner_id,title,status,engine,budget,spent,visibility) VALUES ($1,'',$2,'thread',$3,$4,'idle',$5,$6,$7,$8)`,
+    await q(`INSERT INTO threads (id,code,project_id,role,owner_id,title,status,engine,budget,spent,visibility) VALUES ($1,'',$2,'thread',$3,$4,'idle',$5,$6,$7,$8)`,
       [tid, a.projectId, a.ownerId, `Automation: ${a.name}`, JSON.stringify({ adapter: (a.model as Record<string, unknown>).adapter ?? 'fake', model: a.model.name, effort: null, connectionId: (a.model as Record<string, unknown>).connectionId ?? null }), JSON.stringify({ maxUsd: null, maxTokens: null, maxWallSec: null, scope: 'thread', onHit: 'pause-and-ask', warnAt: 0.8 }), JSON.stringify({ usd: 0, inputTokens: 0, outputTokens: 0, cacheTokens: 0, machineSec: 0 }), visibility]);
-    if (a.threadMode === 'standing') await this.q('UPDATE automations SET standing_thread_id=$1,updated_at=now() WHERE id=$2', [tid, a.id]);
+    if (a.threadMode === 'standing') await q('UPDATE automations SET standing_thread_id=$1,updated_at=now() WHERE id=$2', [tid, a.id]);
     return tid;
   }
   private async insertRun(a: Automation, type: TriggerType, key: string, payload: Record<string, unknown>, idem: string | null, force = false): Promise<AutomationRun> {
@@ -210,7 +211,7 @@ export class AutomationStore {
       const ok = await (this.deps.gate ?? (async () => false))({ runWhen: a.runWhen, prompt: a.prompt, payload, model: a.gateModel });
       if (!ok) return this.recordSkipped(a, type, key, payload, idem, 'run_when gate rejected');
     }
-    const threadId = await this.ensureThread(a);
+    let threadId: string | null = null;
     const rid = id('arun');
     const client = await this.pool.connect();
     let r: Row | undefined;
@@ -228,6 +229,7 @@ export class AutomationStore {
           return this.recordSkipped(a, type, key, payload, idem, 'max_runs_per_day reached');
         }
       }
+      threadId = await this.ensureThread(a, async (sql, params = []) => (await client.query(sql, params)).rows as Row[]);
       r = (await client.query('INSERT INTO automation_runs (id,automation_id,trigger_type,trigger_key,idempotency_key,status,thread_id,payload) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *', [rid, a.id, type, key, idem, 'queued', threadId, JSON.stringify(payload)])).rows[0] as Row | undefined;
       await client.query('COMMIT');
     } catch (e) {
@@ -242,7 +244,7 @@ export class AutomationStore {
     try {
       if (this.deps.startRun) {
         try {
-          const inboxItemId = await this.deps.startRun({ threadId, prompt: a.prompt, automationId: a.id, runId: rid });
+          const inboxItemId = await this.deps.startRun({ threadId: threadId!, prompt: a.prompt, automationId: a.id, runId: rid });
           await this.q('UPDATE automation_runs SET dispatched_at=now(),dispatch_attempts=dispatch_attempts+1 WHERE id=$1', [rid]); if (inboxItemId) await this.q(`UPDATE automation_runs SET output=output||jsonb_build_object('inboxItemId',$2::text) WHERE id=$1`, [rid, inboxItemId]);
         } catch (err) {
           await this.q('UPDATE automation_runs SET dispatch_attempts=dispatch_attempts+1 WHERE id=$1', [rid]).catch(() => undefined);
