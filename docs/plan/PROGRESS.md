@@ -22,6 +22,7 @@ Initialized in `docs/plan/PARITY.md`: P2/P3/P4 rows are pending; phase 1 rows ar
 | phase2-02-secrets | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/28 | secrets vault + env API; 12 rows done |
 | repair-4-secrets-hardening | in progress | 1 |  | persist vault key; keyed idempotency fingerprints |
 | phase2-03-models-catalog | in progress | 1 |  | child session implementing |
+| phase2-09-previews | in review | 1 |  | preview lifecycle and sharing; 7 rows done |
 
 ## Next action
 
@@ -39,4 +40,4 @@ None.
 
 ## Unverified items
 
-See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. phase2-01 and phase2-02 unverified items are listed in `docs/runlog/phase2-01.md` and `docs/runlog/phase2-02.md`.
+See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. phase2-01, phase2-02 and phase2-09 unverified items are listed in `docs/runlog/phase2-01.md`, `docs/runlog/phase2-02.md` and `docs/runlog/phase2-09.md`.
