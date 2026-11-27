@@ -10,6 +10,12 @@ export const REQUIRED_PERMISSIONS: PermissionSet = { contents: 'write', pullRequ
 const IDENTITIES: CommitIdentity[] = ['you-capy-coauthor', 'you', 'capy-you', 'capy'];
 const id = (p: string) => `${p}_${randomBytes(6).toString('hex')}`;
 const camel = (r: Record<string, any>) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k.replace(/_([a-z])/g, (_, x) => x.toUpperCase()), v]));
+function externalTokenRef(value: unknown): string | null {
+  if (value == null) return null;
+  const ref = String(value).trim();
+  if (!/^(vault|secret):[A-Za-z0-9][A-Za-z0-9._/-]{2,127}$/.test(ref)) throw new ApiFailure('ValidationFailed', 'tokenRef must be an external vault reference such as vault:github/token; token values are never stored');
+  return ref;
+}
 
 export function permissionsSufficient(actual: Record<string, string>, required: PermissionSet = REQUIRED_PERMISSIONS): string[] {
   const rank: Record<string, number> = { none: 0, read: 1, write: 2, admin: 3 };
@@ -25,7 +31,7 @@ export class GitHubIntegrationStore {
     const kind = has('kind') ? input.kind : 'personal'; if (kind !== 'personal' && kind !== 'organization') throw new ApiFailure('ValidationFailed', 'kind must be personal or organization');
     const identity = has('commitIdentity') ? input.commitIdentity : 'you-capy-coauthor'; if (!IDENTITIES.includes(identity as CommitIdentity)) throw new ApiFailure('ValidationFailed', 'invalid commit identity');
     const email = !has('commitEmail') || input.commitEmail == null ? null : String(input.commitEmail); if (email && !/^[^@\s]+@[^@\s]+$/.test(email)) throw new ApiFailure('ValidationFailed', 'invalid commit email');
-    const tokenRef = !has('tokenRef') || input.tokenRef == null ? null : String(input.tokenRef);
+    const tokenRef = !has('tokenRef') ? null : externalTokenRef(input.tokenRef);
     const existing = (await this.pool.query('SELECT * FROM github_accounts WHERE user_id=$1 AND login=$2', [userId, login])).rows[0];
     if (existing) {
       const sets = ['revoked_at=NULL']; const values: unknown[] = [existing.id];
