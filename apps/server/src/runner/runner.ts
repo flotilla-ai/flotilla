@@ -138,7 +138,7 @@ export class ThreadRunner {
     return { usedTokens: usage ? usage.inputTokens + usage.outputTokens + usage.cacheTokens : 0, compactAt: (thread.compact_at as number | null) ?? Number(process.env.FLOTILLA_COMPACT_AT ?? 0.8), compactSupported };
   }
   async interrupt(threadId: string, userId?: string): Promise<void> { if (!(await this.owned(threadId,userId))) throw new Error('not found'); this.cancelled.add(threadId); const live = this.live.get(threadId); if (live) await live.adapter.cancel(live.runId as never).catch(() => undefined); await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'control.interrupt', source: 'user', trust: 'trusted', payload: {} }] as never); }
-  async stop(threadId: string, userId?: string): Promise<void> { if (!(await this.owned(threadId,userId))) throw new Error('not found'); this.cancelled.add(threadId); await this.inbox.cancelAll(threadId); { const live = this.live.get(threadId); if (live) await live.adapter.cancel(live.runId as never).catch(() => undefined); } await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'control.stop', source: 'user', trust: 'trusted', payload: {} }] as never); await this.pool.query(`UPDATE threads SET status='idle',updated_at=now() WHERE id=$1`, [threadId]); }
+  async stop(threadId: string, userId?: string): Promise<void> { if (!(await this.owned(threadId,userId))) throw new Error('not found'); this.cancelled.add(threadId); await this.inbox.cancelAll(threadId); { const live = this.live.get(threadId); if (live) await live.adapter.cancel(live.runId as never).catch(() => undefined); } if (!this.running.has(threadId)) this.cancelled.delete(threadId); await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'control.stop', source: 'user', trust: 'trusted', payload: {} }] as never); await this.pool.query(`UPDATE threads SET status='idle',updated_at=now() WHERE id=$1`, [threadId]); }
 
   async answerApproval(approvalId: string, optionId: string, value: number | undefined, userId: string): Promise<Row | null> {
     const existing = (await this.pool.query('SELECT thread_id, detail FROM approvals WHERE id=$1 AND state=$2', [approvalId, 'open'])).rows[0];
@@ -154,7 +154,7 @@ export class ThreadRunner {
     if (approval.gate === 'plan') {
       const owner = (await this.thread(approval.thread_id))!.owner_id as string;
       if (optionId === 'approve') { await this.pool.query(`UPDATE threads SET plan_mode=false,status='queued',needs_you='[]' WHERE id=$1`, [approval.thread_id]); await this.inbox.add({ threadId: approval.thread_id, ...(await this.approvedPlan(approval.thread_id)), mode: 'queue', by: null, ownerId: owner, priority: 1 }); }
-      else if (optionId === 'stop') await this.stop(approval.thread_id, userId);
+      else if (optionId === 'stop') { await this.stop(approval.thread_id, userId); await this.pool.query(`UPDATE threads SET plan_mode=false,status='idle',needs_you='[]' WHERE id=$1`, [approval.thread_id]); }
       else {
         await this.pool.query(`UPDATE threads SET status='queued',needs_you='[]' WHERE id=$1`, [approval.thread_id]);
         const prior = await this.approvedPlan(approval.thread_id);
@@ -280,7 +280,7 @@ export class ThreadRunner {
   /** Plan mode ends every turn at a blocking gate; nothing else runs and no after-run hook (push, PR) fires until it is approved. */
   /** Runs start fresh sessions, so the implementation turn gets the request and the plan text. */
   private async approvedPlan(threadId: string): Promise<{ text: string; attachments: string[] }> {
-    const first = (await this.pool.query('SELECT text,attachments FROM thread_inbox WHERE thread_id=$1 ORDER BY created_at LIMIT 1', [threadId])).rows[0];
+    const first = (await this.pool.query(`SELECT text,attachments FROM thread_inbox WHERE thread_id=$1 AND plan=true AND by_user IS NOT NULL ORDER BY created_at LIMIT 1`, [threadId])).rows[0] ?? (await this.pool.query('SELECT text,attachments FROM thread_inbox WHERE thread_id=$1 ORDER BY created_at LIMIT 1', [threadId])).rows[0];
     const latest = await this.inbox.lastDelivered(threadId);
     const plan = (await this.pool.query(`SELECT string_agg(payload->>'text', '' ORDER BY seq) AS text FROM events WHERE thread_id=$1 AND kind='agent.delta' AND run_id=$2`, [threadId, latest?.runId ?? null])).rows[0]?.text as string | null;
     return { text: `Plan approved. Implement the plan now.${first ? `\n\nRequest:\n${first.text}` : ''}${plan ? `\n\nApproved plan:\n${plan}` : ''}`, attachments: first?.attachments ?? [] };

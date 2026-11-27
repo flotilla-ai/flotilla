@@ -25,3 +25,5 @@ Follow-up while reviewing the start gate: budget raises now always enqueue the c
 Review round 2: budget raises do not duplicate a still-pending first prompt; Keep planning now queues a contextual `plan:true` revision prompt instead of relying on an empty run. Focused runner proof passes 9/9 after integration with repair-10.
 
 Review round 3: Stop on a plan gate stops without queueing another planning turn. Plan approval now uses the first inbox prompt as the original request while taking the plan from the latest delivered run, so revised plans do not carry “do not implement” into implementation. Focused runner proof passes 10/10.
+
+Review round 4: plan approval uses the user-authored `/plan` inbox item rather than the thread's first message; stopping a plan clears plan mode/needs-you and no longer leaves a stale cancellation that eats the next message. Focused runner proof passes 11/11.
