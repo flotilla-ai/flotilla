@@ -70,6 +70,12 @@ export class GitHubIntegrationStore {
   async setPrIdentity(userId: string, repo: string, number: number, identity: unknown): Promise<{ repo: string; number: number; identity: CommitIdentity }> {
     if (!/^\S+\/\S+$/.test(repo) || !Number.isInteger(number) || number < 1) throw new ApiFailure('ValidationFailed', 'invalid pull request');
     if (!IDENTITIES.includes(identity as CommitIdentity)) throw new ApiFailure('ValidationFailed', 'invalid commit identity');
+    const installations = (await this.pool.query(`SELECT i.repositories FROM github_installations i JOIN github_accounts a ON a.id=i.account_id WHERE a.user_id=$1 AND a.revoked_at IS NULL AND i.revoked_at IS NULL`, [userId])).rows;
+    const wanted = repo.toLowerCase();
+    const allowed = installations.some((r) => Array.isArray(r.repositories) && r.repositories.some((x: unknown) => String(x).toLowerCase() === wanted));
+    if (!allowed) throw new ApiFailure('NotFound', 'pull request repository not found in an active installation');
+    const existing = (await this.pool.query('SELECT updated_by FROM github_pr_identities WHERE repo=$1 AND number=$2', [repo, number])).rows[0];
+    if (existing && existing.updated_by !== userId) throw new ApiFailure('NotFound', 'pull request identity not found');
     await this.pool.query('INSERT INTO github_pr_identities (repo,number,identity,updated_by) VALUES ($1,$2,$3,$4) ON CONFLICT (repo,number) DO UPDATE SET identity=$3,updated_by=$4,updated_at=now()', [repo, number, identity, userId]);
     return { repo, number, identity: identity as CommitIdentity };
   }
