@@ -148,12 +148,13 @@ export class ThreadRunner {
     if (approval.gate === 'plan') {
       const owner = (await this.thread(approval.thread_id))!.owner_id as string;
       if (optionId === 'approve') { await this.pool.query(`UPDATE threads SET plan_mode=false,status='queued',needs_you='[]' WHERE id=$1`, [approval.thread_id]); await this.inbox.add({ threadId: approval.thread_id, ...(await this.approvedPlan(approval.thread_id)), mode: 'queue', by: null, ownerId: owner, priority: 1 }); }
+      else if (optionId === 'stop') await this.stop(approval.thread_id, userId);
       else {
         await this.pool.query(`UPDATE threads SET status='queued',needs_you='[]' WHERE id=$1`, [approval.thread_id]);
         const prior = await this.approvedPlan(approval.thread_id);
         await this.inbox.add({ threadId: approval.thread_id, text: prior.text.replace('Plan approved. Implement the plan now.', 'Continue planning. Revise the plan; do not implement yet.'), attachments: prior.attachments, mode: 'queue', plan: true, by: null, ownerId: owner, priority: 1 });
       }
-      this.kick(approval.thread_id);
+      if (optionId !== 'stop') this.kick(approval.thread_id);
     }
     if (optionId === 'raise') { if (!(await this.inbox.hasPending(approval.thread_id))) await this.inbox.add({ threadId: approval.thread_id, text: 'Continue within the raised budget.', mode: 'queue', by: null, ownerId: (await this.thread(approval.thread_id))!.owner_id as string }); this.supervise(this.startNext(approval.thread_id, 'resume')); }
     return approval;
@@ -271,9 +272,10 @@ export class ThreadRunner {
   /** Plan mode ends every turn at a blocking gate; nothing else runs and no after-run hook (push, PR) fires until it is approved. */
   /** Runs start fresh sessions, so the implementation turn gets the request and the plan text. */
   private async approvedPlan(threadId: string): Promise<{ text: string; attachments: string[] }> {
-    const req = await this.inbox.lastDelivered(threadId);
-    const plan = (await this.pool.query(`SELECT string_agg(payload->>'text', '' ORDER BY seq) AS text FROM events WHERE thread_id=$1 AND kind='agent.delta' AND run_id=$2`, [threadId, req?.runId ?? null])).rows[0]?.text as string | null;
-    return { text: `Plan approved. Implement the plan now.${req ? `\n\nRequest:\n${req.text}` : ''}${plan ? `\n\nApproved plan:\n${plan}` : ''}`, attachments: req?.attachments ?? [] };
+    const first = (await this.pool.query('SELECT text,attachments FROM thread_inbox WHERE thread_id=$1 ORDER BY created_at LIMIT 1', [threadId])).rows[0];
+    const latest = await this.inbox.lastDelivered(threadId);
+    const plan = (await this.pool.query(`SELECT string_agg(payload->>'text', '' ORDER BY seq) AS text FROM events WHERE thread_id=$1 AND kind='agent.delta' AND run_id=$2`, [threadId, latest?.runId ?? null])).rows[0]?.text as string | null;
+    return { text: `Plan approved. Implement the plan now.${first ? `\n\nRequest:\n${first.text}` : ''}${plan ? `\n\nApproved plan:\n${plan}` : ''}`, attachments: first?.attachments ?? [] };
   }
   private async openPlanGate(thread: Row, runId: string): Promise<void> {
     const approvalId = id('apr');

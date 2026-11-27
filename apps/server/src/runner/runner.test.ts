@@ -96,7 +96,18 @@ describe('thread runner',()=>{
     await runner.answerApproval(rows[0].id as string,'revise',undefined,'usr_test');
     const items=(await pool.query(`SELECT text,plan FROM thread_inbox WHERE thread_id=$1 ORDER BY created_at`,[t.id as string])).rows;
     expect(items.length).toBe(2); expect(items[1].plan).toBe(true); expect(items[1].text).toContain('Continue planning'); expect(items[1].text).toContain('Request:\ndesign it');
+    const revised=await waitFor(`SELECT * FROM approvals WHERE thread_id=$1 AND gate='plan' AND state='open'`,[t.id as string]);
+    await runner.answerApproval(revised[0].id as string,'approve',undefined,'usr_test');
+    const after=(await pool.query(`SELECT text FROM thread_inbox WHERE thread_id=$1 ORDER BY created_at`,[t.id as string])).rows;
+    expect(after.length).toBe(3); expect(after[2].text).toContain('Implement the plan now'); expect(after[2].text).toContain('Request:\ndesign it'); expect(after[2].text).not.toContain('do not implement yet');
     await runner.stop(t.id as string,'usr_test');
+  },20_000);
+  it('stop on a plan approval does not queue another planning run',async()=>{
+    const t=await runner.createThread({ownerId:'usr_test',title:'plan stop',prompt:'/plan stop it',requestId:'req-plan-stop'});
+    const rows=await waitFor(`SELECT * FROM approvals WHERE thread_id=$1 AND gate='plan' AND state='open'`,[t.id as string]);
+    await runner.answerApproval(rows[0].id as string,'stop',undefined,'usr_test');
+    expect((await pool.query(`SELECT count(*)::int n FROM thread_inbox WHERE thread_id=$1`,[t.id as string])).rows[0].n).toBe(1);
+    expect((await pool.query('SELECT status FROM threads WHERE id=$1',[t.id as string])).rows[0].status).toBe('idle');
   },20_000);
   it('does not mutate another owner approval before the ownership check',async()=>{
     const t=await runner.createThread({ownerId:'usr_test',title:'approval-owner',prompt:'hello',maxUsd:1000,requestId:'req-approval-owner'});
