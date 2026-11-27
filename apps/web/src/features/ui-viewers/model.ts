@@ -12,6 +12,13 @@ export const builtInThemes:Theme[]=[{id:'light',name:'Light',builtIn:true,vars:{
 export function validateCustomTheme(t:Theme):Theme{if(!t.id.trim()||!t.name.trim())throw new Error('theme needs id and name');for(const [k,v] of Object.entries(t.vars))if(!/^#[0-9a-f]{3,8}$/i.test(v))throw new Error(`invalid color for ${k}`);return{...t,builtIn:false}}
 export type AppearancePrefs={themeId:string;codeFontSize:number;scrollNewMessages:boolean};
 export function normalizeAppearance(x:Partial<AppearancePrefs>):AppearancePrefs{const size=Number(x.codeFontSize??13);if(size<9||size>32)throw new Error('code font size must be 9..32');return{themeId:String(x.themeId??'light'),codeFontSize:size,scrollNewMessages:!!x.scrollNewMessages}}
+
+export function applyAppearanceToDocument(prefs:Partial<AppearancePrefs>,doc:Document,themes:Theme[]=builtInThemes):void{
+ const themeId=String(prefs.themeId??'light');const theme=themes.find(x=>x.id===themeId)??{vars:{bg:'#181818',fg:'#f4f4f4'}};doc.documentElement.dataset.theme=themeId;for(const[k,v]of Object.entries(theme.vars))doc.documentElement.style.setProperty(`--${k}`,v);
+ const size=Number(prefs.codeFontSize??13);if(size>=9&&size<=32)doc.documentElement.style.setProperty('--code-font-size',`${size}px`);
+}
+export function storedAppearance(storage?:Pick<Storage,'getItem'>):Partial<AppearancePrefs>{try{return{themeId:(storage??globalThis.localStorage)?.getItem('flotilla.theme')??'light',codeFontSize:Number((storage??globalThis.localStorage)?.getItem('flotilla.codeFontSize')??13),scrollNewMessages:(storage??globalThis.localStorage)?.getItem('flotilla.scrollNewMessages')==='true'}}catch{return{themeId:'light'}}}
+
 export type ExploreItem={id:string;kind:'plugin'|'skill'|'theme';name:string;popular:number;stack:string[];private:boolean};
 export function exploreList(items:ExploreItem[],stack:string[]=[]){const pub=items.filter(x=>!x.private);return{popular:[...pub].sort((a,b)=>b.popular-a.popular),recommended:pub.filter(x=>x.stack.some(s=>stack.includes(s)))}}
 export type SettingEntry={path:string;title:string;keywords:string[]};
