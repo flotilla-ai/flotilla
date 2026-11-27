@@ -2,18 +2,20 @@ import type Docker from 'dockerode';
 import { createThreadNetwork } from './network.js';
 import { DockerExecTransport } from './transport.js';
 import { gateClient } from '../gateClient/index.js';
-import type { ProcessTransport } from '@flotilla/core/types';
+import { KernelDenied, type ProcessTransport } from '@flotilla/core/types';
 
 export type StartThreadInput = {
   threadId: string; code: string; image: string; cpus: number; memMb: number; env: Record<string, string>;
   roMounts?: { source: string; target: string }[]; cliHome?: { userVolume: string; threadVolume: string };
-  egressAllow?: string[]; gate?: { adminUrl: string; token: string };
+  egressAllow?: string[]; gate?: { adminUrl: string; token: string }; platform?: string;
 };
 
 export class DockerMachineDriver {
+  static readonly platforms = ['linux'] as const;
   constructor(readonly docker: Docker) {}
 
   async startThreadContainer(input: StartThreadInput): Promise<{ containerId: string }> {
+    if (input.platform && input.platform !== 'linux') throw new KernelDenied('scope', `pool machines are Linux containers only; run ${input.platform} on a paired device (BYOM)`);
     for (const old of await this.docker.listContainers({ all: true, filters: { name: [`flt-${input.code}`] } })) {
       const exact = old.Names?.includes(`/flt-${input.code}`) && old.Labels?.['flotilla.thread'] === input.threadId;
       if (exact) await this.docker.getContainer(old.Id).remove({ force: true }).catch(() => undefined);
@@ -28,7 +30,7 @@ export class DockerMachineDriver {
       Labels: { 'flotilla.thread': input.threadId },
       HostConfig: {
         Init: true, CapDrop: ['ALL'], SecurityOpt: ['no-new-privileges'], Privileged: false,
-        PidsLimit: 256, Memory: input.memMb * 1024 * 1024, NanoCpus: Math.round(input.cpus * 1e9),
+        PidsLimit: 256, Memory: input.memMb * 1024 * 1024, MemorySwap: input.memMb * 1024 * 1024, OomKillDisable: false, NanoCpus: Math.round(input.cpus * 1e9),
         NetworkMode: network.id,
         Mounts: [
           { Type: 'volume', Source: volumeName, Target: '/workspace' },
