@@ -38,6 +38,13 @@ describe('machine isolation unit checks', () => {
     expect(() => assertIsolated(goodContainer, { ...goodNetwork, Internal: false })).toThrow('internal');
     expect(() => assertIsolated(goodContainer, { Internal: true, Containers: { a: { Name: 'evil' }, b: { Name: 'flt-x' }, c: { Name: 'gate' } } })).toThrow('member');
   });
+  it('review: removing the old container does not disconnect a waking replacement', async () => {
+    const disconnected: string[] = []; const removed: string[] = [];
+    const network = { inspect: async () => ({ Containers: { replacement: { Name: 'flt-new' }, gate1: { Name: 'gate' } } }), disconnect: async (x: { Container: string }) => { disconnected.push(x.Container); }, remove: async () => { removed.push('network'); } };
+    const fakeRemove = { listContainers: async () => [{ Id: 'gate1' }], getNetwork: () => network, getContainer: () => ({ inspect: async () => ({ NetworkSettings: { Networks: { 'flt-thr': {} } } }), remove: async () => undefined }) } as unknown as Docker;
+    await new DockerMachineDriver(fakeRemove).remove('old');
+    expect(disconnected).toEqual([]); expect(removed).toEqual([]);
+  });
 });
 
 describe('reaper reconciliation', () => {

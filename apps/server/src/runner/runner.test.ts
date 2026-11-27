@@ -51,6 +51,27 @@ describe('thread runner',()=>{
     expect(b.id).not.toBe(a.id);
     await runner.stop(a.id as string,'usr_test'); await runner.stop(b.id as string,'usr_other');
   },20_000);
+  it('carries first-prompt attachment ids into the durable inbox',async()=>{
+    await pool.query(`INSERT INTO api_files (id,owner_id,name,content_type,size,upload_token_hash,upload_expires_at) VALUES ('file_first','usr_test','a.txt','text/plain',1,'',now())`);
+    const t=await runner.createThread({ownerId:'usr_test',title:'first attachments',prompt:'hello',requestId:'req-first-attachments',attachments:['file_first']});
+    const item=(await pool.query('SELECT attachments,state FROM thread_inbox WHERE thread_id=$1 ORDER BY created_at LIMIT 1',[t.id as string])).rows[0];
+    expect(item.attachments).toEqual(['file_first']); expect(item.state).toBe('waiting_upload');
+    await runner.drain();
+    expect((await pool.query('SELECT count(*)::int n FROM runs WHERE thread_id=$1',[t.id as string])).rows[0].n).toBe(0);
+    await pool.query(`UPDATE api_files SET uploaded_at=now() WHERE id='file_first'`);
+    await runner.resumePending(); await runner.drain();
+    await waitFor(`SELECT 1 FROM runs WHERE thread_id=$1 AND state<>'running' AND state<>'starting'`,[t.id as string]);
+    expect((await pool.query('SELECT state FROM thread_inbox WHERE thread_id=$1 ORDER BY created_at LIMIT 1',[t.id as string])).rows[0].state).toBe('delivered');
+    await runner.stop(t.id as string,'usr_test');
+  },20_000);
+  it('rejects unknown first-prompt attachments before creating the thread',async()=>{
+    await expect(runner.createThread({ownerId:'usr_test',title:'bad first attachments',prompt:'hello',requestId:'req-bad-first-attachments',attachments:['file_missing_first']})).rejects.toThrow('unknown attachment');
+    expect((await pool.query(`SELECT count(*)::int n FROM threads WHERE owner_id='usr_test' AND title='bad first attachments'`)).rows[0].n).toBe(0);
+    await pool.query(`INSERT INTO api_files (id,owner_id,name,content_type,size,upload_token_hash,upload_expires_at) VALUES ('file_retry_first','usr_test','a.txt','text/plain',1,'',now())`);
+    const t=await runner.createThread({ownerId:'usr_test',title:'bad first attachments',prompt:'hello',requestId:'req-bad-first-attachments',attachments:['file_retry_first']});
+    expect((await pool.query('SELECT count(*)::int n FROM thread_inbox WHERE thread_id=$1',[t.id as string])).rows[0].n).toBe(1);
+    await runner.stop(t.id as string,'usr_test');
+  },20_000);
   it('does not close feedback drafts through the generic approval answer path',async()=>{
     const t=await runner.createThread({ownerId:'usr_test',title:'feedback-guard',prompt:'hello',requestId:'req-feedback-guard'});
     await waitFor(`SELECT * FROM events WHERE thread_id=$1 AND kind='run.ended'`,[t.id as string]);
@@ -59,6 +80,60 @@ describe('thread runner',()=>{
     await expect(runner.answerApproval(id,'approve',undefined,'usr_test')).rejects.toThrow('feedback');
     const after=(await pool.query('SELECT state,answer FROM approvals WHERE id=$1',[id])).rows[0];
     expect(after.state).toBe('open'); expect(after.answer).toBeNull();
+    await runner.stop(t.id as string,'usr_test');
+  },20_000);
+  it('does not duplicate a prompt that was capped before its first run',async()=>{
+    const t=await runner.createThread({ownerId:'usr_test',title:'precapped',prompt:'hello',maxUsd:0,requestId:'req-precapped'});
+    const rows=await waitFor(`SELECT * FROM approvals WHERE thread_id=$1 AND kind='budget' AND state='open'`,[t.id as string]);
+    await runner.answerApproval(rows[0].id as string,'raise',1000,'usr_test');
+    expect((await pool.query(`SELECT count(*)::int n FROM thread_inbox WHERE thread_id=$1 AND text='hello'`,[t.id as string])).rows[0].n).toBe(1);
+    expect((await pool.query(`SELECT count(*)::int n FROM thread_inbox WHERE thread_id=$1`,[t.id as string])).rows[0].n).toBe(1);
+    await runner.stop(t.id as string,'usr_test');
+  },20_000);
+  it('keep planning queues a contextual plan revision instead of stalling',async()=>{
+    const t=await runner.createThread({ownerId:'usr_test',title:'plan revise',prompt:'/plan design it',requestId:'req-plan-revise'});
+    const rows=await waitFor(`SELECT * FROM approvals WHERE thread_id=$1 AND gate='plan' AND state='open'`,[t.id as string]);
+    await runner.answerApproval(rows[0].id as string,'revise',undefined,'usr_test');
+    const items=(await pool.query(`SELECT text,plan FROM thread_inbox WHERE thread_id=$1 ORDER BY created_at`,[t.id as string])).rows;
+    expect(items.length).toBe(2); expect(items[1].plan).toBe(true); expect(items[1].text).toContain('Continue planning'); expect(items[1].text).toContain('Request:\ndesign it');
+    const revised=await waitFor(`SELECT * FROM approvals WHERE thread_id=$1 AND gate='plan' AND state='open'`,[t.id as string]);
+    await runner.answerApproval(revised[0].id as string,'approve',undefined,'usr_test');
+    const after=(await pool.query(`SELECT text FROM thread_inbox WHERE thread_id=$1 ORDER BY created_at`,[t.id as string])).rows;
+    expect(after.length).toBe(3); expect(after[2].text).toContain('Implement the plan now'); expect(after[2].text).toContain('Request:\ndesign it'); expect(after[2].text).not.toContain('do not implement yet');
+    await runner.stop(t.id as string,'usr_test');
+  },20_000);
+  it('stop on a plan approval does not queue another planning run',async()=>{
+    const t=await runner.createThread({ownerId:'usr_test',title:'plan stop',prompt:'/plan stop it',requestId:'req-plan-stop'});
+    const rows=await waitFor(`SELECT * FROM approvals WHERE thread_id=$1 AND gate='plan' AND state='open'`,[t.id as string]);
+    await runner.answerApproval(rows[0].id as string,'stop',undefined,'usr_test');
+    expect((await pool.query(`SELECT count(*)::int n FROM thread_inbox WHERE thread_id=$1`,[t.id as string])).rows[0].n).toBe(1);
+    const stopped=(await pool.query('SELECT status,plan_mode,needs_you FROM threads WHERE id=$1',[t.id as string])).rows[0];
+    expect(stopped.status).toBe('idle'); expect(stopped.plan_mode).toBe(false); expect(stopped.needs_you).toEqual([]);
+    await runner.message(t.id as string,'next after stop','queue','usr_test');
+    await waitFor(`SELECT 1 FROM thread_inbox WHERE thread_id=$1 AND text='next after stop' AND state='delivered'`,[t.id as string]);
+  },20_000);
+  it('does not reuse an earlier plan request for a later plan',async()=>{
+    const t=await runner.createThread({ownerId:'usr_test',title:'two plans',prompt:'ordinary start',requestId:'req-two-plans'});
+    await waitFor(`SELECT 1 FROM events WHERE thread_id=$1 AND kind='run.ended'`,[t.id as string]);
+    await runner.message(t.id as string,'/plan first plan','queue','usr_test');
+    let rows=await waitFor(`SELECT * FROM approvals WHERE thread_id=$1 AND gate='plan' AND state='open'`,[t.id as string]);
+    await runner.answerApproval(rows[0].id as string,'approve',undefined,'usr_test');
+    await waitFor(`SELECT count(*)::int n FROM events WHERE thread_id=$1 AND kind='run.ended' HAVING count(*) >= 3`,[t.id as string]);
+    await runner.message(t.id as string,'/plan second plan','queue','usr_test');
+    rows=await waitFor(`SELECT * FROM approvals WHERE thread_id=$1 AND gate='plan' AND state='open'`,[t.id as string]);
+    await runner.answerApproval(rows[0].id as string,'approve',undefined,'usr_test');
+    const items=(await pool.query(`SELECT text FROM thread_inbox WHERE thread_id=$1 ORDER BY created_at`,[t.id as string])).rows;
+    expect(items.at(-1).text).toContain('Request:\nsecond plan'); expect(items.at(-1).text).not.toContain('Request:\nfirst plan');
+    await runner.stop(t.id as string,'usr_test');
+  },20_000);
+  it('uses the message that started a later plan as the implementation request',async()=>{
+    const t=await runner.createThread({ownerId:'usr_test',title:'late plan',prompt:'hello first',requestId:'req-late-plan'});
+    await waitFor(`SELECT 1 FROM events WHERE thread_id=$1 AND kind='run.ended'`,[t.id as string]);
+    await runner.message(t.id as string,'/plan design later','queue','usr_test');
+    const rows=await waitFor(`SELECT * FROM approvals WHERE thread_id=$1 AND gate='plan' AND state='open'`,[t.id as string]);
+    await runner.answerApproval(rows[0].id as string,'approve',undefined,'usr_test');
+    const items=(await pool.query(`SELECT text FROM thread_inbox WHERE thread_id=$1 ORDER BY created_at`,[t.id as string])).rows;
+    expect(items.at(-1).text).toContain('Request:\ndesign later'); expect(items.at(-1).text).not.toContain('Request:\nhello first');
     await runner.stop(t.id as string,'usr_test');
   },20_000);
   it('does not mutate another owner approval before the ownership check',async()=>{
@@ -70,5 +145,25 @@ describe('thread runner',()=>{
     const after=(await pool.query('SELECT state,answer FROM approvals WHERE id=$1',[approval.id])).rows[0];
     expect(after.state).toBe('open'); expect(after.answer).toBeNull();
     await runner.stop(t.id as string,'usr_test');
+  },20_000);
+  it('starts repoless project threads in /workspace without seeding a repo (CAPY-177)',async()=>{
+    const cwds:string[]=[]; const seen={...fakeAdapter,start:(input:{cwd:string})=>{cwds.push(input.cwd);return fakeAdapter.start(input as never);}};
+    const st=new EventStore((pool as unknown as {options:{connectionString:string}}).options.connectionString); const r=new ThreadRunner({store:st,driver:driver as never,adapters:new Map([['fake',seen as never]])});
+    await pool.query(`INSERT INTO projects (id,owner_id,name,repo,trust,egress_allow,budget,code) VALUES ('prj_empty','usr_test','Empty',NULL,'untrusted','[]','{}','EMP')`);
+    const t=await r.createThread({ownerId:'usr_test',title:'notes',prompt:'hello',projectId:'prj_empty',requestId:'req-empty'});
+    await waitFor(`SELECT * FROM events WHERE thread_id=$1 AND kind='run.ended'`,[t.id as string]); await r.drain(); await st.pool.end();
+    expect(cwds).toEqual(['/workspace']); expect(t.code).toBe('EMP-1');
+  },20_000);
+  it('CAPY-192/197: thread boot uses the snapshot image and prepends the repair prompt',async()=>{
+    await pool.query(`INSERT INTO projects (id,owner_id,name,repo,trust,budget) VALUES ('prj_snapboot','usr_test','snapboot',NULL,'untrusted','{}') ON CONFLICT (id) DO NOTHING`);
+    const starts: Record<string, unknown>[] = []; let seenPrompt = '';
+    const capture = { ...fakeAdapter, start: (input: Parameters<typeof fakeAdapter.start>[0]) => { seenPrompt = input.prompt; return fakeAdapter.start(input); }, resume: (input: Parameters<typeof fakeAdapter.resume>[0]) => fakeAdapter.resume(input) };
+    const snapDriver = { ...driver, startThreadContainer: async (input: Record<string, unknown>) => { starts.push(input); return { containerId: 'snapshot-fake' }; } };
+    const snapRunner = new ThreadRunner({ store: runner.deps.store, driver: snapDriver as never, adapters: new Map([['fake', capture]]), snapshots: { bootPlan: async () => ({ image: 'snapshot:image', buildId: 'snb_good', repair: { buildId: 'snb_bad', prompt: 'Repair the failing environment build.' } }) } });
+    const t = await snapRunner.createThread({ ownerId: 'usr_test', projectId: 'prj_snapboot', title: 'snapshot boot', prompt: 'hello', requestId: 'req-snapshot-boot' });
+    await waitFor(`SELECT * FROM events WHERE thread_id=$1 AND kind='run.ended'`, [t.id as string]);
+    expect(starts[0]?.image).toBe('snapshot:image');
+    expect(seenPrompt).toContain('Repair the failing environment build.');
+    await snapRunner.drain();
   },20_000);
 });

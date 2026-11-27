@@ -82,13 +82,12 @@ export class EnvironmentStore {
     return new EnvironmentExecutor(threadId, machine, { ...opts, report: (r) => this.report(threadId, r) });
   }
   /** Machine boot seam: runs initialize (fresh clone) or refresh (checkout moved), then the startup entries. */
-  async prepare(threadId: string, machine: EnvironmentMachine, at: { freshClone: boolean; head: string | null }, opts: ExecutorOptions = {}): Promise<RunResult | null> {
+  async prepare(threadId: string, machine: EnvironmentMachine, at: { freshClone: boolean; head: string | null }, opts: ExecutorOptions = {}, ex = this.executor(threadId, machine, opts)): Promise<RunResult | null> {
     const [t] = await this.q('SELECT project_id FROM threads WHERE id=$1', [threadId]);
     if (!t?.project_id) return null;
     const lastHead = (await this.q(`SELECT max(head) h FROM environment_processes WHERE thread_id=$1 AND kind='setup'`, [threadId]))[0]?.h ?? null;
     const phase = choosePhase({ ...at, lastHead });
     const { spec } = await this.current(t.project_id);
-    const ex = this.executor(threadId, machine, opts);
     const result = phase ? await ex.setup(spec, phase, at.head) : null;
     await ex.startServices(spec);
     return result;

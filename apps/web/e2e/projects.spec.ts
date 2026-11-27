@@ -1,0 +1,30 @@
+import {expect,test} from '@playwright/test';
+const repos=[{id:'rep_1',provider:'github',fullName:'acme/api',role:'primary',description:'HTTP API for the Acme storefront.',clonedAt:'2026-11-27T00:00:00Z',machineId:null},{id:'rep_2',provider:'local',fullName:'/srv/docs',role:'lazy',description:null,clonedAt:null,machineId:null}];
+test('CAPY-177..182 create from sources, identity, private/shared, lazy clone and suggestions',async({page})=>{
+ const posts:any[]=[];let rows:any[]=[{id:'prj_1',name:'Shop',icon:'🛒',code:'SHOP',visibility:'private',trust:'untrusted',repos},{id:'prj_2',name:'Notes',icon:null,code:'NOT',visibility:'shared',trust:'untrusted',repos:[]}];
+ await page.route('**/api/v1/projects/suggestions',r=>r.fulfill({json:[{fullName:'acme/new',defaultBranch:'trunk',private:true,pushedAt:'2026-11-27T00:00:00Z'}]}));
+ await page.route('**/api/v1/projects',async r=>{if(r.request().method()==='GET')return r.fulfill({json:rows});posts.push(await r.request().postDataJSON());return r.fulfill({status:201,json:{id:'prj_3'}})});
+ await page.route('**/api/v1/projects/prj_1/repos/rep_2/clone',r=>{posts.push('clone');rows=[{...rows[0],repos:[repos[0],{...repos[1],clonedAt:'2026-11-27T01:00:00Z',description:'The Acme handbook site.'}]},rows[1]];return r.fulfill({json:{}})});
+ await page.goto('/#/projects');
+ await expect(page.getByText('🛒 Shop')).toBeVisible();await expect(page.getByText('SHOP',{exact:true})).toBeVisible();await expect(page.getByText('No repository')).toBeVisible();await expect(page.getByText('· shared')).toBeVisible();await expect(page.getByText('· private')).toBeVisible();
+ await expect(page.getByText(/HTTP API for the Acme storefront/)).toBeVisible();
+ await page.getByRole('button',{name:'Clone /srv/docs'}).click();await expect(page.getByText(/The Acme handbook site/)).toBeVisible();
+ await page.getByRole('button',{name:'acme/new'}).click();await page.getByLabel('icon').fill('🚀');await page.getByLabel('code').fill('new');await page.getByLabel('shared').check();await page.screenshot({path:'test-results/projects.png',fullPage:true});await page.getByRole('button',{name:'Create project'}).click();
+ await page.getByLabel('source',{exact:true}).selectOption('git-url');await page.getByLabel('project name').fill('Lab');await page.getByLabel('source value').fill('https://gitlab.example.test/a/b.git');await page.getByRole('button',{name:'Create project'}).click();
+ await page.getByLabel('source',{exact:true}).selectOption('folder');await page.getByLabel('project name').fill('Laptop');await page.getByLabel('source value').fill('/Users/me/app');await page.getByLabel('machine').fill('mch_1');await page.getByRole('button',{name:'Create project'}).click();
+ await page.getByLabel('source',{exact:true}).selectOption('empty');await page.getByLabel('project name').fill('Scratch');await page.getByLabel('shared').uncheck();await page.getByRole('button',{name:'Create project'}).click();
+ await expect.poll(()=>posts.length).toBe(5);
+ expect(posts[0]).toBe('clone');
+ expect(posts[1]).toEqual({name:'new',source:{kind:'github',fullName:'acme/new',baseBranch:'trunk'},icon:'🚀',code:'new',visibility:'shared'});
+ expect(posts[2]).toMatchObject({name:'Lab',source:{kind:'git-url',url:'https://gitlab.example.test/a/b.git'}});
+ expect(posts[3]).toMatchObject({name:'Laptop',source:{kind:'folder',path:'/Users/me/app',machineId:'mch_1'}});
+ expect(posts[4]).toEqual({name:'Scratch',source:{kind:'empty'},visibility:'private'});
+});
+test('CAPY-178 a failed lazy clone tells the owner which branch failed',async({page})=>{
+ await page.route('**/api/v1/projects/suggestions',r=>r.fulfill({json:[]}));
+ await page.route('**/api/v1/projects',r=>r.fulfill({json:[{id:'prj_1',name:'Shop',code:'SHOP',visibility:'private',trust:'untrusted',repos:[{...repos[1],baseBranch:'release'}]}]}));
+ await page.route('**/api/v1/projects/prj_1/repos/rep_2/clone',r=>r.fulfill({status:409,json:{error:'base branch release not found'}}));
+ await page.goto('/#/projects');
+ await page.getByRole('button',{name:'Clone /srv/docs'}).click();
+ await expect(page.getByRole('alert')).toHaveText('Could not clone /srv/docs on branch release (409)');
+});
