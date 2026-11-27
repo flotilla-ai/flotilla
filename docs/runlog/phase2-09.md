@@ -80,3 +80,14 @@ lint=0
 
 - Fixed: unauthenticated or forged-cookie requests are rejected before the `byCode` DB lookup (spy assertion: called 2 times before the fix, 0 after).
 - The cross-preview origin-isolation finding stays escalated (P2 wildcard hosts).
+
+## Parent review: CAPY-221 in-app surface
+
+```text
+$ pnpm --filter @flotilla/web exec vitest run src/features/previews
+ ✓ src/features/previews/previews.test.tsx (1 test) 10ms
+      Tests  1 passed (1)
+```
+
+- `make check`: typecheck, lint and every package pass except `apps/server`, which had 69 passed, 1 failed, 1 skipped. The one failure is the known flaky `git/mirror.test.ts` (pre-existing and escalated; passes alone).
+- Unverified: the iframe preview was not driven in a real browser against a live thread container.

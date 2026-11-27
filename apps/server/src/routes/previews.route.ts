@@ -20,7 +20,8 @@ export function createPreviewsRoute(tokens = previewTokens, pool = new pg.Pool({
     if (!rows.rows[0]) return c.json({ error: 'not found' }, 404);
     const exp = Date.now() + 10 * 60_000;
     const payload = { threadId: c.req.param('id'), code: rows.rows[0].code, port, exp };
-    return c.json({ token: tokens.mint(payload), shareToken: shareToken({ ...payload, iat: store.now() }) });
+    const signed = { ...payload, iat: store.now() };
+    return c.json({ token: tokens.mint(payload), shareToken: shareToken(signed) });
   });
   app.get('/threads/:id/previews', async c => {
     const t = await owned(c);
@@ -49,7 +50,8 @@ export function createPreviewsRoute(tokens = previewTokens, pool = new pg.Pool({
     if (!Number.isInteger(ttl) || (ttl as number) < 1 || (ttl as number) > 7 * 24 * 60) return apiError(c, 'ValidationFailed', 'ttlMinutes must be 1..10080');
     const iat = store.now(); const until = new Date(iat + (ttl as number) * 60_000);
     if (!await store.share(t.id, port, until)) return apiError(c, 'NotFound', 'preview not found');
-    const token = shareToken({ threadId: t.id, code: t.code, port, exp: until.getTime(), iat });
+    const signed = { threadId: t.id, code: t.code, port, exp: until.getTime(), iat };
+    const token = shareToken(signed);
     return c.json({ url: `${previewUrl(t.code, port)}?share=${token}`, expiresAt: until.toISOString() } satisfies PreviewShare);
   });
   app.delete('/threads/:id/previews/:port/share', async c => {

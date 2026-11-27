@@ -41,7 +41,7 @@ export function createPreviewServer(tokens = previewTokens, gateHost = 'gate-edg
     const priv = tokens.check(cookie(req.headers.cookie, 'flotilla_preview') ?? '', { code, port });
     if ((fromQuery && !v) || (!v && !priv)) { res.writeHead(401); res.end(); return; }
     const row = await deps.store?.byCode(code, port) ?? null;
-    const share = v && !(row?.share_revoked_at && (v.iat ?? 0) <= row.share_revoked_at.getTime()) ? v : null;
+    const share = v && !(row?.share_revoked_at && ((v as { iat?: number }).iat ?? 0) <= row.share_revoked_at.getTime()) ? v : null;
     if ((fromQuery && !share) || (!share && !priv)) { res.writeHead(401); res.end(); return; }
     if (share && fromQuery) { res.writeHead(302, { location: cleanPath(req.url ?? '/'), 'set-cookie': `flotilla_share=${shareRaw}; Path=/p/${code}/${port}; HttpOnly; SameSite=Lax` }); res.end(); return; }
     if (deps.machine && await deps.machine.state(code) === 'asleep') {

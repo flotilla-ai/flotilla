@@ -1,7 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { connect as netConnect, type Socket } from 'node:net';
 
-export type SharePayload = { threadId: string; code: string; port: number; exp: number; iat?: number };
+export type SharePayload = { threadId: string; code: string; port: number; exp: number };
 const generated = randomBytes(32).toString('base64url');
 const key = () => process.env.FLOTILLA_MASTER_KEY ?? generated;
 function sign(body: string) { return createHmac('sha256', key()).update(body).digest('base64url'); }
