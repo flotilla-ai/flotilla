@@ -58,10 +58,12 @@ Counted in `docs/plan/PARITY.md` after phase2-16, phase2-22 and phase2-25: done 
 | phase2-24-review-core | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/75 | durable review rounds/findings/triage/readiness/posting policy; see `docs/runlog/phase2-24.md` |
 | phase2-25-review-policy | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/76 | review context/policy/guides/evidence/stack detection; see `docs/runlog/phase2-25.md` |
 | phase2-22-captain-ops | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/77 | Captain digest documents/rules/messages/actions/templates; see `docs/runlog/phase2-22.md` |
+| phase2-16-dock-cli | in review | 1 |  | dock install verification/layout/dirs/commands/user isolation; see `docs/runlog/phase2-16.md` |
 ## Next action
 
-Counted in `docs/plan/PARITY.md` after phase2-16, phase2-22 and phase2-25: done 292, pending 221, needs-human-login 23, n-a 22, blocked 78.
-2. Keep live GitHub rows fixture-backed and marked needs-human-login until a real operator login verifies them.
+1. Merge dock CLI after its gate, then implement phase2-15 device execution.
+2. Keep live GitHub/device rows fixture-backed and marked needs-human-login until a real operator login verifies them.
+3. Continue phase 2 units in dependency order without child sessions.
 
 ## Phase 1 summary (preserved)
 
@@ -76,4 +78,3 @@ None as whole units. Row-level blocked items are recorded in `docs/plan/PARITY.m
 - phase2-36: machine cost uses runner type `pool` until phase2-12 machine core stamps sizes; no browser e2e for `/usage`; real vendor run-out detection (CAPY-333) still needs human login. See `docs/runlog/phase2-36.md`.
 
 See `docs/runlog/P1-EXIT.md` and phase-2 runlogs (phase2-33: `docs/runlog/phase2-33.md`). Live vendor, GitHub, device, paired-machine and vendor-login behavior remains `needs-human-login` or unverified where marked.
-Counted in `docs/plan/PARITY.md` after phase2-16, phase2-22 and phase2-25: done 292, pending 221, needs-human-login 23, n-a 22, blocked 78.
