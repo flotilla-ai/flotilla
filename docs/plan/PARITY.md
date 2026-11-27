@@ -571,31 +571,31 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-565 | API: folders | P3 | done | phase3-17 |  |  Unfile API clears a thread folder through lifecycle events.  |
 | CAPY-566 | API: folders | P3 | done | phase3-17 |  |  Pin API pins a thread through lifecycle events.  |
 | CAPY-567 | API: folders | P3 | done | phase3-17 |  |  Unpin API clears the pinned flag through lifecycle events.  |
-| CAPY-568 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-569 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-570 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-571 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-572 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-573 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-574 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-575 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-576 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-577 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-578 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-579 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-580 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-581 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-582 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-583 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-584 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-585 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-586 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-587 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-588 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-589 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-590 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-591 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-592 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-568 | API: issues | P3 | done | phase3-18 |  |  List issues supports state, assignee, label and text filters.  |
+| CAPY-569 | API: issues | P3 | done | phase3-18 |  |  Create issue validates state, assignee, labels, due date and uploaded file ids.  |
+| CAPY-570 | API: issues | P3 | done | phase3-18 |  |  Get issue works by durable id or identifier.  |
+| CAPY-571 | API: issues | P3 | done | phase3-18 |  |  Update issue edits core fields and records timeline events.  |
+| CAPY-572 | API: issues | P3 | done | phase3-18 |  |  List issue comments returns durable comments in order.  |
+| CAPY-573 | API: issues | P3 | done | phase3-18 |  |  Comment on issue stores author and body.  |
+| CAPY-574 | API: issues | P3 | done | phase3-18 |  |  Issue timeline merges durable events and comments chronologically.  |
+| CAPY-575 | API: issues | P3 | done | phase3-18 |  |  List issue relations returns outgoing and incoming relations.  |
+| CAPY-576 | API: issues | P3 | done | phase3-18 |  |  Relate issues supports relates, blocks and parent types.  |
+| CAPY-577 | API: issues | P3 | done | phase3-18 |  |  Remove issue relation deletes either side of a relation.  |
+| CAPY-578 | API: issues | P3 | done | phase3-18 |  |  Link pull request or thread stores typed durable links.  |
+| CAPY-579 | API: issues | P3 | done | phase3-18 |  |  Unlink pull request or thread removes durable links.  |
+| CAPY-580 | API: issues | P3 | done | phase3-18 |  |  Download issue file streams attached bytes exactly.  |
+| CAPY-581 | API: issues | P3 | done | phase3-18 |  |  List issue states returns ordered custom states.  |
+| CAPY-582 | API: issues | P3 | done | phase3-18 |  |  Create issue state appends a durable custom state.  |
+| CAPY-583 | API: issues | P3 | done | phase3-18 |  |  Reorder issue states atomically rewrites the full order.  |
+| CAPY-584 | API: issues | P3 | done | phase3-18 |  |  Delete issue state refuses default or in-use states and otherwise removes it.  |
+| CAPY-585 | API: issues | P3 | done | phase3-18 |  |  Update issue state renames a durable custom state.  |
+| CAPY-586 | API: issues | P3 | done | phase3-18 |  |  Set default issue state makes exactly one state default.  |
+| CAPY-587 | API: issues | P3 | done | phase3-18 |  |  List issue labels returns durable labels.  |
+| CAPY-588 | API: issues | P3 | done | phase3-18 |  |  Create issue label validates name, color and description.  |
+| CAPY-589 | API: issues | P3 | done | phase3-18 |  |  Delete issue label removes references from issues.  |
+| CAPY-590 | API: issues | P3 | done | phase3-18 |  |  Update issue label edits name, color and description.  |
+| CAPY-591 | API: issues | P3 | done | phase3-18 |  |  Get issue prefix returns the organization prefix.  |
+| CAPY-592 | API: issues | P3 | done | phase3-18 |  |  Set issue prefix validates and uses the prefix for new identifiers.  |
 | CAPY-593 | API: subagents | P2 | done | phase2-19 |  | `GET /threads/:id/subagents` lists child subagents; regression in `subagent-core.test.ts`. |
 | CAPY-594 | API: subagents | P2 | done | phase2-19 |  | `GET /subagents/:id` returns one owned subagent; regression in `subagent-core.test.ts`. |
 | CAPY-595 | API: subagents | P2 | done | phase2-19 |  | `GET /subagents/:id/messages` serves ordered event-store messages with owner validation; regression in `subagent-core.test.ts`. |
