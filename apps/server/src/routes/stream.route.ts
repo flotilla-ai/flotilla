@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import type { Event } from '@flotilla/core/types';
 import { EventStore } from '../events/store.js';
-import { SSE_RETRY_MS, frameType } from '../api-platform/types.js';
+import { SSE_RETRY_MS, frameType, type ApiPrincipal } from '../api-platform/types.js';
+import { apiPlatformStore } from '../api-platform/store.js';
 
 function sse(event: Event, publicFrames: boolean, first: boolean): Uint8Array {
   const type = frameType(event.kind);
@@ -22,6 +23,10 @@ export function createStreamRoute(store: EventStore): { basePath: string; app: H
     let first = true;
     const subscription = await store.subscribe(threadId, after);
     const iterator = subscription[Symbol.asyncIterator]();
+    const keyId = (c as unknown as { get(key: string): ApiPrincipal | undefined }).get('principal')?.keyId;
+    const keys = apiPlatformStore();
+    // A revoked or expired API key ends its open streams at the next recheck.
+    const recheck = keyId ? setInterval(() => void keys.keyActive(keyId).then((ok) => ok || iterator.return?.()).catch(() => undefined), keys.keyRecheckMs) : undefined;
     const body = new ReadableStream<Uint8Array>({
       async start(controller) {
         void (async () => {
@@ -35,10 +40,13 @@ export function createStreamRoute(store: EventStore): { basePath: string; app: H
             controller.close();
           } catch (err) {
             controller.error(err);
+          } finally {
+            clearInterval(recheck);
           }
         })();
       },
       async cancel() {
+        clearInterval(recheck);
         await iterator.return?.();
       }
     });

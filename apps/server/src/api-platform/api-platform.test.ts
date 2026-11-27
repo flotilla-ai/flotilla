@@ -123,6 +123,16 @@ describe('api platform', () => {
     expect([...text.matchAll(/^id: (\d+)$/gm)].map((m) => Number(m[1]))).toEqual([2, 3, 4, 5, 6]);
     expect([...text.matchAll(/^event: (\w+)$/gm)].map((m) => m[1])).toEqual(['run', 'turn', 'tool_call', 'assistant', 'transcript']);
     expect(text).toContain('"type":"tool_call"');
+    platform.apiPlatformStore(url).keyRecheckMs = 50;
+    try {
+      const live = await mint({ name: 'stream' });
+      const open = await call(`/api/v1/threads/${threadId}/stream`, { bearer: live.token });
+      await call(`/api/v1/api-keys/${live.key.id}`, { method: 'DELETE', session: true });
+      const r = open.body!.getReader();
+      let ended = false;
+      for (let i = 0; i < 20 && !ended; i++) ended = (await r.read().catch(() => ({ done: true }))).done;
+      expect(ended).toBe(true);
+    } finally { platform.apiPlatformStore(url).keyRecheckMs = 30_000; }
   });
 
   it('CAPY-458: errors are typed flotilla/* codes', async () => {

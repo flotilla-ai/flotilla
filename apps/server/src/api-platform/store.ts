@@ -16,6 +16,7 @@ export type Idempotency = { state: 'new' | 'conflict' | 'pending' } | { state: '
 export class ApiPlatformStore {
   readonly pool: pg.Pool;
   rateLimitPerMin = Number(process.env.FLOTILLA_API_RATE_PER_MIN ?? 600);
+  keyRecheckMs = 30_000;
   maxUploadBytes = Number(process.env.FLOTILLA_UPLOAD_MAX_BYTES ?? 25 * 1024 * 1024);
   private windows = new Map<string, { start: number; count: number }>();
   private ready?: Promise<unknown>;
@@ -49,6 +50,9 @@ export class ApiPlatformStore {
     if (!token.startsWith('flt_')) return null;
     const [row] = await this.q(`UPDATE api_keys k SET last_used_at=now() FROM users u WHERE u.id=k.user_id AND k.token_hash=$1 AND k.revoked_at IS NULL AND (k.expires_at IS NULL OR k.expires_at > now()) RETURNING k.id, k.user_id, k.created_by, u.role`, [sha256(token)]);
     return row ? { kind: row.role === 'service' ? 'service' : 'user', userId: row.user_id, authorId: row.created_by, via: 'api-key', keyId: row.id } : null;
+  }
+  async keyActive(keyId: string): Promise<boolean> {
+    return (await this.q('SELECT 1 FROM api_keys WHERE id=$1 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > now())', [keyId])).length > 0;
   }
   /** Fixed one-minute window per key; returns seconds to wait, 0 when allowed. */
   allow(keyId: string, now = Date.now()): number {
