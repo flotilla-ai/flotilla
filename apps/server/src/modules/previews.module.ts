@@ -21,7 +21,7 @@ function card(res: ServerResponse, status: number, title: string, body: string, 
 }
 export function createPreviewServer(tokens = previewTokens, gateHost = 'gate-edge', deps: PreviewServerDeps = {}) {
   const dial = deps.connect ?? ((code: string, port: number) => connectThroughGate(code, port, gateToken(), gateHost));
-  const uiUrl = (deps.uiUrl ?? process.env.FLOTILLA_PUBLIC_URL ?? 'http://localhost:8080').replace(/\/$/, '');
+  const uiUrl = (deps.uiUrl ?? process.env.FLOTILLA_PUBLIC_URL ?? `http://${process.env.FLOTILLA_DOMAIN ?? 'localhost'}:8080`).replace(/\/$/, '');
   const started = new Map<string, number>();
   return createServer((req, res) => { void (async () => {
     const m = /^\/p\/([^/]+)\/(\d+)(\/.*)?$/.exec(new URL(req.url ?? '/', 'http://preview').pathname);
@@ -34,12 +34,14 @@ export function createPreviewServer(tokens = previewTokens, gateHost = 'gate-edg
       if (!previewCookie) { res.writeHead(401); res.end(); return; }
       res.writeHead(302, { location: cleanPath(req.url ?? '/'), 'set-cookie': `flotilla_preview=${previewCookie}; Path=/p; HttpOnly; SameSite=Lax` }); res.end(); return;
     }
-    const share = q.get('share') ? verifyShareToken(q.get('share')!) : null;
+    const shareRaw = q.get('share') ?? cookie(req.headers.cookie, 'flotilla_share');
+    const share = shareRaw ? verifyShareToken(shareRaw) : null;
     if (share && (share.code !== code || share.port !== port)) { res.writeHead(401); res.end(); return; }
     const pc = cookie(req.headers.cookie, 'flotilla_preview');
     if (!share && !tokens.check(pc ?? '', { code, port })) { res.writeHead(401); res.end(); return; }
     const row = await deps.store?.byCode(code, port) ?? null;
     if (share && row?.share_revoked_at && (share.iat ?? 0) <= row.share_revoked_at.getTime()) { res.writeHead(401); res.end(); return; }
+    if (share && q.get('share')) { res.writeHead(302, { location: cleanPath(req.url ?? '/'), 'set-cookie': `flotilla_share=${shareRaw}; Path=/p/${code}/${port}; HttpOnly; SameSite=Lax` }); res.end(); return; }
     if (deps.machine && await deps.machine.state(code) === 'asleep') {
       const link = `${uiUrl}/#/threads/${encodeURIComponent(row?.thread_id ?? share?.threadId ?? '')}`;
       card(res, 503, 'This machine is asleep', `<a href="${esc(link)}">Start the machine</a>, then reload this page. Only members can start it.`); return;
@@ -51,7 +53,7 @@ export function createPreviewServer(tokens = previewTokens, gateHost = 'gate-edg
       if (!cmd || !deps.machine) { card(res, 502, `Nothing is listening on port ${port}`, 'Start the app inside the machine, then reload this page.'); return; }
       const key = `${code}:${port}`;
       if ((started.get(key) ?? 0) < Date.now() - 30_000) { started.set(key, Date.now()); await deps.machine.run(code, cmd).catch(() => undefined); }
-      card(res, 503, 'Starting the app', `Nothing was listening on port ${port}, so <code>${esc(cmd)}</code> is running again. This page reloads.`, { refresh: '3', 'retry-after': '3' }); return;
+      card(res, 503, 'Starting the app', `Nothing was listening on port ${port}, so the start command is running again. This page reloads.`, { refresh: '3', 'retry-after': '3' }); return;
     }
     try {
       const upstream = request({

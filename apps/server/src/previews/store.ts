@@ -5,7 +5,7 @@ export type PreviewRow = {
   thread_id: string; code: string; port: number; hostname: string | null; start_command: string | null;
   share_until: Date | null; share_revoked_at: Date | null; awake_since: Date | null; awake_until: Date | null;
 };
-const base = () => (process.env.FLOTILLA_PREVIEW_URL ?? 'http://localhost:8081').replace(/\/$/, '');
+const base = () => (process.env.FLOTILLA_PREVIEW_URL ?? `http://${process.env.FLOTILLA_DOMAIN ?? 'localhost'}:8081`).replace(/\/$/, '');
 export const previewUrl = (code: string, port: number) => `${base()}/p/${encodeURIComponent(code)}/${port}/`;
 
 export function keepAwake(now: number, since: Date | null, until: Date | null): { since: Date; until: Date } {

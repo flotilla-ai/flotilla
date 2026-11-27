@@ -28,7 +28,7 @@ export function dockerPreviewMachine(docker = new Docker()): PreviewMachine {
       return listeningPorts(text);
     },
     async run(code, command) {
-      const exec = await box(code).exec({ Cmd: ['sh', '-c', command], WorkingDir: '/workspace', AttachStdout: false, AttachStderr: false });
+      const exec = await box(code).exec({ Cmd: ['sh', '-c', 'cd /workspace/repo 2>/dev/null || cd /workspace; exec sh -c "$0"', command], AttachStdout: false, AttachStderr: false });
       await exec.start({ Detach: true });
     }
   };

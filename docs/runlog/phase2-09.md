@@ -55,3 +55,18 @@ $ cd apps/server && npx vitest run src/git/mirror.test.ts
 - Machine sleep/wake itself (stopping containers after `awake_until`) is owned by the machine-core unit; this unit records `awake_until` and shows the Start link only.
 - No web UI controls for listing/exposing/sharing previews; rows are proven through the API.
 - P2 wildcard host + Caddy TLS (`p<port>-<code>.<FLOTILLA_PREVIEW_DOMAIN>`) not implemented here.
+
+## Review round 1
+
+Devin Review found 4 issues and all 4 are fixed in one commit, each with a new failing-first assertion in `lifecycle.test.ts` (which failed 2 of 7 before the fix and passed 7 of 7 after):
+- Share links set a path-scoped `flotilla_share` cookie, so follow-up asset requests no longer get 401. Revocation still blocks the cookie.
+- The start command is not shown on the 503 card.
+- The start command runs from `/workspace/repo` when it exists.
+- Default links use `FLOTILLA_DOMAIN` instead of always using `localhost`.
+
+```text
+$ pnpm --filter @flotilla/server test   (after round-1 fixes)
+      Tests  70 passed | 1 skipped (71)
+$ pnpm -r lint
+lint=0
+```

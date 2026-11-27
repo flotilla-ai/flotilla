@@ -9,8 +9,8 @@ import { migrate } from '../db/migrate.js';
 import { createPreviewServer } from '../modules/previews.module.js';
 import { createPreviewsRoute } from '../routes/previews.route.js';
 import { PreviewTokens } from './index.js';
-import { listeningPorts } from './machine.js';
-import { previewStore } from './store.js';
+import { dockerPreviewMachine, listeningPorts } from './machine.js';
+import { previewStore, previewUrl } from './store.js';
 import type { PreviewMachine } from './types.js';
 
 const exec = promisify(execFile);
@@ -26,7 +26,11 @@ const machine = { asleep: false, runs,
   async run(_code: string, command: string) { runs.push(command); listening = true; } };
 const fakeMachine: PreviewMachine = machine;
 const call = (path: string, method = 'GET', json?: unknown) => api.request(`http://local/api/v1${path}`, { method, headers: json ? { 'content-type': 'application/json' } : {}, body: json ? JSON.stringify(json) : undefined });
-const open = (url: string) => fetch(url.replace('http://preview.test', base), { redirect: 'manual' });
+const open = async (url: string) => {
+  const r = await fetch(url.replace('http://preview.test', base), { redirect: 'manual' });
+  const loc = r.headers.get('location'); const ck = r.headers.get('set-cookie');
+  return r.status === 302 && loc && ck ? fetch(new URL(loc, base), { redirect: 'manual', headers: { cookie: ck.split(';')[0] } }) : r;
+};
 async function share(port: number): Promise<string> { const r = await call(`/threads/thr_pv/previews/${port}/share`, 'POST', { ttlMinutes: 60 }); expect(r.status).toBe(200); return ((await r.json()) as { url: string }).url; }
 async function awakeUntil(port: number): Promise<number> { return (await pool.query('SELECT awake_until FROM previews WHERE thread_id=$1 AND port=$2', ['thr_pv', port])).rows[0].awake_until.getTime(); }
 
@@ -108,8 +112,13 @@ describe('preview lifecycle', () => {
     const starting = await open(link);
     expect(starting.status).toBe(503);
     expect(starting.headers.get('refresh')).toBe('3');
-    expect(await starting.text()).toContain('pnpm dev');
+    expect(await starting.text()).not.toContain('pnpm dev');
     expect(machine.runs).toEqual(['pnpm dev']);
+    const execs: { Cmd: string[] }[] = [];
+    const docker = { getContainer: () => ({ exec: async (o: { Cmd: string[] }) => { execs.push(o); return { start: async () => undefined }; } }) };
+    await dockerPreviewMachine(docker as never).run('FLO-9', 'pnpm dev');
+    expect(execs[0].Cmd.slice(0, 2)).toEqual(['sh', '-c']);
+    expect(execs[0].Cmd.join(' ')).toContain('cd /workspace/repo');
     expect((await open(link)).status).toBe(200);
     listening = false;
     expect((await call('/threads/thr_pv/previews/4000', 'PUT', {})).status).toBe(200);
@@ -136,11 +145,22 @@ describe('preview lifecycle', () => {
     let { previews } = await (await call('/threads/thr_pv/previews')).json() as { previews: { port: number; access: string; shareUntil: string }[] };
     expect(previews.find((p) => p.port === 3000)).toMatchObject({ access: 'shared', shareUntil: new Date(now + 3_600_000).toISOString() });
     expect((await open(link)).status).toBe(200);
+    const first = await fetch(link.replace('http://preview.test', base), { redirect: 'manual' });
+    expect(first.status).toBe(302);
+    const shareCookie = first.headers.get('set-cookie')!;
+    expect(shareCookie).toContain('Path=/p/FLO-9/3000;');
+    expect(first.headers.get('location')).toBe('/p/FLO-9/3000/');
+    const asset = await fetch(`${base}/p/FLO-9/3000/app.js`, { headers: { cookie: shareCookie.split(';')[0] } });
+    expect(asset.status).toBe(200);
     now += 1000;
     expect((await call('/threads/thr_pv/previews/3000/share', 'DELETE')).status).toBe(200);
     expect((await open(link)).status).toBe(401);
+    expect((await fetch(`${base}/p/FLO-9/3000/app.js`, { headers: { cookie: shareCookie.split(';')[0] } })).status).toBe(401);
     ({ previews } = await (await call('/threads/thr_pv/previews')).json() as { previews: { port: number; access: string; shareUntil: string }[] });
     expect(previews.find((p) => p.port === 3000)?.access).toBe('private');
     expect((await call('/threads/thr_pv/previews/9999/share', 'POST', {})).status).toBe(404);
+    const saved = process.env.FLOTILLA_PREVIEW_URL; delete process.env.FLOTILLA_PREVIEW_URL; process.env.FLOTILLA_DOMAIN = 'flotilla.example';
+    expect(previewUrl('FLO-9', 3000)).toBe('http://flotilla.example:8081/p/FLO-9/3000/');
+    process.env.FLOTILLA_PREVIEW_URL = saved; delete process.env.FLOTILLA_DOMAIN;
   });
 });
