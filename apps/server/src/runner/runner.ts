@@ -12,6 +12,7 @@ import { captainMcpTar, tarFile } from '../captain/tools/mcpConfig.js';
 import { secretsTar, type SecretsStore } from '../secrets/store.js';
 import type { EnvVarMutation, PreparedSecrets } from '../secrets/types.js';
 import { ApiFailure } from '../api-platform/types.js';
+import type { MachineCore } from '../machines/machine-core.js';
 import { DELIVERY_MODES, PLAN_PROMPT, RunnerQueue, adapterError, parseCommand, type AdapterError, type ContextMeter, type DeliveryMode, type ThreadInboxItem } from './runner-queue.js';
 
 type Driver = GitDriver & { startThreadContainer(input: Record<string, unknown>): Promise<{ containerId: string }>; stop(id: string): Promise<void> };
@@ -20,7 +21,7 @@ const zero = budgetZero;
 const add = (a: CostTotals, b: CostTotals): CostTotals => ({ usd: a.usd+b.usd, inputTokens: a.inputTokens+b.inputTokens, outputTokens: a.outputTokens+b.outputTokens, cacheTokens: a.cacheTokens+b.cacheTokens, machineSec: a.machineSec+b.machineSec });
 const id = (p: string) => `${p}_${randomBytes(10).toString('base64url')}`;
 const budget = (maxUsd: number | null = null) => ({ maxUsd, maxTokens: null, maxWallSec: null, scope: 'thread' as const, onHit: 'pause-and-ask' as const, warnAt: 0.8 });
-export type RunnerDeps = { store: EventStore; driver: Driver; adapters: Map<string, AgentAdapter>; secrets?: Record<string,string>; projectFor?(row: Row): Row; vault?: Pick<SecretsStore, 'mutate' | 'prepare'>; resolveEngine?(userId: string, engine: Row): Promise<{ adapter: string; model: string | null; effort: unknown; connectionId: string | null; contextWindow?: number }>; runOut?: { onRunOut(threadId: string): Promise<{ switchedTo: string } | { approvalId: string }>; answer(approval: Row, optionId: string): Promise<void> } };
+export type RunnerDeps = { store: EventStore; driver: Driver; adapters: Map<string, AgentAdapter>; secrets?: Record<string,string>; projectFor?(row: Row): Row; vault?: Pick<SecretsStore, 'mutate' | 'prepare'>; resolveEngine?(userId: string, engine: Row): Promise<{ adapter: string; model: string | null; effort: unknown; connectionId: string | null; contextWindow?: number }>; runOut?: { onRunOut(threadId: string): Promise<{ switchedTo: string } | { approvalId: string }>; answer(approval: Row, optionId: string): Promise<void> }; machines?: Pick<MachineCore, 'boot' | 'release'> };
 type AfterRun=(input:{thread:Row;project:Row|null;runId:string;state:string;containerId:string;driver:Driver})=>Promise<void>;
 const afterRunHooks:AfterRun[]=[];
 export function onAfterRun(fn:AfterRun):()=>void{afterRunHooks.push(fn);return()=>{const i=afterRunHooks.indexOf(fn);if(i>=0)afterRunHooks.splice(i,1)}}
@@ -167,6 +168,30 @@ export class ThreadRunner {
   private async thread(threadId: string): Promise<Row | null> { return (await this.pool.query('SELECT * FROM threads WHERE id=$1', [threadId])).rows[0] ?? null; }
   private async project(thread: Row): Promise<Row | null> { return thread.project_id ? (await this.pool.query('SELECT * FROM projects WHERE id=$1', [thread.project_id])).rows[0] ?? null : null; }
 
+  private pooled(thread: Row): boolean { return !!this.deps.machines && thread.role !== 'captain'; }
+  private async free(containerId: string): Promise<void> { await ((this.deps.driver as Driver & {remove?(id:string):Promise<void>}).remove?.(containerId) ?? this.deps.driver.stop(containerId)); }
+  /** Starts the run's container: per-run for captains / without machine core, else the thread's pool machine (held until release). */
+  private async machineFor(thread: Row, project: Row | null, env: Record<string, string>): Promise<{ containerId: string }> {
+    const threadId = thread.id as string;
+    const start = (memMb = 512, cpus = 1) => this.deps.driver.startThreadContainer({ threadId, code: thread.code, image: process.env.FLOTILLA_THREAD_IMAGE ?? 'flotilla-thread:dev', cpus, memMb, env, roMounts: [], egressAllow: project?.egress_allow as string[] ?? [] });
+    const seed = async (containerId: string, fresh: boolean) => {
+      if (!project || (thread.branch && !fresh)) return;
+      const seeded = await seedWorkspace({ id: threadId as never, code: thread.code as string, title: thread.title as string, branch: thread.branch as string | null, containerId }, { id: project.id as never, repo: project.repo as never, trust: project.trust as never, token: process.env.GITHUB_TOKEN }, this.deps.driver).catch(() => ({ branch: null }));
+      if (seeded.branch && seeded.branch !== thread.branch) await this.pool.query('UPDATE threads SET branch=$2 WHERE id=$1', [threadId, seeded.branch]);
+      thread.branch = seeded.branch ?? thread.branch;
+    };
+    if (!this.pooled(thread)) { const m = await start(); await seed(m.containerId, false); return m; }
+    return this.deps.machines!.boot(threadId, (project?.id as string | undefined) ?? null, start, this.deps.driver as never, seed);
+  }
+  /** User "Wake machine" button / agent wake: boots the pool machine and lets it wind down unless a run holds it. */
+  async wakeMachine(threadId: string): Promise<void> {
+    const thread = await this.thread(threadId);
+    if (!thread) throw new ApiFailure('NotFound', 'thread not found');
+    if (!this.pooled(thread)) throw new ApiFailure('Conflict', 'this thread has no pool machine');
+    await this.machineFor(thread, await this.project(thread), {});
+    await this.deps.machines!.release(threadId);
+  }
+
   private async run(threadId: string, trigger: string): Promise<void> {
     const thread = await this.thread(threadId); if (!thread) return;
     const runId = id('run'); const ordinal = ((await this.pool.query('SELECT max(ordinal) n FROM runs WHERE thread_id=$1', [threadId])).rows[0].n ?? 0) + 1;
@@ -188,22 +213,16 @@ export class ThreadRunner {
     const project = await this.project(thread);
     const tokenService = thread.role === 'captain' ? getRunTokenService() : null;
     const runToken = tokenService?.issue(runId, threadId);
+    const pooled = this.pooled(thread);
     let machine = { containerId: '' };
-    {
-      machine = await this.deps.driver.startThreadContainer({ threadId, code: thread.code, image: process.env.FLOTILLA_THREAD_IMAGE ?? 'flotilla-thread:dev', cpus: 1, memMb: 512, env: runToken ? { FLOTILLA_MCP_TOKEN: runToken.token } : {}, roMounts: [], egressAllow: project?.egress_allow as string[] ?? [] }).catch((err) => { tokenService?.endRun(runId); throw err; });
-      if (project && !thread.branch) {
-        const seeded = await seedWorkspace({ id: threadId as never, code: thread.code as string, title: thread.title as string, branch: thread.branch as string | null, containerId: machine.containerId }, { id: project.id as never, repo: project.repo as never, trust: project.trust as never, token: process.env.GITHUB_TOKEN }, this.deps.driver).catch(() => ({ branch: null }));
-        if (seeded.branch && seeded.branch !== thread.branch) await this.pool.query('UPDATE threads SET branch=$2 WHERE id=$1', [threadId, seeded.branch]);
-        thread.branch = seeded.branch ?? thread.branch;
-      }
-    }
+    try { machine = await this.machineFor(thread, project, runToken ? { FLOTILLA_MCP_TOKEN: runToken.token } : {}); } catch (err) { tokenService?.endRun(runId); return this.failStart(threadId, runId, err); }
     if (Object.keys(prepared.env).length) {
       try {
         if (!('copyIn' in this.deps.driver)) throw new Error('machine driver cannot receive the secrets file');
         await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', secretsTar(prepared.env));
       } catch (err) {
         tokenService?.endRun(runId);
-        await ((this.deps.driver as Driver & {remove?(id:string):Promise<void>}).remove?.(machine.containerId) ?? this.deps.driver.stop(machine.containerId)).catch(() => undefined);
+        await (pooled ? this.deps.machines!.release(threadId) : this.free(machine.containerId)).catch(() => undefined);
         return this.failStart(threadId, runId, new Error('secrets file could not be written to the machine', { cause: err }));
       }
     }
@@ -251,7 +270,7 @@ export class ThreadRunner {
       await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'run.ended', source: 'kernel', trust: 'trusted', payload: { state, usage, ...(error ? { error } : {}) } }, ...(ranOut ? [{ runId: null, kind: 'switchedTo' in ranOut ? 'thread.status' : 'approval.requested', source: 'kernel', trust: 'trusted', payload: 'switchedTo' in ranOut ? { status: 'queued', runOut: true, connectionId: ranOut.switchedTo } : { approvalId: ranOut.approvalId, kind: 'run-out' } }] : [])] as never);
       if (planRun && state === 'completed') await this.openPlanGate(thread, runId);
       for (const hook of planRun ? [] : afterRunHooks) await hook({ thread, project, runId, state, containerId: machine.containerId, driver: this.deps.driver }).catch(() => undefined);
-      await ((this.deps.driver as Driver & {remove?(id:string):Promise<void>}).remove?.(machine.containerId) ?? this.deps.driver.stop(machine.containerId)).catch(() => undefined);
+      await (pooled ? this.deps.machines!.release(threadId) : this.free(machine.containerId)).catch(() => undefined);
       this.containers.delete(threadId);
       this.cancelled.delete(threadId);
     }
