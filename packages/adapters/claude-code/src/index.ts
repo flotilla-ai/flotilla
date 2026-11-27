@@ -80,7 +80,7 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     versionRange: 'unverified',
     transport: 'stdout-jsonl' as const,
     capabilities: { resume: true, cancel: true, steerMidTurn: false, nativeSubagents: true, vendorBudgetFlag: '--max-budget-usd', hardCapSupported: true, mcp: true, images: true, planMode: true, permissionModes: ['default', 'acceptEdits', 'plan', 'bypassPermissions'] },
-    auth: [{ kind: 'vendor-login' as const, command: ['claude', 'auth', 'login'] }, { kind: 'api-key' as const, envVar: 'ANTHROPIC_API_KEY' }],
+    auth: [{ kind: 'vendor-login' as const, command: ['claude', 'auth', 'login'] }, { kind: 'api-key' as const, envVar: 'ANTHROPIC_API_KEY', baseUrlEnvVar: 'ANTHROPIC_BASE_URL' }],
     costReporting: 'usd' as const,
     egressHosts: ['api.anthropic.com']
   };

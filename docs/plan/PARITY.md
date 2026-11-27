@@ -336,12 +336,12 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-330 | Models & connections | P2 | needs-human-login | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | custom model ids added/found/selectable on a connection (fixture); real key needed for live endpoint. |
 | CAPY-331 | Models & connections | P2 | done | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | pinned connection never falls back; its key alone reaches the run env (fake). |
 | CAPY-332 | Models & connections | P2 | blocked | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | blocked: the row is the web model picker (badges, connection tooltip, Alt+1…9 favorites) and `apps/web` is outside phase2-03 SCOPE; the server API returning badges, tooltips, favorites and shortcuts is proven (models-catalog.test.ts). Needs a web picker unit. |
-| CAPY-333 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-333 | Models & connections | P2 | needs-human-login | phase2-04 | PR_URL | Proven offline (model-policy-api.test.ts, web model-policy-api.test.tsx): per-user `runOut` ask (default, pause-and-ask) / ask-before-free / keep-going; a `run_out` run opens a Wait/Use <next connection> card, `/wait` and `/continue` typed into the thread answer it, Use reruns the prompt on the next connection. Live: the Claude Code/Codex adapters do not yet map a vendor usage-limit exit to `run_out`; operator check: `claude auth login` then run a thread until the subscription limit, and `codex login` likewise, and record the CLI's final event. |
 | CAPY-334 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-335 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-336 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-337 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-338 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-335 | Models & connections | P2 | done | phase2-04 | PR_URL | Policy `neverFree` and `excludedAdapters` drop the free models / a company's adapter from `GET /api/v1/models`, the picker, resolve (pinned or not) and run-out next-connection; web policy form sets both (model-policy-api.test.ts, model-policy-api.test.tsx). |
+| CAPY-336 | Models & connections | P2 | done | phase2-04 | PR_URL | `GET /api/v1/models` returns one row per adapter:model with display name, context window, efforts, free/ZDR and the connections in run order; web Models page lists it (model-policy-api.test.ts, model-policy-api.test.tsx). |
+| CAPY-337 | Models & connections | P2 | needs-human-login | phase2-04 | PR_URL | Catalog `contextWindow` is listed, carried on the thread engine and passed to Codex as `-c model_context_window=1050000` (argv proven with a fixture GPT-6 row). Live: `codex login && codex exec --json --model gpt-6 -c model_context_window=1050000 'say ok'` with a real GPT-6 catalog row (model id/window unverified). |
+| CAPY-338 | Models & connections | P2 | blocked | phase2-04 | PR_URL | `POST /api/v1/models/background` resolves the user's policy `background` model, else the thread's own, under the same policy and connections (no hosted account) — proven. Blocked: no title or PR-summary generator exists yet to call it; owner is the unit that adds generated titles/PR summaries. |
 | CAPY-339 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-340 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-341 | Billing & plans | P2 | pending |  |  | Awaiting phase P2 unit. |
@@ -487,8 +487,8 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-481 | Billing & plans | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-482 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-483 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-484 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-485 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-484 | Models & connections | P2 | needs-human-login | phase2-04 | PR_URL | Proven offline: one list row per Claude model; a connected Claude subscription is first in run order (before an API key added earlier) and resolve picks it; production `defaultRunner` now registers the claude-code and codex adapters. Live: `claude auth login`, connect the subscription, run a thread on a Claude model and confirm it runs without ANTHROPIC_API_KEY. |
+| CAPY-485 | Models & connections | P2 | blocked | phase2-04 | PR_URL | Proven offline: PATCH `/api/v1/connections/:id` `{baseUrl}` (http/https only) reaches the next run as `ANTHROPIC_BASE_URL`/`OPENAI_BASE_URL` (manifest `baseUrlEnvVar`). Blocked: no web connections editor yet (same web unit as CAPY-332). Live gateway: `ANTHROPIC_BASE_URL=<gateway> claude -p ok --bare` with the operator's key, unverified. |
 | CAPY-486 | Models & connections | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-487 | Usage & analytics | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-488 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |

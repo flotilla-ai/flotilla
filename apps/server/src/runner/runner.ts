@@ -18,7 +18,7 @@ const zero = budgetZero;
 const add = (a: CostTotals, b: CostTotals): CostTotals => ({ usd: a.usd+b.usd, inputTokens: a.inputTokens+b.inputTokens, outputTokens: a.outputTokens+b.outputTokens, cacheTokens: a.cacheTokens+b.cacheTokens, machineSec: a.machineSec+b.machineSec });
 const id = (p: string) => `${p}_${randomBytes(10).toString('base64url')}`;
 const budget = (maxUsd: number | null = null) => ({ maxUsd, maxTokens: null, maxWallSec: null, scope: 'thread' as const, onHit: 'pause-and-ask' as const, warnAt: 0.8 });
-export type RunnerDeps = { store: EventStore; driver: Driver; adapters: Map<string, AgentAdapter>; secrets?: Record<string,string>; projectFor?(row: Row): Row; vault?: Pick<SecretsStore, 'mutate' | 'prepare'> };
+export type RunnerDeps = { store: EventStore; driver: Driver; adapters: Map<string, AgentAdapter>; secrets?: Record<string,string>; projectFor?(row: Row): Row; vault?: Pick<SecretsStore, 'mutate' | 'prepare'>; runOut?: { onRunOut(threadId: string): Promise<{ switchedTo: string } | { approvalId: string }>; answer(approval: Row, optionId: string): Promise<void> } };
 type AfterRun=(input:{thread:Row;project:Row|null;runId:string;state:string;containerId:string;driver:Driver})=>Promise<void>;
 const afterRunHooks:AfterRun[]=[];
 export function onAfterRun(fn:AfterRun):()=>void{afterRunHooks.push(fn);return()=>{const i=afterRunHooks.indexOf(fn);if(i>=0)afterRunHooks.splice(i,1)}}
@@ -75,7 +75,9 @@ export class ThreadRunner {
     const approval = rows.rows[0]; if (!approval) return null;
     if (approval.kind === 'budget' && optionId === 'raise' && value) await this.pool.query(`UPDATE threads SET budget=jsonb_set(budget,'{maxUsd}',to_jsonb($2::int)),status='queued' WHERE id=$1`, [approval.thread_id, value]);
     if (approval.kind === 'budget' && optionId === 'stop') await this.stop(approval.thread_id);
+    if (approval.kind === 'run-out') { await this.deps.runOut?.answer(approval, optionId); if (optionId === 'use') await this.pool.query(`UPDATE threads SET status='queued' WHERE id=$1`, [approval.thread_id]); }
     await this.deps.store.appendEvents(approval.thread_id, [{ runId: null, kind: 'approval.resolved', source: 'kernel', trust: 'trusted', payload: { approvalId, optionId, value } }] as never);
+    if (approval.kind === 'run-out' && optionId === 'use') this.supervise(this.startNext(approval.thread_id, 'resume'));
     if (optionId === 'raise') { if (this.running.has(approval.thread_id)) this.queued.set(approval.thread_id,[...(this.queued.get(approval.thread_id)??[]),'Continue within the raised budget.']); this.supervise(this.startNext(approval.thread_id, 'resume')); }
     return approval;
   }
@@ -86,7 +88,7 @@ export class ThreadRunner {
     this.running.set(threadId, promise);
     await promise;
     const current = await this.thread(threadId);
-    const budgetNow=current?.budget as {maxUsd:number|null}|undefined;const spentNow=(current?.spent as {usd:number}|undefined)?.usd??0;if ((this.queued.get(threadId) ?? []).length && !this.cancelled.has(threadId) && (budgetNow?.maxUsd==null||spentNow<budgetNow.maxUsd)) this.supervise(this.startNext(threadId, 'message'));
+    const budgetNow=current?.budget as {maxUsd:number|null}|undefined;const spentNow=(current?.spent as {usd:number}|undefined)?.usd??0;if ((this.queued.get(threadId) ?? []).length && !this.cancelled.has(threadId) && current?.status !== 'paused' && (budgetNow?.maxUsd==null||spentNow<budgetNow.maxUsd)) this.supervise(this.startNext(threadId, 'message'));
   }
 
   private async thread(threadId: string): Promise<Row | null> { return (await this.pool.query('SELECT * FROM threads WHERE id=$1', [threadId])).rows[0] ?? null; }
@@ -108,6 +110,8 @@ export class ThreadRunner {
       await this.pool.query('INSERT INTO budget_holds (scope,scope_id,run_id,amount) VALUES ($1,$2,$3,$4)', ['thread', threadId, runId, reserveAmount]);
     }
 
+    const adapter = this.deps.adapters.get((thread.engine as Row).adapter as string);
+    if (!adapter) return this.failStart(threadId, runId, new Error(`adapter ${(thread.engine as Row).adapter} is not installed`));
     const project = await this.project(thread);
     const tokenService = thread.role === 'captain' ? getRunTokenService() : null;
     const runToken = tokenService?.issue(runId, threadId);
@@ -131,15 +135,13 @@ export class ThreadRunner {
       }
     }
     if (runToken && 'copyIn' in this.deps.driver) await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', captainMcpTar(runToken.token)).catch(() => undefined);
-    const adapter = this.deps.adapters.get((thread.engine as Row).adapter as string) ?? [...this.deps.adapters.values()][0];
-    if (!adapter) { tokenService?.endRun(runId); throw new Error('adapter missing'); }
     let transport: ReturnType<Driver['transport']>;
     try { transport = this.deps.driver.transport(machine.containerId); } catch (err) { tokenService?.endRun(runId); throw err; }
-    let usage = { ...zero }; let state: 'completed' | 'cancelled' | 'failed' | 'paused_budget' = 'completed'; const started = Date.now();
+    let usage = { ...zero }; let state: 'completed' | 'cancelled' | 'failed' | 'paused_budget' | 'run_out' = 'completed'; const prompt = (this.queued.get(threadId) ?? []).shift() ?? ''; const started = Date.now();
     const eventSecrets = { ...this.deps.secrets, ...prepared.env, ...(runToken ? { FLOTILLA_MCP_TOKEN: runToken.token } : {}) };
     const scrubber = createDeltaScrubber(eventSecrets);
     let stream: AsyncIterable<AdapterEvent>;
-    try { stream = adapter.start({ runId: runId as never, threadId: threadId as never, prompt: (this.queued.get(threadId) ?? []).shift() ?? '', model: (thread.engine as Row).model ?? null, effort: (thread.engine as Row).effort ?? null, cwd: project ? '/workspace/repo' : '/workspace', env: prepared.env, transport, resumeSessionId: null, vendorBudget: { maxMicroUsd: policy.maxUsd }, auth: { kind: 'none' }, mcpConfigPath: runToken ? '/run/flotilla/mcp.json' : null, images: [] } as never); } catch (err) { tokenService?.endRun(runId); throw err; }
+    try { stream = adapter.start({ runId: runId as never, threadId: threadId as never, prompt, model: (thread.engine as Row).model ?? null, effort: (thread.engine as Row).effort ?? null, contextWindow: (thread.engine as Row).contextWindow ?? null, cwd: project ? '/workspace/repo' : '/workspace', env: prepared.env, transport, resumeSessionId: null, vendorBudget: { maxMicroUsd: policy.maxUsd }, auth: { kind: 'none' }, mcpConfigPath: runToken ? '/run/flotilla/mcp.json' : null, images: [] } as never); } catch (err) { tokenService?.endRun(runId); throw err; }
     try {
       for await (const event of stream) {
         if (this.cancelled.has(threadId)) { state = 'cancelled'; await adapter.cancel(runId as never).catch(() => undefined); break; }
@@ -154,6 +156,7 @@ export class ThreadRunner {
           if (fence !== 'continue' || (policy.maxUsd !== null && usage.usd >= policy.maxUsd)) { state = 'paused_budget'; await adapter.cancel(runId as never).catch(() => undefined); await this.pauseBudget(threadId, runId, fence === 'continue' ? 'usd' : fence.stop); break; }
         }
         if (event.t === 'done' && event.stopReason === 'error') state = 'failed';
+        if (event.t === 'done' && event.stopReason === 'run_out' && state === 'completed') state = 'run_out';
         if (event.t === 'done' && event.stopReason === 'cancelled' && state === 'completed') state = 'cancelled';
       }
       const tail = scrubber.flush(); if (tail) await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'agent.delta', source: 'adapter', trust: 'trusted', payload: { text: tail } }] as never);
@@ -161,8 +164,10 @@ export class ThreadRunner {
       tokenService?.endRun(runId);
       await this.pool.query('DELETE FROM budget_holds WHERE run_id=$1', [runId]);
       await this.pool.query('UPDATE runs SET state=$2,ended_at=now(),usage=$3 WHERE id=$1', [runId, state, JSON.stringify(usage)]);
-      await this.pool.query(`UPDATE threads SET status=$2,updated_at=now() WHERE id=$1`, [threadId, state === 'paused_budget' ? 'paused' : state === 'completed' ? 'waiting' : state === 'cancelled' ? 'idle' : 'failed']);
-      await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'run.ended', source: 'kernel', trust: 'trusted', payload: { state, usage } }] as never);
+      let ranOut: { switchedTo: string } | { approvalId: string } | null = null;
+      if (state === 'run_out') { this.queued.set(threadId, [prompt, ...(this.queued.get(threadId) ?? [])]); ranOut = await this.deps.runOut?.onRunOut(threadId).catch(() => null) ?? null; }
+      await this.pool.query(`UPDATE threads SET status=$2,updated_at=now() WHERE id=$1`, [threadId, state === 'run_out' ? (ranOut && 'switchedTo' in ranOut ? 'queued' : 'paused') : state === 'paused_budget' ? 'paused' : state === 'completed' ? 'waiting' : state === 'cancelled' ? 'idle' : 'failed']);
+      await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'run.ended', source: 'kernel', trust: 'trusted', payload: { state, usage } }, ...(ranOut ? [{ runId: null, kind: 'switchedTo' in ranOut ? 'thread.status' : 'approval.requested', source: 'kernel', trust: 'trusted', payload: 'switchedTo' in ranOut ? { status: 'queued', runOut: true, connectionId: ranOut.switchedTo } : { approvalId: ranOut.approvalId, kind: 'run-out' } }] : [])] as never);
       for (const hook of afterRunHooks) await hook({ thread, project, runId, state, containerId: machine.containerId, driver: this.deps.driver }).catch(() => undefined);
       await ((this.deps.driver as Driver & {remove?(id:string):Promise<void>}).remove?.(machine.containerId) ?? this.deps.driver.stop(machine.containerId)).catch(() => undefined);
       this.containers.delete(threadId);

@@ -3,7 +3,7 @@ import { runJsonl } from '@flotilla/adapter-host';
 
 type Json = Record<string, unknown>;
 export function argvFor(input: StartInput | ResumeInput): string[] {
-  const model = input.model ? ['--model', input.model] : [];
+  const model = [...(input.model ? ['--model', input.model] : []), ...(input.contextWindow ? ['-c', `model_context_window=${input.contextWindow}`] : [])];
   if ('adapterSessionId' in input) return ['codex', 'exec', 'resume', input.adapterSessionId, '--json', ...model, input.prompt];
   return ['codex', 'exec', '--json', ...model, input.prompt];
 }
@@ -43,7 +43,7 @@ export class CodexAdapter implements AgentAdapter {
   manifest = {
     id: 'codex' as const, displayName: 'Codex', binary: 'codex', versionRange: 'unverified', transport: 'stdout-jsonl' as const,
     capabilities: { resume: true, cancel: true, steerMidTurn: false, nativeSubagents: false, vendorBudgetFlag: null, hardCapSupported: false, mcp: false, images: false, planMode: false, permissionModes: [] },
-    auth: [{ kind: 'vendor-login' as const, command: ['codex', 'login'] }, { kind: 'api-key' as const, envVar: 'CODEX_API_KEY' }],
+    auth: [{ kind: 'vendor-login' as const, command: ['codex', 'login'] }, { kind: 'api-key' as const, envVar: 'CODEX_API_KEY', baseUrlEnvVar: 'OPENAI_BASE_URL' }],
     costReporting: 'tokens' as const, egressHosts: ['api.openai.com']
   };
   async probe(ctx: MachineCtx) {
