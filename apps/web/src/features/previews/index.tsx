@@ -1,0 +1,11 @@
+import React,{useEffect,useState} from 'react';import {api} from '../../lib/api.js';
+type Preview={port:number;url:string;localUrl:string;access:string};
+export type PreviewList={previews:Preview[];suggestions:number[];reserved:number[]};
+type Props={data:PreviewList;open:string|null;expose:(port:number)=>void;view:(port:number)=>void};
+export function PreviewPorts({data,open,expose,view}:Props){return <section><h2>Listening ports</h2>{data.suggestions.length?data.suggestions.map(p=><div className='row' key={p}><span>:{p}</span><button onClick={()=>expose(p)}>Open {p}</button></div>):<p>Nothing new is listening.</p>}<h2>Previews</h2>{data.previews.map(p=><div className='row' key={p.port}><button onClick={()=>view(p.port)}>View :{p.port}</button><span>{p.url}</span><span>{p.localUrl}</span><span>{p.access}</span></div>)}<p><small>Reserved, never previewed: {data.reserved.join(', ')}</small></p>{open&&<iframe title='preview' src={open} sandbox='allow-scripts allow-same-origin allow-forms allow-popups allow-downloads' style={{width:'100%',height:'60vh',border:'1px solid #ccc'}}/>}</section>}
+function Previews(){const[threads,setThreads]=useState<{id:string;title:string}[]>([]);const[id,setId]=useState('');const[data,setData]=useState<PreviewList|null>(null);const[open,setOpen]=useState<string|null>(null);
+ const load=(t:string)=>api(`/threads/${t}/previews`).then(setData).catch(()=>setData(null));
+ const view=async(port:number)=>{const p=data?.previews.find(x=>x.port===port);const r=await api(`/threads/${id}/preview-token`,{method:'POST',body:JSON.stringify({port})});if(p)setOpen(`${p.url}?token=${r.token}`)};
+ useEffect(()=>{api('/threads').then(setThreads).catch(()=>{})},[]);useEffect(()=>{setOpen(null);setData(null);if(id)void load(id)},[id]);
+ return <main><h1>Previews</h1><select aria-label='thread' value={id} onChange={e=>setId(e.target.value)}><option value=''>Choose a thread</option>{threads.map(t=><option key={t.id} value={t.id}>{t.title}</option>)}</select>{data&&<PreviewPorts data={data} open={open} expose={p=>{if(!data.previews.some(x=>x.port===p))void api(`/threads/${id}/previews/${p}`,{method:'PUT',body:'{}'}).then(()=>load(id))}} view={p=>void view(p)}/>}</main>}
+export default {path:'/previews',element:<Previews/>,nav:'Previews'}

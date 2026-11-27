@@ -221,15 +221,15 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-215 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-216 | Cloud machines | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-217 | Cloud machines | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
-| CAPY-218 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-219 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-218 | Cloud machines | P2 | done | phase2-09 | PR pending | Pool containers set MemorySwap=Memory and OomKillDisable=false (mocked-docker test); live docker run with the same flags: allocator OOM-killed (137), container and `sleep` survive (runlog). |
+| CAPY-219 | Cloud machines | P2 | done | phase2-09 | PR pending | DockerMachineDriver.platforms is linux only; macOS/iOS start requests are refused with a paired-device (BYOM) pointer. Device execution itself is phase2-14/15. |
 | CAPY-220 | Previews | P1 | phase1fix-03 | https://github.com/flotilla-ai/flotilla/pull/22 | Local fixture network proves authenticated preview cookie/share access, no-token and UI-cookie rejection, and gate bearer enforcement. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-221 | Previews | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-221 | Previews | P2 | done | phase2-09 | PR pending | GET /threads/:id/previews suggests listening ports read from /proc/net/tcp, hides reserved Flotilla ports and refuses to expose them; web `#/previews` panel lists suggestions with Open buttons, shows reserved ports and renders the preview in an in-app iframe via the one-time token (API fixture test + web render test). |
 | CAPY-222 | Previews | P1 | phase1fix-03 | https://github.com/flotilla-ai/flotilla/pull/22 | Local fixture network proves authenticated preview cookie/share access, no-token and UI-cookie rejection, and gate bearer enforcement. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-223 | Previews | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-224 | Previews | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-225 | Previews | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-226 | Previews | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-223 | Previews | P2 | done | phase2-09 | PR pending | Each proxied request moves previews.awake_until to now+5 min capped at 4 h from the window start; asleep machine returns a 503 card with a Start the machine link to the UI. Machine sleep enforcement is phase2-12. |
+| CAPY-224 | Previews | P2 | done | phase2-09 | PR pending | Preview URL is derived from thread code + port only and survives sleep; when nothing listens the stored start command reruns in the machine (debounced 30 s) behind a 503 auto-refresh card. |
+| CAPY-225 | Previews | P2 | done | phase2-09 | PR pending | Per-preview hostname (e.g. `web.localhost:1355`) is sent as the upstream Host header so portless-style routers resolve the app; localUrl uses it too. |
+| CAPY-226 | Previews | P2 | done | phase2-09 | PR pending | Previews work on threads with no PR; each preview carries an in-machine localUrl for the machine browser alongside the private preview URL. |
 | CAPY-227 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-228 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-229 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
@@ -547,17 +547,17 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-541 | API: threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-542 | API: threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-543 | API: threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-544 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-545 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-546 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-547 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-548 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-549 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-550 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-551 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-552 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-553 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-554 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-544 | API: threads | P2 | done | phase2-08 | https://github.com/flotilla-ai/flotilla/pull/37 | `POST /api/v1/threads/:id/rename {title}` (bearer) returns ThreadLifecycle; `status` frame `renamed`. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-545 | API: threads | P2 | done | phase2-08 | https://github.com/flotilla-ai/flotilla/pull/37 | `POST /api/v1/threads/:id/archive`; 409 for active threads; `status` frame `archived`. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-546 | API: threads | P2 | done | phase2-08 | https://github.com/flotilla-ai/flotilla/pull/37 | `POST /api/v1/threads/:id/unarchive` restores prior status; `status` frame `unarchived`. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-547 | API: threads | P2 | done | phase2-08 | https://github.com/flotilla-ai/flotilla/pull/37 | `POST /api/v1/threads/:id/takeover` on shared threads (404 private); `status` frame `takeover` from/to. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-548 | API: threads | P2 | done | phase2-08 | https://github.com/flotilla-ai/flotilla/pull/37 | `POST /api/v1/threads/:id/regenerate-title` returns auto title <=50 chars; `status` frame `title-regenerated`. Model-backed generator unverified (offline heuristic). Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-549 | API: threads | P2 | done | phase2-08 | https://github.com/flotilla-ai/flotilla/pull/37 | `POST /api/v1/threads/:id/read` returns ThreadReadState; per viewer, not streamed. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-550 | API: threads | P2 | done | phase2-08 | https://github.com/flotilla-ai/flotilla/pull/37 | `POST /api/v1/threads/:id/unread` returns ThreadReadState (markedUnread); per viewer, not streamed. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-551 | API: threads | P2 | done | phase2-08 | https://github.com/flotilla-ai/flotilla/pull/37 | `POST /api/v1/threads/:id/join` returns membership; `status` frame `joined`. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-552 | API: threads | P2 | done | phase2-08 | https://github.com/flotilla-ai/flotilla/pull/37 | `POST /api/v1/threads/:id/leave` returns membership (204 for private); owner 409; `status` frame `left`. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-553 | API: threads | P2 | done | phase2-08 | https://github.com/flotilla-ai/flotilla/pull/37 | `POST /api/v1/threads/:id/subscribe` returns membership; per viewer, not streamed. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-554 | API: threads | P2 | done | phase2-08 | https://github.com/flotilla-ai/flotilla/pull/37 | `POST /api/v1/threads/:id/unsubscribe` returns membership; per viewer, not streamed. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
 | CAPY-555 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-556 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-557 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |
