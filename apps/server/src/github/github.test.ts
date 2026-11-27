@@ -140,6 +140,7 @@ describe('github client and autofix wake logic', () => {
     await monitor.pollOnce();
     const update = writes.find((x) => String(x[0]).includes('UPDATE prs SET state'));
     expect(update?.slice(1)).toEqual(['o/r', 3, 'merged', '2026-01-02T00:00:00Z']);
+    expect(writes.some((x) => String(x[0]).includes('UPDATE prs SET checks_state'))).toBe(false);
   });
 
   it('routes check_run webhooks to the owning thread', async () => {

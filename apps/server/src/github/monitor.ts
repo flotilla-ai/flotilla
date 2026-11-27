@@ -89,7 +89,7 @@ export class CheckMonitor {
         if (pr) {
           const state = pr.merged_at ? 'merged' : pr.state ?? 'open';
           await this.deps.pool.query('UPDATE prs SET state=$3, updated_at=COALESCE($4::timestamptz,prs.updated_at) WHERE repo=$1 AND number=$2', [repoName, row.number, state, pr.updated_at ?? null]);
-          await this.process(repoName, row.number, row.thread_id, pr.head.sha);
+          if (state === 'open') await this.process(repoName, row.number, row.thread_id, pr.head.sha);
         }
       } catch { /* keep polling later */ }
     }
