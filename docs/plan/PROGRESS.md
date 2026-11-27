@@ -5,7 +5,7 @@ Current `flotilla/p1` head before this PR: `8a1ea5b` (phase2-23 PR autofix).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after phase2-24: done 272, pending 255, needs-human-login 22, n-a 22, blocked 65.
+Counted in `docs/plan/PARITY.md` after phase2-24: done 279, pending 241, needs-human-login 22, n-a 22, blocked 72.
 
 ## Unit table
 
@@ -74,3 +74,9 @@ None as whole units. Row-level blocked items are recorded in `docs/plan/PARITY.m
 - phase2-36: machine cost uses runner type `pool` until phase2-12 machine core stamps sizes; no browser e2e for `/usage`; real vendor run-out detection (CAPY-333) still needs human login. See `docs/runlog/phase2-36.md`.
 
 See `docs/runlog/P1-EXIT.md` and phase-2 runlogs (phase2-33: `docs/runlog/phase2-33.md`). Live vendor, GitHub, device, paired-machine and vendor-login behavior remains `needs-human-login` or unverified where marked.
+
+## Units
+
+| Unit | Area | Rows | Status |
+|---|---|---|---|
+| phase2-22 | captain ops | CAPY-076..082,084,085,095,096,098..100,495 | in review |
