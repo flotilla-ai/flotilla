@@ -99,8 +99,8 @@ describe('thread lifecycle', () => {
     expect((await pool.query('SELECT count(*)::int c FROM events WHERE thread_id=$1', [id])).rows[0].c).toBe(events + 2);
     const runner = new ThreadRunner({ store: es, driver: driver as never, adapters: new Map([['fake', fakeAdapter]]) });
     await runner.message(id, 'continue', 'queue', users.owner.id);
-    await until(async () => { const t = await row(id); return t.archived_at === null && t.status !== 'archived' && t.status !== 'working'; });
-    expect((await pool.query(`SELECT 1 FROM events WHERE thread_id=$1 AND kind='run.ended'`, [id])).rows).toHaveLength(1);
+    await until(async () => (await pool.query(`SELECT 1 FROM events WHERE thread_id=$1 AND kind='run.ended'`, [id])).rows.length === 1);
+    const after = await row(id); expect(after.archived_at).toBeNull(); expect(after.status).not.toBe('archived');
     expect((await pool.query(`SELECT kind FROM events WHERE thread_id=$1 AND seq<=2 ORDER BY seq`, [id])).rows.map((r) => r.kind)).toEqual(['thread.created', 'user.message']);
     expect((await act('owner', await thread({ status: 'working' }), { action: 'archive' })).status).toBe(409);
   });

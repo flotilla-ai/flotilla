@@ -96,7 +96,7 @@ export function secretsStore(databaseUrl = process.env.DATABASE_URL ?? 'postgres
   return store;
 }
 
-function tarFile(name: string, body: Buffer, mode: string): Buffer {
+export function tarFile(name: string, body: Buffer, mode: string): Buffer {
   const h = Buffer.alloc(512);
   h.write(name, 0, 100); h.write(`${mode}\0`, 100); h.write('0001750\0', 108); h.write('0001750\0', 116);
   h.write(body.length.toString(8).padStart(11, '0') + '\0', 124); h.write('00000000000\0', 136); h.write('        ', 148); h.write('0', 156); h.write('ustar\0', 257); h.write('00', 263);
