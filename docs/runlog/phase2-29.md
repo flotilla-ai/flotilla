@@ -219,3 +219,6 @@ apps/server lint: Done
 exit=0
 ```
 `npx playwright test e2e/projects.spec.ts e2e/features.spec.ts`: `5 passed (2.8s)`.
+
+## Devin Review round 3 (f27e78d)
+- Fixed in 5869f88: when a user chose a branch the repo doesn't have, `materialize` saved the mirror default instead. A user-chosen branch is now marked `branchPinned`, and a missing pinned branch returns 409 `base branch <name> not found`. Only an unspecified branch falls back to the mirror default (as with master-only repos). Test: `CAPY-178/179/181` in `projects.test.ts`.
