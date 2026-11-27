@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import type pg from 'pg';
 import { ApiFailure } from '../api-platform/types.js';
 
-export interface ReviewPolicy { repo: string; pathScope: string; orgRules: string[]; contextFiles: string[]; ignorePaths: string[]; commitStatus: boolean }
+export interface ReviewPolicy { repo: string; pathScope: string; orgRules: string[]; contextFiles: string[]; ignorePaths: string[]; includePaths?: string[]; commitStatus: boolean }
 export interface ReviewFile { path: string; diff: string; deleted?: boolean; generated?: boolean }
 export interface ReviewGuide { id: string; repo: string; prNumber: number; overview: string; steps: string[]; chapters: { title: string; paths: string[]; diff: string }[]; diagram: string; skipped: string[] }
 export interface ReviewEvidence { rules: string[]; memory: string[]; telemetry: string[] }
@@ -28,7 +28,7 @@ export function pathMatch(pattern:string,path:string):boolean{
 }
 export const generatedPath=(p:string)=>/(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|Cargo\.lock|poetry\.lock)$|\.(min\.js|pb\.go|generated\.ts)$/.test(p);
 export function filterReviewFiles(files:ReviewFile[],ignorePaths:string[]){const skipped=new Set<string>();const included=files.filter(f=>{const skip=f.deleted===true||f.generated===true||generatedPath(f.path)||ignorePaths.some(p=>pathMatch(p,f.path));if(skip)skipped.add(f.path);return!skip});return{included,skipped:[...skipped]}}
-export function filterScopedReviewFiles(files:ReviewFile[],policies:ReviewPolicy[]){const skippedSet=new Set<string>();const included=files.filter(f=>{let skip=f.deleted===true||f.generated===true||generatedPath(f.path);if(!skip){const ignores=policies.filter(p=>pathMatch(p.pathScope,f.path)).flatMap(p=>p.ignorePaths);skip=ignores.some(p=>pathMatch(p,f.path))}if(skip)skippedSet.add(f.path);return!skip});return{included,skipped:[...skippedSet]}}
+export function filterScopedReviewFiles(files:ReviewFile[],policies:ReviewPolicy[]){const skippedSet=new Set<string>();const included=files.filter(f=>{let skip=f.deleted===true||f.generated===true||generatedPath(f.path);if(!skip){const scoped=policies.filter(p=>pathMatch(p.pathScope,f.path));const ignores=scoped.flatMap(p=>p.ignorePaths);const includes=scoped.flatMap(p=>p.includePaths??[]);skip=ignores.some(p=>pathMatch(p,f.path))||(includes.length>0&&!includes.some(p=>pathMatch(p,f.path)))}if(skip)skippedSet.add(f.path);return!skip});return{included,skipped:[...skippedSet]}}
 export function agentsRuleFindings(agentsMd:string,files:ReviewFile[]){const rules=agentsMd.split('\n').map(x=>x.trim()).flatMap(x=>{const m=x.match(/^[-*]\s+(?:never|do not)\s+use\s+(.+?)(?:\s*[.;])?$/i);return m?[{rule:x,needle:m[1].trim()}]:[]});const out:{rule:string;file:string;body:string}[]=[];for(const f of files)for(const r of rules)if(r.needle&&f.diff.toLowerCase().includes(r.needle.toLowerCase()))out.push({rule:r.rule,file:f.path,body:`${f.path} appears to violate AGENTS.md: ${r.rule}`});return out}
 export function stackBadge(branch:string,base='main'):'graphite'|'spr'|'manual-chain'|'none'{if(/^(gt\/|graphite\/)/.test(branch))return'graphite';if(/^(spr\/|spr-)/.test(branch))return'spr';if(!['main','master','trunk'].includes(base)&&base!==branch)return'manual-chain';return'none'}
 export async function retryOnTimeout<T>(fn:()=>Promise<T>,retries=1,isTimeout=(e:unknown)=>/timeout/i.test(String((e as Error)?.message??e))):Promise<T>{for(let i=0;;i++){try{return await fn()}catch(e){if(i>=retries||!isTimeout(e))throw e}}}
@@ -41,14 +41,15 @@ export class ReviewPolicyStore{
  async policy(userId:string,repo:string,scope='**'):Promise<ReviewPolicy>{const[r]=await this.q('SELECT * FROM review_policies WHERE owner_id=$1 AND repo=$2 AND path_scope=$3',[userId,repo,scope]);return r?policy(r):{repo,pathScope:scope,orgRules:[],contextFiles:[],ignorePaths:[],commitStatus:false}}
  async policies(userId:string,repo:string){
   const out=(await this.q('SELECT * FROM review_policies WHERE owner_id=$1 AND repo=$2 ORDER BY path_scope',[userId,repo])).map(policy);
-  const extras=await this.q(`SELECT scope,path FROM (
-    SELECT '**'::text AS scope,path FROM api_review_ignore_paths WHERE owner_id=$1 AND repo=$2 AND enabled
-    UNION ALL SELECT path_scope AS scope,pattern AS path FROM api_review_filter_rules WHERE owner_id=$1 AND repo=$2 AND enabled AND action='ignore'
+  const extras=await this.q(`SELECT scope,path,action FROM (
+    SELECT '**'::text AS scope,path,'ignore'::text AS action FROM api_review_ignore_paths WHERE owner_id=$1 AND repo=$2 AND enabled
+    UNION ALL SELECT path_scope AS scope,pattern AS path,action FROM api_review_filter_rules WHERE owner_id=$1 AND repo=$2 AND enabled
   ) x`,[userId,repo]);
   for(const x of extras){
     const scope=String(x.scope);let p=out.find(v=>v.pathScope===scope);
-    if(!p){p={repo,pathScope:scope,orgRules:[],contextFiles:[],ignorePaths:[],commitStatus:false};out.push(p)}
-    if(!p.ignorePaths.includes(String(x.path)))p.ignorePaths=[...p.ignorePaths,String(x.path)];
+    if(!p){p={repo,pathScope:scope,orgRules:[],contextFiles:[],ignorePaths:[],includePaths:[],commitStatus:false};out.push(p)}
+    const key=x.action==='include'?'includePaths':'ignorePaths';const list=[...(p[key]??[])];
+    if(!list.includes(String(x.path)))p[key]=[...list,String(x.path)];
   }
   return out;
  }

@@ -39,8 +39,10 @@ it('CAPY-622..634: review rules, filter rules and ignore paths public CRUD', asy
   const other = await call('POST', '/review-rules', { repo: 'acme/other', rule: 'other repo rule' }); expect((await call('GET', '/review-rules')).json.items).toHaveLength(2); expect((await call('GET', '/review-rules?repo=acme/app')).json.items).toHaveLength(1);
   const rf = await call('POST', '/review-filter-rules', { repo: 'acme/app', pathScope: 'src/**', action: 'ignore', pattern: 'src/generated/**' }); expect(rf.status).toBe(201);
   const ipLive = await call('POST', '/review-ignore-paths', { repo: 'acme/app', path: 'dist/**' }); expect(ipLive.status).toBe(201);
-  const filtered = await new ReviewPolicyStore(pool).filter('usr_rr', 'acme/app', [{ path: 'src/generated/x.ts', diff: 'x' }, { path: 'dist/x.js', diff: 'x' }, { path: 'src/a.ts', diff: 'x' }]);
-  expect(filtered.included.map((x) => x.path)).toEqual(['src/a.ts']); expect(filtered.skipped).toEqual(expect.arrayContaining(['src/generated/x.ts', 'dist/x.js']));
+  const inc = await call('POST', '/review-filter-rules', { repo: 'acme/app', pathScope: '**', action: 'include', pattern: 'src/**' }); expect(inc.status).toBe(201);
+  const filtered = await new ReviewPolicyStore(pool).filter('usr_rr', 'acme/app', [{ path: 'src/generated/x.ts', diff: 'x' }, { path: 'dist/x.js', diff: 'x' }, { path: 'src/a.ts', diff: 'x' }, { path: 'other.ts', diff: 'x' }]);
+  expect(filtered.included.map((x) => x.path)).toEqual(['src/a.ts']); expect(filtered.skipped).toEqual(expect.arrayContaining(['src/generated/x.ts', 'dist/x.js', 'other.ts']));
+  expect((await call('DELETE', `/review-filter-rules/${inc.json.id}`)).status).toBe(204);
   expect((await call('DELETE', `/review-ignore-paths/${ipLive.json.id}`)).status).toBe(204);
   expect((await call('PATCH', `/review-filter-rules/${rf.json.id}`, { action: 'include', pattern: 'src/generated/public/**', enabled: false })).json).toMatchObject({ action: 'include', pattern: 'src/generated/public/**', enabled: false });
   expect((await call('GET', '/review-filter-rules?repo=acme/app')).json.items).toEqual([expect.objectContaining({ id: rf.json.id })]);
