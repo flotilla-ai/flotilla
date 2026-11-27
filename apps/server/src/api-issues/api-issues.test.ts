@@ -16,7 +16,7 @@ beforeAll(async () => {
   const port = (await exec('docker', ['port', container, '5432/tcp'])).stdout.trim().split(':').pop(); url = `postgres://postgres@127.0.0.1:${port}/postgres`;
   for (let i = 0; i < 40; i++) { try { const c = new pg.Client({ connectionString: url }); await c.connect(); await c.end(); break; } catch { await new Promise((r) => setTimeout(r, 250)); } }
   await migrate(url); pool = new pg.Pool({ connectionString: url });
-  await pool.query(`INSERT INTO users (id,email,role) VALUES ('usr_ai','ai@example.invalid','member'),('usr_ai2','ai2@example.invalid','member')`);
+  await pool.query(`INSERT INTO users (id,email,role) VALUES ('usr_ai','ai@example.invalid','admin'),('usr_ai2','ai2@example.invalid','member')`);
   const store = new ApiIssuesStore(pool); app = new Hono(); app.onError((err, c) => err instanceof ApiFailure ? apiError(c, err.kind, err.message) : apiError(c, 'Internal', String(err)));
   app.use('*', async (c, next) => { c.set('userId' as never, 'usr_ai' as never); await next(); });
   app.route('/api/v1', createApiIssuesRoute(() => store).app);
@@ -55,4 +55,12 @@ it('CAPY-568..592: public issues CRUD, comments, timeline, relations, links, fil
   expect((await call('DELETE', `/issues/${made.json.id}/relations/${rel.json.id}`)).status).toBe(204);
   expect((await call('DELETE', `/issue-labels/${label.json.id}`)).status).toBe(204);
   expect((await call('GET', `/issues/${made.json.id}`)).json.labels).toEqual([]);
+  await pool.query(`UPDATE users SET role='member' WHERE id='usr_ai'`);
+  expect((await call('PUT', '/issue-settings/prefix', { prefix: 'BAD' })).status).toBe(403);
+  expect((await call('POST', '/issue-states', { name: 'Nope' })).status).toBe(403);
+  expect((await call('POST', '/issue-labels', { name: 'nope' })).status).toBe(403);
+  await pool.query(`UPDATE users SET role='admin' WHERE id='usr_ai'`);
+  const beforeMissingDefault = (await call('GET', '/issue-states')).json.items.filter((x: any) => x.isDefault).length;
+  expect((await call('POST', '/issue-states/ist_missing/default')).status).toBe(404);
+  expect((await call('GET', '/issue-states')).json.items.filter((x: any) => x.isDefault).length).toBe(beforeMissingDefault);
 }, 30_000);

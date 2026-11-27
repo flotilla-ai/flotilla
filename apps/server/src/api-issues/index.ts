@@ -152,9 +152,15 @@ export class ApiIssuesStore {
   }
   async states(): Promise<{ items: IssueState[] }> { return { items: (await this.q('SELECT * FROM issue_states ORDER BY position')).map(state) }; }
   async createState(userId: string, input: Record<string, unknown>): Promise<IssueState> {
-    const name = text(input.name, 'name', 80); const id = rid('ist');
-    const [r] = await this.q('INSERT INTO issue_states (id,name,position,is_default) VALUES ($1,$2,COALESCE((SELECT max(position) FROM issue_states),0)+1,false) RETURNING *', [id, name]);
-    void userId; return state(r);
+    const name = text(input.name, 'name', 80); const id = rid('ist'); void userId;
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(`SELECT pg_advisory_xact_lock(hashtext('issue_states_reorder'))`);
+      const r = (await client.query('INSERT INTO issue_states (id,name,position,is_default) VALUES ($1,$2,COALESCE((SELECT max(position) FROM issue_states),0)+1,false) RETURNING *', [id, name])).rows[0];
+      await client.query('COMMIT');
+      return state(r);
+    } catch (e) { await client.query('ROLLBACK'); throw e } finally { client.release() }
   }
   async updateState(id: string, input: Record<string, unknown>): Promise<IssueState> {
     const name = input.name === undefined ? null : text(input.name, 'name', 80);
@@ -163,10 +169,17 @@ export class ApiIssuesStore {
     return state(r);
   }
   async reorderStates(input: Record<string, unknown>): Promise<{ items: IssueState[] }> {
-    const ids = idList(input.ids); const existing = await this.q('SELECT id FROM issue_states');
-    if (ids.length !== existing.length || new Set(ids).size !== ids.length || existing.some((r) => !ids.includes(r.id))) throw new ApiFailure('ValidationFailed', 'ids must reorder every issue state exactly once');
-    for (const [i, id] of ids.entries()) await this.pool.query('UPDATE issue_states SET position=$2 WHERE id=$1', [id, -i - 1]);
-    for (const [i, id] of ids.entries()) await this.pool.query('UPDATE issue_states SET position=$2 WHERE id=$1', [id, i + 1]);
+    const ids = idList(input.ids);
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(`SELECT pg_advisory_xact_lock(hashtext('issue_states_reorder'))`);
+      const existing = (await client.query('SELECT id FROM issue_states')).rows as Row[];
+      if (ids.length !== existing.length || new Set(ids).size !== ids.length || existing.some((r) => !ids.includes(r.id))) throw new ApiFailure('ValidationFailed', 'ids must reorder every issue state exactly once');
+      for (const [i, id] of ids.entries()) await client.query('UPDATE issue_states SET position=$2 WHERE id=$1', [id, -i - 1]);
+      for (const [i, id] of ids.entries()) await client.query('UPDATE issue_states SET position=$2 WHERE id=$1', [id, i + 1]);
+      await client.query('COMMIT');
+    } catch (e) { await client.query('ROLLBACK'); throw e } finally { client.release() }
     return this.states();
   }
   async deleteState(id: string): Promise<boolean> {
@@ -176,7 +189,7 @@ export class ApiIssuesStore {
     return Boolean((await this.q('DELETE FROM issue_states WHERE id=$1 RETURNING id', [id]))[0]);
   }
   async setDefaultState(id: string): Promise<IssueState> {
-    await this.pool.query(`UPDATE issue_states SET is_default=(id=$1)`, [id]);
+    await this.pool.query(`UPDATE issue_states SET is_default=(id=$1) WHERE EXISTS (SELECT 1 FROM issue_states WHERE id=$1)`, [id]);
     const [r] = await this.q('SELECT * FROM issue_states WHERE id=$1', [id]);
     if (!r) throw new ApiFailure('NotFound', 'issue state not found');
     return state(r);
@@ -196,6 +209,10 @@ export class ApiIssuesStore {
   async deleteLabel(id: string): Promise<boolean> {
     await this.pool.query(`UPDATE issues SET labels=COALESCE((SELECT jsonb_agg(x) FROM jsonb_array_elements_text(labels) x WHERE x<>$1),'[]'::jsonb),updated_at=now() WHERE labels ? $1`, [id]);
     return Boolean((await this.q('DELETE FROM issue_labels WHERE id=$1 RETURNING id', [id]))[0]);
+  }
+  async requireAdmin(userId: string): Promise<void> {
+    const [r] = await this.q('SELECT role FROM users WHERE id=$1', [userId]);
+    if (r?.role !== 'admin') throw new ApiFailure('Forbidden', 'organization issue settings require an admin');
   }
   async prefix(): Promise<{ prefix: string }> { return { prefix: (await this.q(`SELECT prefix FROM issue_settings WHERE id='org'`))[0].prefix }; }
   async setPrefix(input: Record<string, unknown>): Promise<{ prefix: string }> {
