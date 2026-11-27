@@ -9,6 +9,7 @@ DEPENDS ON: phase1fix-01-scheduler-restart
 SCOPE:
 - `packages/adapters/fake/`
 - `docker-compose.yml`
+- `apps/server/src/runner/runner.ts`
 - `scripts/test-captain-e2e.sh`
 - `docs/plan/handoffs/phase1fix-02-captain-relay.md`
 - `docs/runlog/phase1fix-02.md`

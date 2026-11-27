@@ -11,7 +11,7 @@ services:
       retries: 30
     volumes: [pgdata:/var/lib/postgresql/data]
   thread-image:
-    image: flotilla-thread:dev
+    image: flotilla-thread:p1-fix02
     build: { context: ., dockerfile: deploy/thread.Dockerfile }
     command: ["true"]
   server:
@@ -25,6 +25,7 @@ services:
     environment:
       DATABASE_URL: postgres://postgres@postgres:5432/flotilla
       FLOTILLA_DOMAIN: localhost
+      FLOTILLA_THREAD_IMAGE: flotilla-thread:p1-fix02
       FLOTILLA_MASTER_KEY_FILE: /run/secrets/master_key
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
