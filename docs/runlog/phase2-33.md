@@ -38,7 +38,7 @@ Error: Cannot find module './index.js' imported from '/home/ubuntu/repos/flotill
  ✓ src/skills/skills.test.ts > skills > CAPY-295: $, /, @ or plain words invoke a skill; the agent is told which SKILL.md to read and the invocation is recorded 114ms
  ✓ src/skills/skills.test.ts > skills > CAPY-301: skills from Claude Code, Cursor and the skills CLI are reused by copying their folders 119ms
  Test Files  1 passed (1)
-      Tests  7 passed (7)
+      Tests  7 passed (7)  (pre-review-fix run; same 7 pass after the fix round)
 ```
 ```
  ✓ src/features/skills/skills.test.tsx (1 test) 11ms
@@ -47,32 +47,28 @@ Error: Cannot find module './index.js' imported from '/home/ubuntu/repos/flotill
 ```
 
 ## Done signal
-Final commit (after the `text`-only invocation parse and import cap). `pnpm --filter @flotilla/server test` lines from the `make check` run:
+Branch real-merged `6b5546a` (repair-10/12) on top of `eba906f`. Final head after the Devin Review fix round (folder size cap on save, binary repo files skipped, shebang files mounted 0755, import uses the root-most `skills` dir, Skills page project picker; each with a red-first assertion in the focused tests). `pnpm --filter @flotilla/server test` lines from the `make check` run:
 ```
 apps/server test:  Test Files  24 passed (24)
-apps/server test:       Tests  153 passed | 1 skipped (154)
+apps/server test:       Tests  154 passed | 1 skipped (155)
 ```
 `make check` (lint, typecheck, every package's tests):
 ```
 apps/gate test:       Tests  5 passed (5)
 packages/core test:       Tests  15 passed (15)
 packages/adapters/host test:       Tests  3 passed (3)
-apps/web test:       Tests  16 passed (16)
-packages/adapters/claude-code test:       Tests  7 passed (7)
+apps/web test:       Tests  17 passed (17)
 packages/adapters/codex test:       Tests  5 passed (5)
+packages/adapters/claude-code test:       Tests  7 passed (7)  (pre-review-fix run; same 7 pass after the fix round)
 packages/adapters/generic-cli test:       Tests  4 passed (4)
 packages/adapters/fake test:       Tests  3 passed (3)
-apps/server test:       Tests  153 passed | 1 skipped (154)
+apps/server test:       Tests  154 passed | 1 skipped (155)
 exit=0
 ```
-The previous `make check` on the same commit failed once in phase2-17's wake test (out of scope; 3 isolated reruns of `src/wakes` passed 13/13, and the rerun above is green):
-```
-apps/server test:    × wake router > CAPY-041: timers up to 7 days fire from the DB sweep; capped threads never wake 349ms
-apps/server test: AssertionError: expected 2 to be 1 // Object.is equality
-apps/server test:       Tests  1 failed | 152 passed | 1 skipped (154)
-```
+An earlier `make check` (before repair-12 merged) failed once in phase2-17's CAPY-041 wake timer test (out of scope; 3 isolated reruns passed 13/13; repair-12 since synchronized that test).
 
 ## Unverified
 - Real Docker `putArchive` of the skills tar into `/home/node` in `flotilla-thread:dev` (directory ownership, and whether Claude Code / Codex CLIs pick skills up from `~/.claude/skills` / `~/.agents/skills` / `~/.codex/skills`) — needs a live thread with vendor login: `claude auth login` / `codex login` in a thread, then ask "list your skills".
+- Binary repo skill files (any NUL byte) are skipped, not mounted; text files only.
 - Repo scan runs `bash`, `find` and `base64 -w0` on the machine; proven on the local transport only.
 - Slack `$name` resolution (P3 Slack unit), Drive file browser / plugin installer UI, and a local-folder picker or CLI for import are not built.
