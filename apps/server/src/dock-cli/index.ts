@@ -17,9 +17,10 @@ export function installOptions(env:Record<string,string|undefined>,flags:Record<
  if(privileged&&!allowRoot)throw new Error(platform==='win32'?'refusing to install as Administrator':'refusing to install as root; use a dedicated OS user');
  return{version,base,home,binDir,noModifyPath,allowRoot,privileged,shellRc:flags.shellRc?String(flags.shellRc):undefined};
 }
-export function verifyRelease(manifest:ReleaseManifest,artifact:Buffer,publicKey:string,platform:NodeJS.Platform=process.platform){
+const shellQuote=(v:string)=>`'${v.replace(/'/g,`'\\''`)}'`;
+export function verifyRelease(manifest:ReleaseManifest,artifact:Buffer,publicKey:string,platform:NodeJS.Platform=process.platform,expectedTeam=process.env.FLOTILLA_CODESIGN_TEAM){
  if(manifest.sha256!==sha(artifact))throw new Error('artifact sha256 mismatch');
- if(platform==='darwin'&&manifest.team!=='FLOTILLA-team')throw new Error('macOS codesign team mismatch');
+ if(platform==='darwin'&&(!expectedTeam||manifest.team!==expectedTeam))throw new Error('macOS codesign team mismatch');
  const unsigned={version:manifest.version,sha256:manifest.sha256,team:manifest.team};
  if(!verifySignature(null,Buffer.from(JSON.stringify(unsigned)),publicKey,Buffer.from(manifest.signature,'base64')))throw new Error('signed manifest verification failed');
  return{ok:true,version:manifest.version};
@@ -27,7 +28,7 @@ export function verifyRelease(manifest:ReleaseManifest,artifact:Buffer,publicKey
 export async function installLayout(o:DockInstall,binary=Buffer.from('#!/bin/sh\necho flotilla-runner\n')){
  const dir=join(o.base,'dock-install',o.version);await mkdir(dir,{recursive:true});await mkdir(o.binDir,{recursive:true});
  const target=join(dir,'flotilla-runner');await writeFile(target,binary);await chmod(target,0o755);const link=join(o.binDir,'flotilla-runner');await rm(link,{force:true});await symlink(target,link);
- let rcTouched=false;if(!o.noModifyPath&&o.shellRc){await appendFile(o.shellRc,`\nexport PATH="${o.binDir}:$PATH"\n`);rcTouched=true}
+ let rcTouched=false;if(!o.noModifyPath&&o.shellRc){const line=`export PATH=${shellQuote(o.binDir)}:$PATH`;const prior=await readFile(o.shellRc,'utf8').catch(()=> '');if(!prior.includes(line)){await appendFile(o.shellRc,`\n${line}\n`);rcTouched=true}}
  return{target,link,rcTouched};
 }
 const dirsFile=(home:string)=>join(home,'dirs.json');
