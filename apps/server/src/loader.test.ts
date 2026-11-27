@@ -46,6 +46,19 @@ export default { basePath: '/api/v1/private', app: new Hono().get('/', c => c.te
     expect(res.status).toBe(401);
   });
 
+  it('mounts public webhooks before broad private API middleware', async () => {
+    const { routes } = await fixture();
+    await writeFile(join(routes, 'a-private.route.ts'), `import { Hono } from 'hono';
+export default { basePath: '/api/v1', app: new Hono().get('/private', c => c.text('secret')) };
+`);
+    await writeFile(join(routes, 'z-public.route.ts'), `import { Hono } from 'hono';
+export default { basePath: '/api/v1/webhooks', public: true, app: new Hono().post('/github', c => c.body(null, 202)) };
+`);
+    const app = await createApp({ routesDir: routes });
+    expect((await app.request('http://local/api/v1/webhooks/github', { method: 'POST' })).status).toBe(202);
+    expect((await app.request('http://local/api/v1/private')).status).toBe(401);
+  });
+
   it('starts and stops lifecycle modules', async () => {
     const { modules } = await fixture();
     await writeFile(join(modules, 'x.module.ts'), `export default { name: 'x', async start() { (globalThis as any).__started = true; return async () => { (globalThis as any).__stopped = true; }; } };

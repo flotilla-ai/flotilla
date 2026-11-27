@@ -1,11 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 2, waves 3-6 continuing in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-Current `flotilla/p1` head before this PR: `d655831` (repair-18 progress).
+Current `flotilla/p1` head before this PR: `128f4c5` (phase2-26 automations core).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` on this branch after Captain machine/API: done 226, pending 324, needs-human-login 19, n-a 22, blocked 45.
+Counted in `docs/plan/PARITY.md` on this branch after automations core plus Captain machine/API: done 237, pending 315, needs-human-login 19, n-a 22, blocked 47.
 
 ## Unit table
 
@@ -48,7 +48,8 @@ Counted in `docs/plan/PARITY.md` on this branch after Captain machine/API: done 
 | phase2-13-machine-ux-network | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/66 | network posture, resize/move, sleeping workspace reads, durable background commands; review-hardened workspace helper/process lifecycle; CAPY-214/477/478/479 done, CAPY-215 blocked for missing desktop server; see `docs/runlog/phase2-13.md` |
 | phase2-35-github-integration | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/64 | account/installation fixture store, permission floor, commit identity settings, admin unlink; review-hardened reconnect/repository/user scoping; CAPY-399/405/518 done, CAPY-400 needs-human-login, CAPY-401/402/403/404 blocked; see `docs/runlog/phase2-35.md` |
 
-| phase2-21-captain-machine-api | in review | 1 |  | Captain list/create/get/crew/digest REST, crew-thread creation, alias/photo upload/library, pool placement metadata; 10 rows done, paired-device rows blocked; see `docs/runlog/phase2-21.md` |
+| phase2-26-automations-core | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/68 | durable automation definitions, cron/webhook/GitHub/manual triggers, batches, conditions, model pinning and thread modes; 11 rows done, CAPY-153/163 blocked; see `docs/runlog/phase2-26.md` |
+| phase2-21-captain-machine-api | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/69 | Captain list/create/get/crew/digest REST, crew-thread creation, alias/photo upload/library, pool placement metadata; 10 rows done, paired-device rows blocked; see `docs/runlog/phase2-21.md` |
 
 ## Next action
 
