@@ -102,13 +102,13 @@ export class ThreadRunner {
     await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'user.message', source: 'user', trust: 'trusted', payload: scrub({ text, mode: 'queue', by: userId, inboxId: item.id, rootId: sent.rootId, version, fork: 'new-session' }, this.deps.secrets ?? {}) }] as never);
     return this.deliver(threadId, item);
   }
-  async retry(threadId: string, userId: string, engine: { model?: string; connectionId?: string }): Promise<ThreadInboxItem> {
+  async retry(threadId: string, userId: string, engine: { model?: string; connectionId?: string; effort?: string | null }): Promise<ThreadInboxItem> {
     const thread = await this.assertOwner(threadId, userId);
     const last = (await this.pool.query('SELECT state FROM runs WHERE thread_id=$1 ORDER BY ordinal DESC LIMIT 1', [threadId])).rows[0];
     const sent = await this.inbox.lastDelivered(threadId);
     if (last?.state !== 'failed' || !sent || this.running.has(threadId)) throw new ApiFailure('Conflict', 'nothing to retry');
-    if (engine.model !== undefined || engine.connectionId !== undefined) {
-      const next: Row = { ...(thread.engine as Row), ...(engine.model !== undefined ? { model: engine.model } : {}), ...(engine.connectionId !== undefined ? { connectionId: engine.connectionId } : {}) };
+    if (engine.model !== undefined || engine.connectionId !== undefined || engine.effort !== undefined) {
+      const next: Row = { ...(thread.engine as Row), ...(engine.model !== undefined ? { model: engine.model, effort: engine.effort ?? null } : {}), ...(engine.effort !== undefined ? { effort: engine.effort } : {}), ...(engine.connectionId !== undefined ? { connectionId: engine.connectionId } : {}) };
       // The catalog checks the user owns an enabled connection that offers the model; the vault then injects its key at run start.
       const r = this.deps.resolveEngine ? await this.deps.resolveEngine(userId, next) : null;
       await this.pool.query('UPDATE threads SET engine=engine || $2::jsonb WHERE id=$1', [threadId, JSON.stringify(r ? { adapter: r.adapter, model: r.model, effort: r.effort, connectionId: r.connectionId } : next)]);
@@ -143,7 +143,7 @@ export class ThreadRunner {
     await this.deps.store.appendEvents(approval.thread_id, [{ runId: null, kind: 'approval.resolved', source: 'kernel', trust: 'trusted', payload: { approvalId, optionId, value } }] as never);
     if (approval.gate === 'plan') {
       const owner = (await this.thread(approval.thread_id))!.owner_id as string;
-      if (optionId === 'approve') { await this.pool.query(`UPDATE threads SET plan_mode=false,status='queued',needs_you='[]' WHERE id=$1`, [approval.thread_id]); await this.inbox.add({ threadId: approval.thread_id, text: await this.approvedPlan(approval.thread_id), mode: 'queue', by: null, ownerId: owner, priority: 1 }); }
+      if (optionId === 'approve') { await this.pool.query(`UPDATE threads SET plan_mode=false,status='queued',needs_you='[]' WHERE id=$1`, [approval.thread_id]); await this.inbox.add({ threadId: approval.thread_id, ...(await this.approvedPlan(approval.thread_id)), mode: 'queue', by: null, ownerId: owner, priority: 1 }); }
       else await this.pool.query(`UPDATE threads SET status='queued',needs_you='[]' WHERE id=$1`, [approval.thread_id]);
       this.kick(approval.thread_id);
     }
@@ -258,10 +258,10 @@ export class ThreadRunner {
   }
   /** Plan mode ends every turn at a blocking gate; nothing else runs and no after-run hook (push, PR) fires until it is approved. */
   /** Runs start fresh sessions, so the implementation turn gets the request and the plan text. */
-  private async approvedPlan(threadId: string): Promise<string> {
+  private async approvedPlan(threadId: string): Promise<{ text: string; attachments: string[] }> {
     const req = await this.inbox.lastDelivered(threadId);
     const plan = (await this.pool.query(`SELECT string_agg(payload->>'text', '' ORDER BY seq) AS text FROM events WHERE thread_id=$1 AND kind='agent.delta' AND run_id=$2`, [threadId, req?.runId ?? null])).rows[0]?.text as string | null;
-    return `Plan approved. Implement the plan now.${req ? `\n\nRequest:\n${req.text}` : ''}${plan ? `\n\nApproved plan:\n${plan}` : ''}`;
+    return { text: `Plan approved. Implement the plan now.${req ? `\n\nRequest:\n${req.text}` : ''}${plan ? `\n\nApproved plan:\n${plan}` : ''}`, attachments: req?.attachments ?? [] };
   }
   private async openPlanGate(thread: Row, runId: string): Promise<void> {
     const approvalId = id('apr');
@@ -270,11 +270,15 @@ export class ThreadRunner {
     await this.deps.store.appendEvents(thread.id as Thread['id'], [{ runId: runId as never, kind: 'approval.requested', source: 'kernel', trust: 'trusted', payload: { approvalId, kind: 'decision', gate: 'plan' } }] as never);
   }
   private async copyAttachments(containerId: string, ids: string[]): Promise<string[]> {
-    const rows = (await this.pool.query('SELECT id,name,data FROM api_files WHERE id = ANY($1::text[]) AND uploaded_at IS NOT NULL', [ids])).rows as { id: string; name: string; data: Buffer }[];
     const copyIn = (this.deps.driver as Driver & { copyIn?(id: string, dir: string, tar: Buffer): Promise<void> }).copyIn;
     if (!copyIn) return [];
     const paths: string[] = [];
-    for (const f of rows) { const rel = `flotilla/attachments/${f.id}-${f.name.replace(/[^\w.-]/g, '_')}`; await copyIn.call(this.deps.driver, containerId, '/run', tarFile(rel, f.data)); paths.push(`/run/${rel}`); }
+    for (const fileId of ids) {
+      const f = (await this.pool.query('SELECT id,name,data FROM api_files WHERE id=$1 AND uploaded_at IS NOT NULL', [fileId])).rows[0] as { id: string; name: string; data: Buffer } | undefined;
+      if (!f) continue;
+      const dir = `flotilla/attachments/${f.id}-`;
+      const rel = dir + f.name.replace(/[^\w.-]/g, '_').slice(-(100 - dir.length)); await copyIn.call(this.deps.driver, containerId, '/run', tarFile(rel, f.data)); paths.push(`/run/${rel}`);
+    }
     return paths;
   }
   /** At startup, runs without ended_at belong to a dead process: end them and re-queue the messages they had claimed. */

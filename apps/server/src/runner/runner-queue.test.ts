@@ -110,7 +110,10 @@ describe('runner queue', () => {
     expect((await pool.query('SELECT status,plan_mode FROM threads WHERE id=$1', [t.id])).rows[0]).toEqual({ status: 'paused', plan_mode: true });
     await call('POST', `/threads/${t.id}/inbox`, { text: 'also docs' }); await sleep(300);
     expect(runner.running.has(t.id)).toBe(false);
+    await pool.query(`INSERT INTO api_files (id,owner_id,name,content_type,size,upload_token_hash,upload_expires_at,uploaded_at,data) VALUES ('fil_plan','usr_q','p.md','text/plain',1,'h',now()+interval '1 hour',now(),'\\x00')`);
+    await pool.query(`UPDATE thread_inbox SET attachments='["fil_plan"]' WHERE thread_id=$1 AND plan`, [t.id]);
     const n = holder.starts.length; await runner.answerApproval(gate.id, 'approve', undefined, 'usr_q');
+    expect((await pool.query(`SELECT attachments FROM thread_inbox WHERE thread_id=$1 AND text LIKE 'Plan approved%'`, [t.id])).rows[0].attachments).toEqual(['fil_plan']);
     await until(async () => holder.starts.length, (x) => x > n);
     expect(holder.starts[n]).toMatch(/^Plan approved/); expect(holder.starts[n]).toContain('Request:\nadd a cache'); holder.release();
     await until(async () => holder.starts.length, (x) => x > n + 1); expect(holder.starts[n + 1]).toBe('also docs'); holder.release();
@@ -129,7 +132,9 @@ describe('runner queue', () => {
     const t = await make('plain'); await until(() => runs(t.id), (r) => r[0]?.state === 'completed');
     await pool.query(`INSERT INTO api_files (id,owner_id,name,content_type,size,upload_token_hash,upload_expires_at) VALUES ('fil_up','usr_q','a.png','image/png',1,'h',now()+interval '1 hour'),('fil_o','usr_o','b.png','image/png',1,'h',now()+interval '1 hour')`);
     expect((await call('POST', `/threads/${t.id}/inbox`, { text: 'see file', attachments: ['fil_o'] })).status).toBe(400);
-    const r = await call('POST', `/threads/${t.id}/inbox`, { text: 'see file', attachments: ['fil_up'] });
+    const long = `${'x'.repeat(120)}.txt`;
+    await pool.query(`INSERT INTO api_files (id,owner_id,name,content_type,size,upload_token_hash,upload_expires_at,uploaded_at,data) VALUES ('fil_long','usr_q',$1,'text/plain',1,'h',now()+interval '1 hour',now(),'\\x00')`, [long]);
+    const r = await call('POST', `/threads/${t.id}/inbox`, { text: 'see file', attachments: ['fil_up', 'fil_long'] });
     expect(r.json.item.state).toBe('waiting_upload'); await sleep(300); expect((await runs(t.id)).length).toBe(1);
     await pool.query(`UPDATE api_files SET uploaded_at=now(), data='\\x00' WHERE id='fil_up'`);
     const restarted = new ThreadRunner({ store: new EventStore(url), driver: driver as never, adapters });
@@ -137,7 +142,9 @@ describe('runner queue', () => {
     await until(() => runs(t.id), (x) => x.length === 2 && x[1].state === 'completed');
     expect((await pool.query('SELECT state FROM thread_inbox WHERE id=$1', [r.json.item.id])).rows[0].state).toBe('delivered');
     expect(copied).toContain('/run/flotilla/attachments/fil_up-a.png');
-    expect(plain.inputs.at(-1)).toMatchObject({ attachments: ['/run/flotilla/attachments/fil_up-a.png'] }); expect(plain.starts.at(-1)).toContain('Attached files:\n- /run/flotilla/attachments/fil_up-a.png');
+    const sent = plain.inputs.at(-1)!.attachments as string[];
+    expect(sent[0]).toBe('/run/flotilla/attachments/fil_up-a.png'); expect(sent[1]).toMatch(/^\/run\/flotilla\/attachments\/fil_long-x+\.txt$/);
+    expect(sent.every((p) => copied.includes(p) && p.length - '/run/'.length <= 100)).toBe(true); expect(plain.starts.at(-1)).toContain('Attached files:\n- /run/flotilla/attachments/fil_up-a.png');
     await restarted.drain(); await restarted.pool.end();
   }, 20_000);
 
@@ -145,12 +152,13 @@ describe('runner queue', () => {
     const t = await make('flaky', 'do it'); const [failed] = await until(() => runs(t.id), (r) => r[0]?.state === 'failed');
     expect(failed.error).toMatchObject({ kind: 'overloaded', retryable: true });
     expect((await kinds(t.id, 'run.ended'))[0].error.kind).toBe('overloaded');
+    await pool.query(`UPDATE threads SET engine=engine || '{"effort":"high"}' WHERE id=$1`, [t.id]);
     expect((await call('POST', `/threads/${t.id}/retry`, { connectionId: 'con_other' })).status).toBe(404);
     const r = await call('POST', `/threads/${t.id}/retry`, { model: 'other-model', connectionId: 'con_own' });
     expect(r.status).toBe(202);
     await until(() => runs(t.id), (x) => x[1]?.state === 'completed');
     expect(flaky.starts).toEqual(['do it', 'do it']); expect(flaky.inputs.map((i) => i.model)).toEqual([null, 'other-model']);
-    expect((await pool.query('SELECT engine FROM threads WHERE id=$1', [t.id])).rows[0].engine).toMatchObject({ model: 'other-model', connectionId: 'con_own' });
+    expect((await pool.query('SELECT engine FROM threads WHERE id=$1', [t.id])).rows[0].engine).toMatchObject({ model: 'other-model', connectionId: 'con_own', effort: null });
     expect((await call('POST', `/threads/${t.id}/retry`, {})).status).toBe(409);
   }, 20_000);
 

@@ -118,3 +118,9 @@ Cause: the budget approval is now inserted after the status update, so it can ap
 - Docs merged with both sides kept. Parity counts on this branch: done 74, pending 512, needs-human-login 13, n-a 22, blocked 11.
 - Retry connection gap closed: `RunnerDeps.resolveEngine` (in `defaultRunner`, `modelsCatalogStore().resolve`) checks the new model/connection. An unknown or foreign connection returns 404 before anything is saved. The saved `engine.connectionId` then reaches the run through `withConnectionKeys` → `connectionEnv()` at `vault.prepare`. The runner-queue test uses a stub resolver; phase2-03's tests already prove the key injection.
 - `npx vitest run src/runner src/models-catalog src/thread-lifecycle src/secrets`: Tests 45 passed (45).
+
+## Devin Review round 2 (commit 2167756)
+
+- Fixed: `copyAttachments` loads one uploaded file at a time instead of the whole batch, and caps the archive path at the 100-byte tar name field (it keeps the end of the name, so the extension survives). The path the agent gets is the path Docker creates.
+- Fixed: plan approval carries the plan request's attachments into the implementation message.
+- Fixed: a retry that changes the model clears the old `effort` unless the caller passes `effort`. Retry now accepts `effort` too.
