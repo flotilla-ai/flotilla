@@ -32,6 +32,8 @@ Counted in `docs/plan/PARITY.md` on this branch: done 106, pending 466, needs-hu
 | phase2-10-environments | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/39 | environments model/store/executor seams; 2 rows done, 7 blocked on phase2-11/phase2-12 wiring; see `docs/runlog/phase2-10.md` |
 | phase2-12-machine-core | in review | 1 | (this PR) | pool machine sizes, RAM cap, sleep/wake/keep-awake/14-day delete, environment boot wiring; 9 rows done, 3 blocked; see `docs/runlog/phase2-12.md` |
 
+| phase2-06-thread-composer | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/40 | composer keymap/attachments, request cards + Undo, thread codes, sections/ticks/reading place, deep link, owner-approved feedback; 10 rows done; see `docs/runlog/phase2-06.md` |
+
 ## Next action
 
 1. Review and merge phase2-04-model-policy-api (branched from `flotilla/p1` `914854c`, merged with `ea9ec15`).
