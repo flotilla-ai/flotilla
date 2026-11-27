@@ -17,6 +17,17 @@ export function idempotencyFingerprint(principalId: string, body: unknown): stri
 export function legacyIdempotencyFingerprint(body: unknown): string {
   return createHash('sha256').update(canonical(body)).digest('hex');
 }
+function redactKeys(value: unknown, keys: Set<string>): unknown {
+  // Idempotent-create responses are flat resource objects. Only redact top-level string secrets:
+  // nested user conditions may legitimately use the same names, and null must remain null.
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, keys.has(k) && typeof v === 'string' ? '<redacted>' : v]));
+}
+function redactedBody(body: string, contentType: string, header: string | null): string {
+  if (!header || !contentType.includes('application/json')) return body;
+  const keys = new Set(header.split(',').map((x) => x.trim()).filter(Boolean));
+  try { return JSON.stringify(redactKeys(JSON.parse(body), keys)); } catch { return body; }
+}
 
 /** Replays a create with the same requestId (body) or Idempotency-Key (header) for the same principal. */
 export async function withIdempotency(c: Context, next: Next): Promise<Response | void> {
@@ -41,5 +52,6 @@ export async function withIdempotency(c: Context, next: Next): Promise<Response 
   }
   const type = c.res.headers.get('content-type') ?? 'application/json';
   const ok = c.res.status >= 200 && c.res.status < 300 && !type.includes('event-stream');
-  await store.finishRequest(principal.userId, requestId, ok ? { status: c.res.status, body: await c.res.clone().text(), contentType: type } : null);
+  const responseBody = redactedBody(await c.res.clone().text(), type, c.res.headers.get('x-flotilla-redact-keys'));
+  await store.finishRequest(principal.userId, requestId, ok ? { status: c.res.status, body: responseBody, contentType: type } : null);
 }
