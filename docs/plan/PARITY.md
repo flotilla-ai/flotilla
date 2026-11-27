@@ -599,9 +599,9 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-593 | API: subagents | P2 | done | phase2-19 |  | `GET /threads/:id/subagents` lists child subagents; regression in `subagent-core.test.ts`. |
 | CAPY-594 | API: subagents | P2 | done | phase2-19 |  | `GET /subagents/:id` returns one owned subagent; regression in `subagent-core.test.ts`. |
 | CAPY-595 | API: subagents | P2 | done | phase2-19 |  | `GET /subagents/:id/messages` serves ordered event-store messages with owner validation; regression in `subagent-core.test.ts`. |
-| CAPY-596 | API: tasks | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-597 | API: tasks | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-598 | API: tasks | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-596 | API: tasks | P3 | done | phase3-19 |  |  List tasks legacy alias returns visible thread-backed tasks.  |
+| CAPY-597 | API: tasks | P3 | done | phase3-19 |  |  Get task legacy alias returns one visible thread-backed task.  |
+| CAPY-598 | API: tasks | P3 | done | phase3-19 |  |  List task messages legacy alias returns durable user and agent messages.  |
 | CAPY-599 | API: messages | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-600 | API: messages | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-601 | API: messages | P2 | done | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | GET `/threads/:id/inbox/:item/versions` lists all versions of a message. |
@@ -614,17 +614,17 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-608 | API: streams | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-609 | API: streams | P2 | done | phase2-19 |  | `GET /subagents/:id/stream` serves SSE directly from the Flotilla event store; regression in `subagent-core.test.ts`. |
 | CAPY-610 | API: streams | P2 | done | phase2-19 |  | `GET /threads/:id/stream` task SSE is served from the Flotilla event store; regression in `subagent-core.test.ts`. |
-| CAPY-611 | API: reviews | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-612 | API: reviews | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-611 | API: reviews | P3 | done | phase3-19 |  |  Get review settings returns durable per-repo automatic/posting options.  |
+| CAPY-612 | API: reviews | P3 | done | phase3-19 |  |  Configure review settings updates durable per-repo automatic/posting options.  |
 | CAPY-613 | API: reviews | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-614 | API: reviews | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-615 | API: reviews | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-616 | API: reviews | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-617 | API: reviews | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
-| CAPY-618 | API: reviews | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-619 | API: reviews | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-620 | API: reviews | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-621 | API: reviews | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-618 | API: reviews | P3 | done | phase3-19 |  |  Start review creates a validated exact-head read-only review run.  |
+| CAPY-619 | API: reviews | P3 | done | phase3-19 |  |  Round returns one owned review run and its findings.  |
+| CAPY-620 | API: reviews | P3 | done | phase3-19 |  |  Pull returns pull-request review state, findings and readiness.  |
+| CAPY-621 | API: reviews | P3 | done | phase3-19 |  |  Update finding statuses batch-triages findings with GitHub-thread state projection.  |
 | CAPY-622 | API: reviewRules | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-623 | API: reviewRules | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-624 | API: reviewRules | P3 | pending |  |  | Awaiting phase P3 unit. |

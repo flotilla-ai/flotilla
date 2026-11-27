@@ -1,11 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 3, wave 1 starting in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-Current `flotilla/p1` head before this PR: `1fb66da` (phase3-17 merge record).
+Current `flotilla/p1` head before this PR: `c047c43` (phase3-18 merge).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after all phase-2 units: done 332, pending 179, needs-human-login 24, n-a 22, blocked 82.
+Counted in `docs/plan/PARITY.md` after all phase-2 units: done 341, pending 170, needs-human-login 24, n-a 22, blocked 82.
 
 ## Unit table
 
@@ -64,9 +64,10 @@ Counted in `docs/plan/PARITY.md` after all phase-2 units: done 332, pending 179,
 | plan3+4 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/81 | exact handoff coverage for 192 P3 and 22 P4 rows |
 | phase3-17-api-folders-files | merged | 1 | #82 | public folders/pins/files download/users API; see `docs/runlog/phase3-17.md` |
 | phase3-18-api-issues | in review | 1 |  | public issues/comments/timeline/relations/files/states/labels/prefix API; see `docs/runlog/phase3-18.md` |
+| phase3-19-api-tasks-reviews | in review | 1 |  | legacy task aliases and public review settings/runs/rounds/pulls/finding statuses; see `docs/runlog/phase3-19.md` |
 ## Next action
 
-1. Merge phase3-18 after its gate, then continue independent phase-3 API/core units.
+1. Merge phase3-18 and phase3-19 after their gates, then continue independent phase-3 API/core units.
 2. Keep external/vendor integration rows fixture-backed and mark exact needs-human-login commands.
 3. Continue without child sessions in free-mode parent.
 
