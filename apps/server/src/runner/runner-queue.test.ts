@@ -177,6 +177,7 @@ describe('runner queue', () => {
 
   it('a run started over the cap ends as paused_budget instead of staying starting', async () => {
     const t = await make('fake', 'go', 1000); await until(() => pool.query(`SELECT 1 FROM approvals WHERE thread_id=$1 AND kind='budget'`, [t.id]).then((r) => r.rows), (r) => r.length > 0);
+    await until(async () => runner.running.has(t.id), (v) => !v);
     await runner.message(t.id, 'more', 'queue', 'usr_q');
     const r = await until(() => runs(t.id), (x) => x.length === 2 && x[1].state !== 'starting');
     expect(r[1].state).toBe('paused_budget'); expect(r[1].ended_at).not.toBeNull();

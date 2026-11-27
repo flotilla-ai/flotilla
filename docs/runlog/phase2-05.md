@@ -91,3 +91,13 @@ Parent integration rule: phase2-03 keeps migration prefix 0006, so this unit's m
 ## Parity downgrade (parent review)
 
 The handoff treats CAPY-009/010/026/465/466/467/468/469/470/476 as web-UI rows. This unit only ships the server/API slice, and web wiring would push the diff past 800 lines. Those 10 rows are now `blocked`. Each note says which UI piece is missing. CAPY-004/601/603/604 stay `done` because runner-queue.test.ts proves them without a UI.
+
+## CI round 2
+
+At `54f065e`, the `check` job failed in `runner-queue.test.ts > a run started over the cap ends as paused_budget`:
+
+```
+TypeError: Cannot read properties of undefined (reading 'state')
+```
+
+Cause: the budget approval is now inserted after the status update, so it can appear while run 1 is still finishing. The test's `message()` then only queued the item, and the paused thread never started run 2. The fix is test-only: wait for run 1 to leave `running` before sending the message, which is the scenario the row describes. `npx vitest run src/runner` then passed 14/14 in 3 runs out of 3.
