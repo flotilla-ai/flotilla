@@ -28,7 +28,7 @@ export function ThreadDrivePane(){
  const[items,setItems]=useState<Item[]>([]);const[open,setOpen]=useState<Item|null>(null);const[card,setCard]=useState<Card|null>(null);
  const load=()=>api('/drive/items?scope=user').then((r:{items:Item[]})=>setItems(r.items.filter(i=>i.type==='file'))).catch(()=>{});
  useEffect(()=>{void load()},[]);
- return <aside aria-label='thread drive' className='drive-side'><h2>Drive</h2>{card&&<div role='alert'><b>{card.title}</b><p>{card.nextStep}</p></div>}{items.slice(0,20).map(i=><button className='row' key={i.id} onClick={()=>setOpen(i)}>{i.path}</button>)}{open&&<DriveEditor scope='user' item={open} onSaved={async c=>{setCard(c);await load()}}/>}</aside>;
+ return <aside aria-label='thread drive' className='drive-side'><h2>Drive</h2>{card&&<div role='alert'><b>{card.title}</b><p>{card.nextStep}</p></div>}{items.slice(0,20).map(i=><button className='row' key={i.id} onClick={()=>setOpen(i)}>{i.path}</button>)}{open&&<DriveEditor key={open.id} scope='user' item={open} onSaved={async c=>{setCard(c);await load()}}/>}</aside>;
 }
 
 function Drive(){const[scopes,setScopes]=useState<Usage[]>([]);const[scope,setScope]=useState('user');const[folder,setFolder]=useState('');const[items,setItems]=useState<Item[]>([]);const[open,setOpen]=useState<Item|null>(null);const[card,setCard]=useState<Card|null>(null);const[name,setName]=useState('');const[shares,setShares]=useState<Share[]>([]);
@@ -42,7 +42,7 @@ function Drive(){const[scopes,setScopes]=useState<Usage[]>([]);const[scope,setSc
   {card&&<div role='alert' className='card' style={{borderColor:'#f28c28'}}><b>{card.title}</b><p>{card.nextStep}</p><button onClick={()=>setCard(null)}>Dismiss</button></div>}
   <div>{folder&&<button onClick={()=>setFolder(folder.split('/').slice(0,-1).join('/'))}>Up</button>} <span>/{folder}</span></div>
   <div className='list'>{items.map(i=><div className='row' key={i.id}><button onClick={()=>i.type==='folder'?setFolder(i.path):setOpen(i)}>{i.type==='folder'?`${i.name}/`:i.name}</button><span>{i.type==='file'?`${i.size} B v${i.version}`:''}</span><button aria-label={`delete ${i.name}`} onClick={async()=>{await api(`/drive/items/${i.id}`,{method:'DELETE'});if(open?.id===i.id)setOpen(null);await load()}}>Delete</button></div>)}</div>
-  {open&&<DriveEditor scope={scope} item={open} onSaved={done}/>}
+  {open&&<DriveEditor key={open.id} scope={scope} item={open} onSaved={done}/>}
   <div><input aria-label='new file name' value={name} onChange={e=>setName(e.target.value)}/><button onClick={async()=>{if(name)await done(await put(scope,within(name),'',0));setName('')}}>New file</button>
   <input aria-label='upload' type='file' onChange={async e=>{const f=e.target.files?.[0];if(f)await done(await put(scope,within(f.name),f));e.target.value=''}}/></div>
   <section aria-label='shared view'><h2>Shared links</h2>{shares.map(s=><div className='row' key={s.id}><span>{s.path} ({s.access})</span><button onClick={async()=>{await api(`/drive/shares/${s.id}`,{method:'DELETE'});await load()}}>Revoke</button></div>)}</section>
