@@ -34,6 +34,12 @@ it('CAPY-068/073/074/075/088/090: promote preserves the thread and crew membersh
     const r = await call('POST', `/thr_cap/crew/${target}`); expect(r.status).toBe(409); expect(r.json.error).toContain(error);
   }
   await thread('thr_captain2', { role: 'captain' }); expect((await call('POST', '/thr_cap/crew/thr_captain2')).status).toBe(409);
+  await thread('thr_race'); await thread('thr_cap2');
+  expect((await call('POST', '/promote', { threadId: 'thr_cap2' })).status).toBe(201);
+  expect((await call('POST', '/thr_cap/crew/thr_race')).status).toBe(201);
+  expect((await call('POST', '/thr_cap2/crew/thr_race')).status).toBe(409);
+  expect((await pool.query(`SELECT crew_of FROM threads WHERE id='thr_race'`)).rows[0].crew_of).toBe('thr_cap');
+  expect((await call('POST', '/promote', { threadId: 'thr_race' })).status).toBe(409);
   expect((await call('POST', '/thr_cap/crew/thr_crew', undefined, 'usr_o')).status).toBe(404);
   expect((await call('POST', '/thr_cap/crew/thr_crew/archive')).status).toBe(200);
   expect((await pool.query(`SELECT status,archived_at,archived_from FROM threads WHERE id='thr_crew'`)).rows[0]).toMatchObject({ status: 'archived', archived_from: 'idle' });

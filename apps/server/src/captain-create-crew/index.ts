@@ -10,11 +10,16 @@ type Row = Record<string, any>;
 const one = async (pool: pg.Pool, sql: string, params: unknown[]) => (await pool.query(sql, params)).rows[0] as Row | undefined;
 
 export async function promoteCaptain(pool: pg.Pool, userId: string, threadId: string): Promise<Row> {
-  const t = await one(pool, 'SELECT * FROM threads WHERE id=$1 AND owner_id=$2', [threadId, userId]);
-  if (!t) throw new ApiFailure('NotFound', 'thread not found');
-  if (t.role !== 'thread' || t.parent_id || t.crew_of) throw new ApiFailure('Conflict', 'only an uncrewed root thread can be promoted');
-  await pool.query(`UPDATE threads SET role='captain',updated_at=now() WHERE id=$1`, [threadId]);
-  await pool.query(`INSERT INTO captains (thread_id,purpose,crew_runs_on,max_concurrent_crew,digest_md,wake_policy) VALUES ($1,$2,'pool',5,'',$3) ON CONFLICT (thread_id) DO NOTHING`, [threadId, t.title, JSON.stringify({ heartbeatSec: [600, 7200], coalesceSec: 30 })]);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const t = (await client.query('SELECT * FROM threads WHERE id=$1 AND owner_id=$2 FOR UPDATE', [threadId, userId])).rows[0] as Row | undefined;
+    if (!t) throw new ApiFailure('NotFound', 'thread not found');
+    const r = await client.query(`UPDATE threads SET role='captain',updated_at=now() WHERE id=$1 AND role='thread' AND parent_id IS NULL AND crew_of IS NULL`, [threadId]);
+    if (!r.rowCount) throw new ApiFailure('Conflict', 'only an uncrewed root thread can be promoted');
+    await client.query(`INSERT INTO captains (thread_id,purpose,crew_runs_on,max_concurrent_crew,digest_md,wake_policy) VALUES ($1,$2,'pool',5,'',$3) ON CONFLICT (thread_id) DO NOTHING`, [threadId, t.title, JSON.stringify({ heartbeatSec: [600, 7200], coalesceSec: 30 })]);
+    await client.query('COMMIT');
+  } catch (err) { await client.query('ROLLBACK').catch(() => undefined); throw err; } finally { client.release(); }
   return (await one(pool, 'SELECT * FROM threads WHERE id=$1', [threadId]))!;
 }
 
@@ -32,13 +37,19 @@ export async function crewRefusal(pool: pg.Pool, userId: string, captainId: stri
 }
 
 export async function addCrew(pool: pg.Pool, userId: string, captainId: string, threadId: string): Promise<CrewMembership & { existing: boolean }> {
-  const reason = await crewRefusal(pool, userId, captainId, threadId);
-  if (reason === 'not found') throw new ApiFailure('NotFound', 'captain or thread not found');
-  if (reason) throw new ApiFailure('Conflict', `crew refusal: must have same owner and same project; not a subagent/Captain, not itself, and only one crew (${reason})`);
-  const t = (await one(pool, 'SELECT project_id,crew_of FROM threads WHERE id=$1', [threadId]))!;
-  const existing = t.crew_of === captainId;
-  if (!existing) await pool.query('UPDATE threads SET crew_of=$2,updated_at=now() WHERE id=$1', [threadId, captainId]);
-  return { captainId, threadId, projectId: t.project_id ?? null, existing };
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const t = (await client.query('SELECT * FROM threads WHERE id=$1 FOR UPDATE', [threadId])).rows[0] as Row | undefined;
+    const c = (await client.query(`SELECT * FROM threads WHERE id=$1 AND role='captain' AND owner_id=$2`, [captainId, userId])).rows[0] as Row | undefined;
+    if (!c || !t) throw new ApiFailure('NotFound', 'captain or thread not found');
+    const refusal = threadId === captainId ? 'itself' : t.owner_id !== userId ? 'owner' : (t.project_id ?? null) !== (c.project_id ?? null) ? 'same project' : t.parent_id ? 'subagent' : t.role !== 'thread' ? 'captain' : t.crew_of && t.crew_of !== captainId ? 'crew' : null;
+    if (refusal) throw new ApiFailure('Conflict', `crew refusal: must have same owner and same project; not a subagent/Captain, not itself, and only one crew (${refusal})`);
+    const existing = t.crew_of === captainId;
+    if (!existing) await client.query('UPDATE threads SET crew_of=$2,updated_at=now() WHERE id=$1', [threadId, captainId]);
+    await client.query('COMMIT');
+    return { captainId, threadId, projectId: t.project_id ?? null, existing };
+  } catch (err) { await client.query('ROLLBACK').catch(() => undefined); throw err; } finally { client.release(); }
 }
 
 export async function archiveCrew(pool: pg.Pool, userId: string, captainId: string, threadId: string): Promise<void> {
