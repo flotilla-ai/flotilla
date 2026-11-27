@@ -70,6 +70,11 @@ describe('environments', () => {
     expect(history.items.map((v: any) => [v.version, v.note, v.spec.commands.length])).toEqual([[2, '', 0], [1, 'first', 1]]);
     expect((await json(await call(`/projects/${p}/environment`))).spec.startup[0]).toMatchObject({ name: 'web', readinessPort: 4001, preview: true });
     expect((await call(`/projects/${await project('foreign', other)}/environment`)).status).toBe(404);
+    expect((await call(`/projects/${p}/environment`, { method: 'PUT', json: { spec: spec(4002), baseVersion: 1 } })).status).toBe(409);
+    for (const bad of [undefined, null, [], { setup: [] }, { setup: { initialize: 'x' } }]) expect((await call(`/projects/${p}/environment`, { method: 'PUT', json: { spec: bad } })).status).toBe(400);
+    const loose = `thr_noproj${Math.random().toString(16).slice(2, 8)}`;
+    await pool.query(`INSERT INTO threads (id,code,project_id,role,owner_id,title,status,engine,budget,spent) VALUES ($1,$1,NULL,'thread',$2,'t','idle','{}','{}','{}')`, [loose, owner]);
+    expect(await json(await call(`/threads/${loose}/environment`))).toEqual({ setup: [], services: [], commands: [], terminals: [] });
   });
 
   it('CAPY-185: initialize (fresh clone, 900 s) and refresh (checkout moved, 300 s); timeouts must be 60-3600 s and are enforced', async () => {
@@ -157,8 +162,16 @@ describe('environments', () => {
     expect((await call(`/projects/${p}/environment/import`, { method: 'POST', json: { path: '.capy/setup.json', content: '{' } })).status).toBe(400);
     const t = await thread(p);
     const files: Record<string, string> = { '/workspace/repo/.flotilla/setup.json': JSON.stringify(spec(4100)) };
-    const driver = { copyOut: async (_id: string, path: string) => { if (!files[path]) throw new Error('missing'); return tarFile(path.split('/').pop()!, files[path]); } };
+    const copied: string[] = [];
+    const size = (path: string) => (path in files ? (path.includes('.capy') ? 10_000_000 : Buffer.byteLength(files[path])) : null);
+    const driver = {
+      copyOut: async (_id: string, path: string) => { copied.push(path); if (!files[path]) throw new Error('missing'); return tarFile(path.split('/').pop()!, files[path]); },
+      transport: () => ({ spawn: (argv: string[], opts: { cwd: string }) => local.spawn(['bash', '-c', size(argv.at(-1)!) === null ? 'exit 1' : `echo ${size(argv.at(-1)!)}`], { cwd: opts.cwd, env: {} }) })
+    };
     expect(await store.importFromMachine({ thread: { id: t, project_id: p }, containerId: 'c', driver })).toMatchObject({ version: 2, source: 'repo-file', note: '.flotilla/setup.json' });
     expect(await store.importFromMachine({ thread: { id: t, project_id: p }, containerId: 'c', driver })).toBeNull();
+    delete files['/workspace/repo/.flotilla/setup.json']; files['/workspace/repo/.capy/setup.json'] = JSON.stringify(capy); copied.length = 0;
+    expect(await store.importFromMachine({ thread: { id: t, project_id: p }, containerId: 'c', driver })).toBeNull();
+    expect(copied).toEqual([]);
   });
 });

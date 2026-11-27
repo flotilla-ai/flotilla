@@ -22,7 +22,7 @@ export function createEnvironmentsRoute(store = () => environmentStore()) {
     if (!SETUP_FILES.includes(b.path as never) || typeof b.content !== 'string') throw new ApiFailure('ValidationFailed', `path must be one of ${SETUP_FILES.join(', ')} with string content`);
     return c.json(await store().replace(id, parseSetupFile(b.path as string, b.content), { source: 'repo-file', actor: userId(c), note: b.path as string }));
   });
-  app.get('/threads/:id/environment', async (c) => { await store().threadProject(userId(c), c.req.param('id')); return c.json(await store().menu(c.req.param('id'))); });
+  app.get('/threads/:id/environment', async (c) => { await store().ownedThread(userId(c), c.req.param('id')); return c.json(await store().menu(c.req.param('id'))); });
   app.post('/threads/:id/environment/commands/:name', async (c) => {
     const threadId = c.req.param('id'); const projectId = await store().threadProject(userId(c), threadId);
     const { spec } = await store().current(projectId);

@@ -6,7 +6,7 @@ export default {
   name: 'environments',
   async start() {
     const unregister = onAfterRun(async ({ thread, state, containerId, driver }) => {
-      if (state !== 'completed' || !('copyOut' in driver)) return;
+      if (state !== 'completed' || !('copyOut' in driver) || !('transport' in driver)) return;
       await environmentStore().importFromMachine({ thread: thread as never, containerId, driver: driver as never }).catch((err) => console.warn('environments import', (err as Error).message));
     });
     return async () => { unregister(); };

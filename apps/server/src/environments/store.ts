@@ -1,4 +1,5 @@
 import pg from 'pg';
+import type { ProcessTransport } from '@flotilla/core/types';
 import { migrate } from '../db/migrate.js';
 import { ApiFailure } from '../api-platform/types.js';
 import { EnvironmentExecutor, type EnvironmentMachine, type ExecutorOptions, type ProcessReport } from './executor.js';
@@ -13,7 +14,15 @@ export type EnvironmentMenu = {
   commands: { name: string; state: ProcessState; description: string }[];
   terminals: { name: string; state: ProcessState }[];
 };
-type CopyOut = { copyOut(containerId: string, path: string): Promise<Buffer> };
+type CopyOut = { copyOut(containerId: string, path: string): Promise<Buffer>; transport(containerId: string): ProcessTransport };
+const MAX_SETUP_FILE = 64 * 1024;
+/** Size of a regular (non-symlink) file inside the machine, or null; checked before `copyOut` buffers it. */
+async function fileSize(t: ProcessTransport, path: string): Promise<number | null> {
+  const h = t.spawn(['bash', '-c', 'test -f "$1" && test ! -L "$1" && stat -c %s "$1"', '_', path], { cwd: '/', env: {} });
+  let out = ''; const drain = (async () => { for await (const l of h.stdout) out += l; })(); void (async () => { for await (const _ of h.stderr); })();
+  const [{ code }] = await Promise.all([h.exit, drain]);
+  return code === 0 && /^\d+$/.test(out.trim()) ? Number(out.trim()) : null;
+}
 function untarFirst(tar: Buffer): string | null {
   if (tar.length < 512 || tar.subarray(0, 100).every((b) => b === 0)) return null;
   return tar.subarray(512, 512 + parseInt(tar.subarray(124, 135).toString(), 8)).toString('utf8');
@@ -34,11 +43,15 @@ export class EnvironmentStore {
     return projectId;
   }
   /** The thread's project; an environment is always reached through the caller's own thread. */
-  async threadProject(userId: string, threadId: string): Promise<string> {
+  async ownedThread(userId: string, threadId: string): Promise<string | null> {
     const [t] = await this.q('SELECT project_id FROM threads WHERE id=$1 AND owner_id=$2', [threadId, userId]);
     if (!t) throw new ApiFailure('NotFound', 'thread not found');
-    if (!t.project_id) throw new ApiFailure('Conflict', 'thread has no project environment');
     return t.project_id;
+  }
+  async threadProject(userId: string, threadId: string): Promise<string> {
+    const projectId = await this.ownedThread(userId, threadId);
+    if (!projectId) throw new ApiFailure('Conflict', 'thread has no project environment');
+    return projectId;
   }
   async current(projectId: string): Promise<EnvironmentVersion> {
     const [r] = await this.q('SELECT * FROM environment_versions WHERE project_id=$1 ORDER BY version DESC LIMIT 1', [projectId]);
@@ -113,7 +126,10 @@ export class EnvironmentStore {
   async importFromMachine(x: { thread: { id: string; project_id: string | null }; containerId: string; driver: CopyOut }): Promise<EnvironmentVersion | null> {
     if (!x.thread.project_id) return null;
     for (const path of SETUP_FILES) {
-      const content = await x.driver.copyOut(x.containerId, `/workspace/repo/${path}`).then(untarFirst).catch(() => null);
+      const full = `/workspace/repo/${path}`;
+      const size = await fileSize(x.driver.transport(x.containerId), full).catch(() => null);
+      if (size === null || size > MAX_SETUP_FILE) continue;
+      const content = await x.driver.copyOut(x.containerId, full).then(untarFirst).catch(() => null);
       if (content === null) continue;
       const spec = parseSetupFile(path, content);
       if (same(spec, (await this.current(x.thread.project_id)).spec)) return null;
