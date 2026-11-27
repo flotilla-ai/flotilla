@@ -1,4 +1,6 @@
 import { Hono, type Context } from 'hono';
+import { apiPlatformStore } from '../api-platform/store.js';
+import type { ApiPrincipal } from '../api-platform/types.js';
 import { subagentCore } from '../subagent-core/store.js';
 
 const userId = (c: Context) => c.get('userId') as string;
@@ -17,19 +19,22 @@ export function createSubagentCoreRoute(store = () => subagentCore()) {
     const id = c.req.param('id'); await store().get(id, userId(c));
     const events = store().deps.runner.deps.store; const after = Number.parseInt(c.req.header('last-event-id') ?? c.req.query('after') ?? '0', 10) || 0;
     const subscription = await events.subscribe(id as never, after); const iterator = subscription[Symbol.asyncIterator](); let first = true;
+    const keyId = (c as unknown as { get(key: string): ApiPrincipal | undefined }).get('principal')?.keyId; const keys = apiPlatformStore();
+    const recheck = keyId ? setInterval(() => void keys.keyActive(keyId).then((ok) => { if (!ok) void iterator.return?.(); }).catch(() => undefined), keys.keyRecheckMs) : undefined;
     const body = new ReadableStream<Uint8Array>({
       async start(controller) {
         void (async () => {
           try {
             for (;;) {
               const next = await iterator.next(); if (next.done) break;
+              if (next.value.kind === 'thread.status') await store().get(id, userId(c));
               controller.enqueue(new TextEncoder().encode(`${first ? 'retry: 1000\n' : ''}id: ${next.value.seq}\nevent: ${next.value.kind}\ndata: ${JSON.stringify(next.value)}\n\n`)); first = false;
             }
             controller.close();
-          } catch (err) { controller.error(err); }
+          } catch (err) { controller.error(err); } finally { clearInterval(recheck); await iterator.return?.(); }
         })();
       },
-      async cancel() { await iterator.return?.(); }
+      async cancel() { clearInterval(recheck); await iterator.return?.(); }
     });
     return new Response(body, { headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' } });
   });
