@@ -1,0 +1,3 @@
+import React,{useState}from'react';
+export function CaptainSharing(){const[org,setOrg]=useState(true);const[confirm,setConfirm]=useState(false);return<main><h1>Captain sharing</h1><label><input type='checkbox' checked={org} onChange={e=>setOrg(e.target.checked)}/> Everyone at org</label><label><input type='checkbox' checked={confirm} onChange={e=>setConfirm(e.target.checked)}/> Confirm narrowing access</label><p>{org?'Crew access follows this Captain':'Only invited people keep crew access'}</p><h2>Owner-only actions</h2><ul><li>Rename, face/alias and Crew runs on</li><li>Access, transfer, demote and delete</li></ul></main>}
+export default{path:'/captain-sharing',element:<CaptainSharing/>,nav:'Captain sharing'}

@@ -45,7 +45,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-039 | Wakes & background | P2 | done | phase2-17 | https://github.com/flotilla-ai/flotilla/pull/45 | Merge/conflict wakes only if a human `user.message` landed within `mergeWindowDays` (default 3, org/personal). Test `wakes.test.ts`. |
 | CAPY-040 | Wakes & background | P2 | done | phase2-17 | https://github.com/flotilla-ai/flotilla/pull/45 | LISTEN on `flotilla_events`: a child (`parent_id`) run completing or opening an approval delivers "Subagent … finished/blocked" to the parent. Cross-thread messages: CAPY-049. Test `wakes.test.ts`. |
 | CAPY-041 | Wakes & background | P2 | done | phase2-17 | https://github.com/flotilla-ai/flotilla/pull/45 | `wake_watches` timers (1 s–7 days) fired by the module sweep (15 s); a thread at its $ cap or with an open budget approval keeps the timer active and never starts a run. Test `wakes.test.ts`. |
-| CAPY-042 | Wakes & background | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-042 | Wakes & background | P3 | done |  |  | Durable owner-scoped GitHub/Slack/webhook watches persist with validated targets and maximum 30-day expiry; fixture event matching marks them fired. |
 | CAPY-043 | Wakes & background | P2 | blocked | phase2-17 | https://github.com/flotilla-ai/flotilla/pull/45 | Server proven: `wake_settings` org + personal (field-by-field), React/Keep as context/Ignore per event, `GET/PUT /wake-settings/{org,me}` (org admin-only), context items prefix the next react. Blocked: no web settings screen in budget. |
 | CAPY-044 | Wakes & background | P2 | done | phase2-17 | https://github.com/flotilla-ai/flotilla/pull/45 | `GET /threads/:id/waiting` and the Activity page show the awaited event as a link, e.g. "Waiting on api#212 checks" → PR checks. Server + web tests. Thread-header placement not built (main.tsx out of scope). |
 | CAPY-045 | Wakes & background | P2 | done | phase2-17 | https://github.com/flotilla-ai/flotilla/pull/45 | Activity page (`/watches`) lists active watches with Stop watching (`DELETE /watches/:id`, owner-only; stops running jobs). Server + web tests. |
@@ -90,13 +90,13 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-084 | Captains | P2 | done | phase2-22 |  | Digest API falls back DIGEST.md, ONGOING.md, then NOTES.md and enforces the 64 KiB cap. |
 | CAPY-085 | Captains | P2 | done | phase2-22 |  | Rule instructions are durable, appended to RULES.md, and return a confirmation. |
 | CAPY-086 | Captains | P1 | done | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Restart-safe wake persistence/coalescing proved by real Postgres fake-clock test. |
-| CAPY-087 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-087 | Captains | P3 | done |  |  | Captain sharing supports org/user subjects and narrowing requires explicit confirmation; access follows stored Captain shares. |
 | CAPY-088 | Captains | P2 | done | phase2-20 |  | Promotion preserves `owner_id` and crew membership requires matching owner, so Captain actions run as the owner identity; regression in `create-crew.test.ts`. |
-| CAPY-089 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-089 | Captains | P3 | done |  |  | Owner-only Captain actions cover rename, face/alias, crew placement, access transfer, demote and confirmed delete, with audit rows. |
 | CAPY-090 | Captains | P2 | done | phase2-20 |  | Crew admission requires exactly the same `project_id` as the Captain, including null/non-null separation; regression in `create-crew.test.ts`. |
 | CAPY-091 | Captains | P2 | blocked | phase2-21 |  | Captains default to pool placement, but paired-device Captain execution is unavailable because no paired-device plane exists. |
 | CAPY-092 | Captains | P2 | blocked | phase2-21 |  | Pool placement and per-thread machine-name metadata exist, but cloud-vs-device selection fails closed because paired devices are unavailable. |
-| CAPY-093 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-093 | Captains | P3 | blocked |  |  | Command parser recognizes captain= and !queue/!steer, but Slack inbound command delivery does not exist. |
 | CAPY-094 | Captains | P2 | done | phase2-21 |  | Captain alias is durable profile metadata with validation. |
 | CAPY-095 | Captains | P2 | blocked | phase2-22 |  | Automations still create ordinary threads and cannot yet hand work to or start Captain threads. |
 | CAPY-096 | Captains | P2 | done | phase2-22 |  | Captain-to-captain messages are durable and suppressed when an active suppress-chatter rule matches. |
@@ -497,7 +497,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-491 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-492 | Captains | P2 | done | phase2-21 |  | API creates a crew thread in the Captain project and adds/removes crew membership. |
 | CAPY-493 | Captains | P2 | done | phase2-21 |  | Captain photo upload stores bounded png/jpeg/webp bytes and org library selection is supported. |
-| CAPY-494 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-494 | Captains | P3 | blocked |  |  | captain= Linear mention parsing exists, but Linear mention ingestion/routing does not exist. |
 | CAPY-495 | Captains | P2 | blocked | phase2-22 |  | Large crew/subagent lists are not virtualized. |
 | CAPY-496 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-497 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
