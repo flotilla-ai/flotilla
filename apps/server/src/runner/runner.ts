@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import type { AdapterEvent, CostTotals, Thread } from '@flotilla/core/types';
+import type { AdapterEvent, CostTotals, ProcessTransport, Thread } from '@flotilla/core/types';
 import { meter, budgetZero, inRunFence } from '@flotilla/core/kernel/budget';
 import { placeholderPriceTable } from '@flotilla/core/kernel/priceTable';
 import { createDeltaScrubber, scrub } from '@flotilla/core/kernel/scrub';
@@ -24,6 +24,10 @@ export type RunnerDeps = { store: EventStore; driver: Driver; adapters: Map<stri
 type AfterRun=(input:{thread:Row;project:Row|null;runId:string;state:string;containerId:string;driver:Driver})=>Promise<void>;
 const afterRunHooks:AfterRun[]=[];
 export function onAfterRun(fn:AfterRun):()=>void{afterRunHooks.push(fn);return()=>{const i=afterRunHooks.indexOf(fn);if(i>=0)afterRunHooks.splice(i,1)}}
+/** Returns text prepended to every run prompt (rules); the same for every adapter. */
+type BeforeRun=(input:{thread:Row;project:Row|null;runId:string;transport:ProcessTransport})=>Promise<string>;
+const beforeRunHooks:BeforeRun[]=[];
+export function onBeforeRun(fn:BeforeRun):()=>void{beforeRunHooks.push(fn);return()=>{const i=beforeRunHooks.indexOf(fn);if(i>=0)beforeRunHooks.splice(i,1)}}
 
 export class ThreadRunner {
   readonly running = new Map<string, Promise<void>>();
@@ -216,7 +220,8 @@ export class ThreadRunner {
     const item = await this.inbox.claim(threadId, runId); const planRun = item?.plan === true || thread.plan_mode === true;
     if (item?.plan && !thread.plan_mode) await this.pool.query('UPDATE threads SET plan_mode=true WHERE id=$1', [threadId]);
     const files = item?.attachments.length ? await this.copyAttachments(machine.containerId, item.attachments) : [];
-    const prompt = item ? `${planRun ? PLAN_PROMPT : ''}${item.text}${files.length ? `\n\nAttached files:\n${files.map((f) => `- ${f}`).join('\n')}` : ''}` : '';
+    const preamble = item ? (await Promise.all(beforeRunHooks.map((h) => h({ thread, project, runId, transport }).catch(() => '')))).filter(Boolean).join('\n\n') : '';
+    const prompt = item ? `${preamble ? `${preamble}\n\n` : ''}${planRun ? PLAN_PROMPT : ''}${item.text}${files.length ? `\n\nAttached files:\n${files.map((f) => `- ${f}`).join('\n')}` : ''}` : '';
     const eng = thread.engine as { model?: string | null; effort?: string | null };
     this.live.set(threadId, { runId, adapter, sessionId: null });
     let stream: AsyncIterable<AdapterEvent>;
