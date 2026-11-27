@@ -9,7 +9,7 @@ import { modelsCatalogStore, withConnectionKeys } from '../models-catalog/store.
 
 let singleton: ThreadRunner | null = null;
 export function defaultRunner(): ThreadRunner {
-  singleton ??= new ThreadRunner({ store: new EventStore(process.env.DATABASE_URL ?? 'postgres://postgres@postgres:5432/flotilla'), driver: new DockerMachineDriver(new Docker()), adapters: new Map([['fake', fakeAdapter]]), vault: withConnectionKeys(secretsStore()) });
+  singleton ??= new ThreadRunner({ store: new EventStore(process.env.DATABASE_URL ?? 'postgres://postgres@postgres:5432/flotilla'), driver: new DockerMachineDriver(new Docker()), adapters: new Map([['fake', fakeAdapter]]), vault: withConnectionKeys(secretsStore()), resolveEngine: (user, engine) => modelsCatalogStore().resolve(user, engine) });
   return singleton;
 }
 function userId(c: unknown): string { return (c as { get(key: string): string }).get('userId'); }
