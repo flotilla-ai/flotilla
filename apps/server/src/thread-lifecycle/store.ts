@@ -62,7 +62,7 @@ export class ThreadLifecycleStore {
   }
   async list(userId: string, archived: 'exclude' | 'only' | 'all' = 'exclude'): Promise<ThreadLifecycle[]> {
     const filter = archived === 'all' ? '' : archived === 'only' ? 'AND t.archived_at IS NOT NULL' : 'AND t.archived_at IS NULL';
-    return (await this.q(`${VIEW} WHERE (t.owner_id=$1 OR m.joined) ${filter} ORDER BY t.pinned DESC, t.updated_at DESC, t.id`, [userId])).map(toView);
+    return (await this.q(`${VIEW} WHERE (t.owner_id=$1 OR m.joined OR (t.visibility='shared' AND m.user_id IS NULL)) ${filter} ORDER BY t.pinned DESC, t.updated_at DESC, t.id`, [userId])).map(toView);
   }
 
   async apply(threadId: string, userId: string, a: ThreadAction): Promise<ThreadLifecycle | null> {

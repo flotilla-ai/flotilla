@@ -1,6 +1,6 @@
 import {expect,test,type Page} from '@playwright/test';
 const row=(id:string,title:string)=>({id,title,status:'idle',pinned:false,tags:[],folder:null,unread:true,mentions:1,archivedAt:null});
-const views:Record<string,any>={thr_1:{title:'Mine',ownerId:'usr_me',visibility:'private',member:null},thr_2:{title:'Theirs',ownerId:'usr_bob',visibility:'shared',member:null}};
+const views:Record<string,any>={thr_1:{id:'thr_1',title:'Mine',ownerId:'usr_me',visibility:'private',member:null},thr_2:{id:'thr_2',title:'Theirs',ownerId:'usr_bob',visibility:'shared',member:null}};
 async function inbox(page:Page){
  const posts:any[]=[];const puts:any[]=[];
  await page.route('**/api/v1/auth/me',r=>r.fulfill({json:{userId:'usr_me',csrfToken:'c'}}));

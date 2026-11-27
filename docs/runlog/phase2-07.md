@@ -93,10 +93,11 @@ The Inbox now has controls for every row. When one thread is selected it shows R
 ```
 Running 4 tests using 1 worker
 
-  ✓  1 e2e/thread-lifecycle.spec.ts:13:1 › CAPY-017/024 owner renames, regenerates, shares and transfers (634ms)
-  ✓  2 e2e/thread-lifecycle.spec.ts:19:1 › CAPY-022/023 collaborator joins, subscribes and takes over a shared thread (459ms)
-  ✓  3 e2e/thread-lifecycle.spec.ts:25:1 › CAPY-017/473 org title instructions, regenerate-when and auto-archive settings (339ms)
-  ✓  4 e2e/thread-lifecycle.spec.ts:31:1 › CAPY-018/019/020/021/474/475 bulk range archive+undo, delete, mark all read, mention badge, cost (735ms)
+  ✓  1 e2e/thread-lifecycle.spec.ts:13:1 › CAPY-017/024 owner renames, regenerates, shares and transfers (635ms)
+  ✓  2 e2e/thread-lifecycle.spec.ts:19:1 › CAPY-022/023 collaborator joins, subscribes and takes over a shared thread (456ms)
+  ✓  3 e2e/thread-lifecycle.spec.ts:25:1 › CAPY-017/473 org title instructions, regenerate-when and auto-archive settings (342ms)
+  ✓  4 e2e/thread-lifecycle.spec.ts:31:1 › CAPY-018/019/020/021/474/475 bulk range archive+undo, delete, mark all read, mention badge, cost (601ms)
 
-  4 passed (3.8s)
+  4 passed (3.2s)
 ```
+Review round 3 fixes: unjoined shared threads now appear in the Inbox (members who left stay hidden). Thread controls act on the thread whose card is shown. Save is disabled until the selected scope has loaded. Personal auto-archive days: empty means inherit org, 0 means off.
