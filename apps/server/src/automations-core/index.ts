@@ -241,8 +241,7 @@ export class AutomationStore {
       throw e;
     } finally { client.release(); }
     if (!r) throw new ApiFailure('Internal', 'automation run could not be inserted');
-    try {
-      if (this.deps.startRun) {
+    if (this.deps.startRun) {
         try {
           const inboxItemId = await this.deps.startRun({ threadId: threadId!, prompt: a.prompt, automationId: a.id, runId: rid });
           await this.q('UPDATE automation_runs SET dispatched_at=now(),dispatch_attempts=dispatch_attempts+1 WHERE id=$1', [rid]); if (inboxItemId) await this.q(`UPDATE automation_runs SET output=output||jsonb_build_object('inboxItemId',$2::text) WHERE id=$1`, [rid, inboxItemId]);
@@ -251,10 +250,7 @@ export class AutomationStore {
           throw err;
         }
       }
-      return toRun(r);
-    } catch (e) {
-      throw e;
-    }
+    return toRun(r);
   }
   private async recordSkipped(a: Automation, type: TriggerType, key: string, payload: Record<string, unknown>, idem: string | null, reason: string): Promise<AutomationRun> {
     const [r] = await this.q('INSERT INTO automation_runs (id,automation_id,trigger_type,trigger_key,idempotency_key,status,payload,skip_reason) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *', [id('arun'), a.id, type, key, idem, 'skipped', JSON.stringify(payload), reason]);
