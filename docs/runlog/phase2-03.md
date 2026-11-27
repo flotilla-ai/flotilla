@@ -71,7 +71,7 @@ Before the merge, `make check` on `371f16b` passed end to end (`apps/server test
 - CAPY-325 effort-to-CLI flag mapping on real CLIs: `claude auth login` then create a thread with `{"engine":{"adapter":"claude-code","model":"<model>","effort":"high"}}`; same with `codex login` for `codex`.
 - CAPY-328 subscription device/vendor login: `docker compose exec server claude auth login` and `docker compose exec server codex login`, then `POST /api/v1/connections/:id/test`.
 - CAPY-329/330 live key access check: `curl -X POST localhost:8080/api/v1/models/check-access -d '{"provider":"custom-openai","baseUrl":"<url>","apiKey":"<key>"}'` with a real gateway key (mehdi).
-- CAPY-332 web picker UI is not wired; API returns badges, tooltips, favorites and Alt+1…9 shortcuts.
+- CAPY-332 is `blocked`: the row is the web picker UI and `apps/web` is outside this unit's SCOPE; only the server API (badges, tooltips, favorites, Alt+1…9) is proven.
 
 ## Review round 1 (Devin Review on 7c76783)
 

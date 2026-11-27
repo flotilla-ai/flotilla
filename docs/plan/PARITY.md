@@ -335,7 +335,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-329 | Models & connections | P2 | needs-human-login | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | check access via local OpenAI-compatible fixture; exclusions; new models auto-covered; real provider endpoints need a key. |
 | CAPY-330 | Models & connections | P2 | needs-human-login | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | custom model ids added/found/selectable on a connection (fixture); real key needed for live endpoint. |
 | CAPY-331 | Models & connections | P2 | done | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | pinned connection never falls back; its key alone reaches the run env (fake). |
-| CAPY-332 | Models & connections | P2 | done | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | picker badges subscription/key/free, tooltip names connection, favorites Alt+1…9 (API); web picker not wired yet. |
+| CAPY-332 | Models & connections | P2 | blocked | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | blocked: the row is the web model picker (badges, connection tooltip, Alt+1…9 favorites) and `apps/web` is outside phase2-03 SCOPE; the server API returning badges, tooltips, favorites and shortcuts is proven (models-catalog.test.ts). Needs a web picker unit. |
 | CAPY-333 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-334 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-335 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
