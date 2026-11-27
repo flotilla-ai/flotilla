@@ -25,8 +25,9 @@ CREATE TABLE IF NOT EXISTS github_installations (
 CREATE TABLE IF NOT EXISTS github_pr_identities (
   repo text NOT NULL,
   number integer NOT NULL,
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   identity text NOT NULL CHECK (identity IN ('you-capy-coauthor', 'you', 'capy-you', 'capy')),
   updated_by text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   updated_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (repo, number)
+  PRIMARY KEY (repo, number, user_id)
 );

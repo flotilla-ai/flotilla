@@ -74,9 +74,7 @@ export class GitHubIntegrationStore {
     const wanted = repo.toLowerCase();
     const allowed = installations.some((r) => Array.isArray(r.repositories) && r.repositories.some((x: unknown) => String(x).toLowerCase() === wanted));
     if (!allowed) throw new ApiFailure('NotFound', 'pull request repository not found in an active installation');
-    const existing = (await this.pool.query('SELECT updated_by FROM github_pr_identities WHERE repo=$1 AND number=$2', [repo, number])).rows[0];
-    if (existing && existing.updated_by !== userId) throw new ApiFailure('NotFound', 'pull request identity not found');
-    await this.pool.query('INSERT INTO github_pr_identities (repo,number,identity,updated_by) VALUES ($1,$2,$3,$4) ON CONFLICT (repo,number) DO UPDATE SET identity=$3,updated_by=$4,updated_at=now()', [repo, number, identity, userId]);
+    await this.pool.query('INSERT INTO github_pr_identities (repo,number,user_id,identity,updated_by) VALUES ($1,$2,$4,$3,$4) ON CONFLICT (repo,number,user_id) DO UPDATE SET identity=$3,updated_by=$4,updated_at=now()', [repo, number, identity, userId]);
     return { repo, number, identity: identity as CommitIdentity };
   }
   async unlink(userId: string, accountId: string, admin: boolean): Promise<void> {
