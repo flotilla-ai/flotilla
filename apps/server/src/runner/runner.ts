@@ -10,7 +10,7 @@ import type { AgentAdapter } from '@flotilla/core/types';
 import { getRunTokenService } from '../captain/tools/registry.js';
 import { captainMcpTar } from '../captain/tools/mcpConfig.js';
 import { secretsTar, type SecretsStore } from '../secrets/store.js';
-import type { EnvVarMutation } from '../secrets/types.js';
+import type { EnvVarMutation, PreparedSecrets } from '../secrets/types.js';
 
 type Driver = GitDriver & { startThreadContainer(input: Record<string, unknown>): Promise<{ containerId: string }>; stop(id: string): Promise<void> };
 type Row = Record<string, unknown>;
@@ -38,10 +38,11 @@ export class ThreadRunner {
       if (prior.rows[0]) { const row=(await this.pool.query('SELECT * FROM threads WHERE id=$1', [prior.rows[0].thread_id])).rows[0]; if(row?.owner_id!==input.ownerId) throw new Error('not found'); return row; }
     }
     if (input.projectId) { const ownedProject=(await this.pool.query('SELECT 1 FROM projects WHERE id=$1 AND owner_id=$2',[input.projectId,input.ownerId])).rows[0]; if(!ownedProject) throw new Error('project not found'); }
+    const env = input.env ?? [];
+    if (env.length && !this.deps.vault) throw new Error('secrets vault not configured');
     const threadId = id('thr'); const code = `FLO-${randomBytes(2).toString('hex').toUpperCase()}`;
     const row = (await this.pool.query(`INSERT INTO threads (id,code,project_id,role,owner_id,title,status,engine,budget,spent) VALUES ($1,$2,$3,'thread',$4,$5,'queued',$6,$7,$8) RETURNING *`, [threadId, code, input.projectId ?? null, input.ownerId, input.title, JSON.stringify(input.engine ?? { adapter: 'fake', model: null, effort: null, connectionId: null }), JSON.stringify(budget(input.maxUsd ?? null)), JSON.stringify(zero)])).rows[0];
-    const env = input.env ?? [];
-    if (env.length) { if (!this.deps.vault) throw new Error('secrets vault not configured'); await this.deps.vault.mutate('thread', threadId, env, input.ownerId); }
+    if (env.length) await this.deps.vault!.mutate('thread', threadId, env, input.ownerId).catch(async (err) => { await this.pool.query('DELETE FROM threads WHERE id=$1', [threadId]); throw err; });
     const createSecrets = { ...this.deps.secrets, ...Object.fromEntries(env.flatMap((m) => m.op === 'set' ? [[m.name, m.value]] : [])) };
     await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'thread.created', source: 'kernel', trust: 'trusted', payload: scrub({ title: input.title }, createSecrets) }, { runId: null, kind: 'user.message', source: 'user', trust: 'trusted', payload: scrub({ text: input.prompt }, createSecrets) }] as never, { requestId: input.requestId });
     this.queued.set(threadId,[input.prompt]);
@@ -84,6 +85,8 @@ export class ThreadRunner {
 
   private async run(threadId: string, trigger: string): Promise<void> {
     const thread = await this.thread(threadId); if (!thread) return;
+    let prepared: PreparedSecrets;
+    try { prepared = await this.deps.vault?.prepare(threadId) ?? { env: {}, grants: [] }; } catch (err) { this.queued.delete(threadId); throw err; }
     const runId = id('run'); const ordinal = ((await this.pool.query('SELECT max(ordinal) n FROM runs WHERE thread_id=$1', [threadId])).rows[0].n ?? 0) + 1;
     await this.pool.query(`INSERT INTO runs (id,thread_id,ordinal,trigger,state,usage) VALUES ($1,$2,$3,$4,'starting',$5)`, [runId, threadId, ordinal, JSON.stringify({ kind: trigger, eventId: null }), JSON.stringify(zero)]);
     await this.pool.query(`UPDATE threads SET status='working',updated_at=now() WHERE id=$1`, [threadId]);
@@ -98,7 +101,6 @@ export class ThreadRunner {
     }
 
     const project = await this.project(thread);
-    const prepared = await this.deps.vault?.prepare(threadId) ?? { env: {}, grants: [] };
     const tokenService = thread.role === 'captain' ? getRunTokenService() : null;
     const runToken = tokenService?.issue(runId, threadId);
     let machine = { containerId: '' };

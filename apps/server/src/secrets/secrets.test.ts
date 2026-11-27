@@ -204,4 +204,19 @@ describe('secrets vault', () => {
     expect((await call(path, { method: 'PUT', json: null })).status).toBe(400);
     expect((await call(path, { method: 'DELETE', json: null })).status).toBe(400);
   });
+  it('vault failures fail closed: a failed thread-env write leaves no thread; an unreadable vault fails the thread without a run or retry loop', async () => {
+    const down = async () => { throw new Error('kms unavailable'); };
+    const r = new ThreadRunner({ store: new EventStore(process.env.DATABASE_URL!), driver: driver as never, adapters: new Map([['fake', spyAdapter]]), vault: { mutate: down, prepare: down } });
+    const count = async () => (await pool.query('SELECT count(*)::int n FROM threads')).rows[0].n;
+    const before = await count();
+    await expect(r.createThread({ ownerId: owner, title: 'x', prompt: 'hello', env: [{ op: 'set', name: 'A', value: 'b' }] })).rejects.toThrow('kms unavailable');
+    expect(await count()).toBe(before);
+    const t = (await r.createThread({ ownerId: owner, title: 'y', prompt: 'hello' })) as { id: string };
+    const status = async () => (await pool.query('SELECT status FROM threads WHERE id=$1', [t.id])).rows[0].status;
+    for (let i = 0; i < 50 && (await status()) !== 'failed'; i++) await new Promise((res) => setTimeout(res, 100));
+    await new Promise((res) => setTimeout(res, 300));
+    expect(await status()).toBe('failed');
+    expect((await pool.query('SELECT count(*)::int n FROM runs WHERE thread_id=$1', [t.id])).rows[0].n).toBe(0);
+    expect(r.queued.get(t.id) ?? []).toEqual([]);
+  }, 20_000);
 });
