@@ -17,7 +17,7 @@ Initialized in `docs/plan/PARITY.md`: P2/P3/P4 rows are pending; phase 1 rows ar
 | phase1fix-02 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/21 | Captain five-crew fake relay |
 | phase1fix-03 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/22 | egress/preview local fixtures |
 | plan2 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/23 | 37 phase-2 handoffs covering 353 P2 rows exactly once |
-| phase2-01 | running | 1 | PR_LINK | API platform: keys/principals, idempotency, pagination, typed errors, public SSE frames, uploads, webhook inbox; 10 rows done ([runlog](../runlog/phase2-01.md)) |
+| phase2-01 | running | 1 | https://github.com/flotilla-ai/flotilla/pull/25 | API platform: keys/principals, idempotency, pagination, typed errors, public SSE frames, uploads, webhook inbox; 10 rows done ([runlog](../runlog/phase2-01.md)) |
 
 ## Next action
 
