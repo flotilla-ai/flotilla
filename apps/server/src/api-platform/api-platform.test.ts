@@ -63,6 +63,8 @@ describe('api platform', () => {
     expect((await call('/api/v1/principal', { bearer: expired.token })).status).toBe(401);
     expect((await call(`/api/v1/api-keys/${key.id}`, { method: 'DELETE', session: true })).status).toBe(200);
     expect((await call('/api/v1/principal', { bearer: token })).status).toBe(401);
+    await mint({ name: 'idem-mint', requestId: 'mint-1' });
+    expect((await pool.query(`SELECT count(*)::int n FROM api_idempotency WHERE body LIKE '%flt_%'`)).rows[0].n).toBe(0);
     expect((await call('/api/v1/api-keys', { method: 'POST', session: true, json: { name: 'past', expiresAt: '2000-01-01T00:00:00Z' } })).status).toBe(400);
   });
 

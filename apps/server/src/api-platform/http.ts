@@ -4,7 +4,8 @@ import { apiError, type ApiPrincipal } from './types.js';
 
 /** Replays a create with the same requestId (body) or Idempotency-Key (header) for the same principal. */
 export async function withIdempotency(c: Context, next: Next): Promise<Response | void> {
-  if (c.req.method !== 'POST') return next();
+  // Mint responses carry a raw token; never store or replay them.
+  if (c.req.method !== 'POST' || c.req.path === '/api/v1/api-keys') return next();
   const body = (await c.req.json().catch(() => null)) as { requestId?: unknown } | null;
   const requestId = typeof body?.requestId === 'string' && body.requestId ? body.requestId : c.req.header('idempotency-key');
   if (!requestId) return next();
