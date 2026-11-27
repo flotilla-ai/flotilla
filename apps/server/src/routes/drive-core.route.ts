@@ -22,7 +22,7 @@ export function createDriveRoute(store = () => driveStore()) {
   app.get('/drive/items/:id', async (c) => c.json(await store().item(userId(c), c.req.param('id')!)));
   app.get('/drive/items/:id/content', async (c) => {
     const item = await store().item(userId(c), c.req.param('id')!);
-    return c.body(new Uint8Array(await store().content(item)), 200, { 'content-type': 'application/octet-stream', 'x-content-type-options': 'nosniff', 'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(item.name)}` });
+    return c.body(new Uint8Array(await store().content(item)), 200, { 'content-type': 'application/octet-stream', 'x-content-type-options': 'nosniff', 'x-flotilla-drive-version': String(item.version), 'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(item.name)}` });
   });
   app.delete('/drive/items/:id', async (c) => { await store().remove(await store().item(userId(c), c.req.param('id')!, true)); return c.body(null, 204); });
   app.get('/drive/items/:id/versions', async (c) => c.json({ items: await store().versions(await store().item(userId(c), c.req.param('id')!)) }));

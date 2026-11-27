@@ -229,7 +229,7 @@ describe('drive core', () => {
     expect(current.version).toBe(2);
     const merged = await json(await put('admin', 'user', 'merge.md', 'base\nsecond\n', '&baseVersion=1'));
     expect(merged.version).toBe(3);
-    expect(await (await call('admin', `/drive/items/${item.id}/content`)).text()).toBe('base\nfirst\nsecond\n');
+    const latest=await call('admin', `/drive/items/${item.id}/content`);expect(latest.headers.get('x-flotilla-drive-version')).toBe('3');expect(await latest.text()).toBe('base\nfirst\nsecond\n');
     expect((await put('admin', 'user', 'merge.md', 'replacement', '&baseVersion=1')).status).toBe(409);
     for (const [v, text] of [[1, 'base\n'], [2, 'base\nfirst\n'], [3, 'base\nfirst\nsecond\n']] as const) {
       const r = await call('admin', `/drive/items/${item.id}/versions/${v}/content`);
