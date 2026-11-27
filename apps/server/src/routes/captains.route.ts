@@ -26,7 +26,7 @@ async function limitedBody(raw: Request, maxBytes: number): Promise<Buffer> {
   }
   return Buffer.concat(chunks);
 }
-type CreateThread = (input: { ownerId: string; projectId?: string | null; title: string; prompt: string; engine?: unknown }) => Promise<Record<string, any>>;
+type CreateThread = (input: { ownerId: string; projectId?: string | null; title: string; prompt: string; engine?: unknown; maxUsd?: number | null; draft?: boolean }) => Promise<Record<string, any>>;
 
 /** Captain CRUD, profile/photo/placement and crew REST endpoints. */
 export function createCaptainsRoute(pool = new pg.Pool({ connectionString: process.env.DATABASE_URL ?? 'postgres://postgres@postgres:5432/flotilla' }), createThread: CreateThread = (input) => defaultRunner().createThread(input as never) as Promise<Record<string, any>>, message: (threadId: string, text: string, userId: string) => Promise<unknown> = (threadId, text, user) => defaultRunner().message(threadId, text, 'queue', user)) {
@@ -54,9 +54,29 @@ export function createCaptainsRoute(pool = new pg.Pool({ connectionString: proce
     const captain = await api.owned(userId(c), c.req.param('id'));
     const b = await jsonBody(c);
     if (!b.title || !b.prompt) throw new ApiFailure('ValidationFailed', 'title and prompt are required');
-    const thread = await createThread({ ownerId: userId(c), projectId: captain.project_id ?? null, title: String(b.title), prompt: String(b.prompt), engine: b.engine });
-    const membership = await addCrew(pool, userId(c), c.req.param('id'), String(thread.id));
-    return c.json({ thread, membership }, 201);
+    const requestedInput = b.maxUsd ?? b.budget;
+    if (requestedInput !== undefined && requestedInput !== null && (!Number.isFinite(Number(requestedInput)) || Number(requestedInput) < 0)) throw new ApiFailure('ValidationFailed', 'maxUsd must be a non-negative number');
+    const lock = await pool.connect();
+    try {
+      await lock.query('SELECT pg_advisory_lock(hashtext($1))', [captain.id]);
+      const active = Number((await lock.query(`SELECT count(*)::int n FROM threads WHERE crew_of=$1 AND status IN ('queued','working','paused')`, [captain.id])).rows[0]?.n ?? 0);
+      const maxCrew = Number(captain.max_concurrent_crew ?? 5);
+      if (active >= maxCrew) throw new ApiFailure('Conflict', 'Captain crew concurrency limit reached');
+      const policy = (captain.budget ?? {}) as Record<string, unknown>; const spent = (captain.spent ?? {}) as Record<string, unknown>;
+      let maxUsd: number | null = requestedInput == null ? null : Number(requestedInput);
+      if (policy.maxUsd != null) {
+        const remaining = Math.max(0, Number(policy.maxUsd) - Number(spent.usd ?? 0));
+        maxUsd = maxUsd == null ? remaining : Math.min(maxUsd, remaining);
+        if (maxUsd <= 0) throw new ApiFailure('Conflict', 'Captain subtree budget exhausted');
+      }
+      const thread = await createThread({ ownerId: userId(c), projectId: captain.project_id ?? null, title: String(b.title), prompt: String(b.prompt), engine: b.engine, maxUsd, draft: true });
+      const membership = await addCrew(pool, userId(c), c.req.param('id'), String(thread.id));
+      await message(String(thread.id), String(b.prompt), userId(c));
+      return c.json({ thread: { ...thread, crew_of: captain.id }, membership }, 201);
+    } finally {
+      await lock.query('SELECT pg_advisory_unlock(hashtext($1))', [captain.id]).catch(() => undefined);
+      lock.release();
+    }
   });
   app.post('/:id/crew/:threadId', async (c) => { const m = await addCrew(pool, userId(c), c.req.param('id'), c.req.param('threadId')); return c.json(m, m.existing ? 200 : 201); });
   app.post('/:id/crew/:threadId/archive', async (c) => { await archiveCrew(pool, userId(c), c.req.param('id'), c.req.param('threadId')); return c.json({ archived: true }); });

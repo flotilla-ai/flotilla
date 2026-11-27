@@ -9,7 +9,7 @@ import { createCaptainsRoute } from '../routes/captains.route.js';
 
 const exec = promisify(execFile);
 let container = ''; let pool: pg.Pool; let app: Hono;
-const madeThreads: Record<string, unknown>[] = [];
+const madeThreads: Record<string, unknown>[] = []; const sentMessages: string[] = [];
 async function call(method: string, path: string, body?: unknown, raw?: Buffer) {
   const headers: Record<string, string> = { 'x-user': 'usr_cap' };
   if (raw) headers['content-type'] = 'image/png'; else if (body !== undefined) headers['content-type'] = 'application/json';
@@ -29,7 +29,7 @@ beforeAll(async () => {
     return { id, title: input.title };
   };
   app = new Hono(); app.use('*', async (c, next) => { c.set('userId' as never, 'usr_cap' as never); await next(); }); app.onError((err, c) => err instanceof ApiFailure ? apiError(c, err.kind, err.message) : apiError(c, 'Internal', String(err)));
-  app.route('/api/v1/captains', createCaptainsRoute(pool, createThread as never, async () => undefined).app);
+  app.route('/api/v1/captains', createCaptainsRoute(pool, createThread as never, async (threadId, text) => { sentMessages.push(`${threadId}:${text}`); }).app);
 }, 30_000);
 afterAll(async () => { await pool?.end(); if (container) spawn('sh', ['-c', `sleep 5; docker rm -f ${container}`], { detached: true, stdio: 'ignore' }).unref(); });
 
@@ -56,12 +56,19 @@ it('CAPY-094/492/493/555..561: Captain profile, photo, placement metadata and cr
   expect((await call('GET', `/${captain.id}/placement`)).json).toEqual({ crewRunsOn: 'pool', deviceId: null, threadMachines: {} });
   expect((await call('PUT', `/${captain.id}/placement`, { crewRunsOn: 'device', deviceId: 'dev_x' })).status).toBe(409);
 
-  const crewThread = await call('POST', `/${captain.id}/crew-thread`, { title: 'Investigate', prompt: 'look at ops' });
+  await pool.query('UPDATE threads SET budget=$2 WHERE id=$1', [captain.id, JSON.stringify({ maxUsd: 10 })]);
+  await pool.query('UPDATE threads SET spent=$2 WHERE id=$1', [captain.id, JSON.stringify({ usd: 4 })]);
+  const crewThread = await call('POST', `/${captain.id}/crew-thread`, { title: 'Investigate', prompt: 'look at ops', maxUsd: 9 });
   expect(crewThread.status).toBe(201); expect(crewThread.json.membership).toMatchObject({ captainId: captain.id, existing: false });
-  expect(madeThreads[0]).toMatchObject({ ownerId: 'usr_cap', projectId: 'prj_cap', title: 'Investigate', prompt: 'look at ops' });
+  expect(madeThreads[0]).toMatchObject({ ownerId: 'usr_cap', projectId: 'prj_cap', title: 'Investigate', prompt: 'look at ops', maxUsd: 6, draft: true });
+  expect(crewThread.json.thread.crew_of).toBe(captain.id);
+  expect(sentMessages.at(-1)).toBe(`${crewThread.json.thread.id}:look at ops`);
   const crewId = crewThread.json.thread.id;
   expect((await call('PUT', `/${captain.id}/placement`, { crewRunsOn: 'pool', threadMachines: { [crewId]: 'builder-1' } })).json.threadMachines).toEqual({ [crewId]: 'builder-1' });
   expect((await call('PUT', `/${captain.id}/placement`, { crewRunsOn: 'pool', threadMachines: { thr_missing: 'builder-1' } })).status).toBe(400);
+  await pool.query('UPDATE threads SET status=$2 WHERE id=$1', [crewId, 'working']);
+  await pool.query('UPDATE captains SET max_concurrent_crew=1 WHERE thread_id=$1', [captain.id]);
+  expect((await call('POST', `/${captain.id}/crew-thread`, { title: 'Too many', prompt: 'x' })).status).toBe(409);
 
   await pool.query(`INSERT INTO threads (id,code,project_id,role,owner_id,title,status,engine,budget,spent) VALUES ('thr_manual','thr_manual','prj_cap','thread','usr_cap','manual','idle','{}','{}','{}')`);
   expect((await call('POST', `/${captain.id}/crew/thr_manual`)).status).toBe(201);
