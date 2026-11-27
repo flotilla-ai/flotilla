@@ -565,12 +565,12 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-559 | API: captains | P2 | done | phase2-21 |  | Add crew endpoint enforces ownership/project membership rules. |
 | CAPY-560 | API: captains | P2 | done | phase2-21 |  | Remove crew endpoint deletes membership or returns 404. |
 | CAPY-561 | API: captains | P2 | done | phase2-21 |  | Get Captain digest endpoint returns durable digest Markdown. |
-| CAPY-562 | API: folders | P3 | done | phase3-17 |  |  Folder list API derives visible non-archived thread folders with counts.  |
-| CAPY-563 | API: folders | P3 | done | phase3-17 |  |  Folder threads API lists visible threads filed in a folder.  |
-| CAPY-564 | API: folders | P3 | done | phase3-17 |  |  File API moves a thread into a folder through lifecycle events.  |
-| CAPY-565 | API: folders | P3 | done | phase3-17 |  |  Unfile API clears a thread folder through lifecycle events.  |
-| CAPY-566 | API: folders | P3 | done | phase3-17 |  |  Pin API pins a thread through lifecycle events.  |
-| CAPY-567 | API: folders | P3 | done | phase3-17 |  |  Unpin API clears the pinned flag through lifecycle events.  |
+| CAPY-562 | API: folders | P3 | done | phase3-17 | #82 |  Folder list API derives visible non-archived thread folders with counts.  |
+| CAPY-563 | API: folders | P3 | done | phase3-17 | #82 |  Folder threads API lists visible threads filed in a folder.  |
+| CAPY-564 | API: folders | P3 | done | phase3-17 | #82 |  File API moves a thread into a folder through lifecycle events.  |
+| CAPY-565 | API: folders | P3 | done | phase3-17 | #82 |  Unfile API clears a thread folder through lifecycle events.  |
+| CAPY-566 | API: folders | P3 | done | phase3-17 | #82 |  Pin API pins a thread through lifecycle events.  |
+| CAPY-567 | API: folders | P3 | done | phase3-17 | #82 |  Unpin API clears the pinned flag through lifecycle events.  |
 | CAPY-568 | API: issues | P3 | done | phase3-18 |  |  List issues supports state, assignee, label and text filters.  |
 | CAPY-569 | API: issues | P3 | done | phase3-18 |  |  Create issue validates state, assignee, labels, due date and uploaded file ids.  |
 | CAPY-570 | API: issues | P3 | done | phase3-18 |  |  Get issue works by durable id or identifier.  |
@@ -608,9 +608,9 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-602 | API: messages | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-603 | API: messages | P2 | done | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | DELETE `/threads/:id/inbox/:item` cancels a queued message. |
 | CAPY-604 | API: messages | P2 | done | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | POST `/threads/:id/inbox/:item/send` jumps the queue and interrupts (or steers) the current turn. |
-| CAPY-605 | API: files | P3 | done | phase3-17 |  |  Upload grants and byte-exact completion were already in the API platform and are covered by the focused test.  |
-| CAPY-606 | API: attachments | P3 | done | phase3-17 |  |  Uploaded files/attachments list with cursor pagination through the API platform.  |
-| CAPY-607 | API: attachments | P3 | done | phase3-17 |  |  Owner-scoped download endpoint streams stored bytes with content type and attachment filename.  |
+| CAPY-605 | API: files | P3 | done | phase3-17 | #82 |  Upload grants and byte-exact completion were already in the API platform and are covered by the focused test.  |
+| CAPY-606 | API: attachments | P3 | done | phase3-17 | #82 |  Uploaded files/attachments list with cursor pagination through the API platform.  |
+| CAPY-607 | API: attachments | P3 | done | phase3-17 | #82 |  Owner-scoped download endpoint streams stored bytes with content type and attachment filename.  |
 | CAPY-608 | API: streams | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-609 | API: streams | P2 | done | phase2-19 |  | `GET /subagents/:id/stream` serves SSE directly from the Flotilla event store; regression in `subagent-core.test.ts`. |
 | CAPY-610 | API: streams | P2 | done | phase2-19 |  | `GET /threads/:id/stream` task SSE is served from the Flotilla event store; regression in `subagent-core.test.ts`. |
@@ -641,5 +641,5 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-635 | API: usage | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `GET /api/v1/usage?from&to` returns `UsageReport` (totals + byMember/byModel/byThread/byItem + machine); session or API key. |
 | CAPY-636 | API: usage | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `GET /api/v1/usage/series` returns `UsageSeries` points per UTC hour/day bucket and group key. |
 | CAPY-637 | API: usage | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `GET /api/v1/usage/balance` returns `BudgetWindow[]` (spent, reserved holds, remaining, ok/warn/hit); works with an API key. |
-| CAPY-638 | API: users | P3 | done | phase3-17 |  |  Organization users API lists non-service users with id, email and role.  |
+| CAPY-638 | API: users | P3 | done | phase3-17 | #82 |  Organization users API lists non-service users with id, email and role.  |
 | CAPY-639 | API: models | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | Existing `GET /api/v1/models` (phase2-04) proven with a bearer API key: catalog rows with connections; not duplicated. |
