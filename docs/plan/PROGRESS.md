@@ -1,7 +1,7 @@
 # Flotilla progress
 
 Current phase: phase 2, waves 3-6 continuing in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-Current `flotilla/p1` head before this PR: `36b34fd` (phase2-11 snapshots).
+Current `flotilla/p1` head: `e2e4c66` (phase2-31 Drive UX).
 
 ## Row counts
 
@@ -38,16 +38,15 @@ Counted in `docs/plan/PARITY.md` on this branch after Drive UX: done 197, pendin
 | phase2-12-machine-core | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/48 | machine leases/sleep/wake/RAM cap/billing; CAPY-206/207/212 blocked as recorded |
 | phase2-11-snapshots | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/50 | snapshot build/scrub/history plus runner bootPlan wiring; all 6 rows done |
 | phase2-30-drive-core | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/51 | Drive store, versions, quota, thread mount/write-back, failure cards, `/drive` page; 9 rows done, 1 blocked (CAPY-277 BYOM); see `docs/runlog/phase2-30.md` |
-| phase2-31-drive-ux | in review | 1 |  | share links/access/shared view, thread side-pane editing, Markdown outline, append merge, version compare, sub-second mount proof; 4 rows done; see `docs/runlog/phase2-31.md` |
+| phase2-31-drive-ux | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/56 | share links/access/shared view, thread side-pane editing, Markdown outline, append merge, version compare, sub-second mount proof; 4 rows done; see `docs/runlog/phase2-31.md` |
 | phase2-36-usage-billing-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/54 | usage report/series/balance API, monthly org/project budget windows, machine-minute pricing, run-out free ask/forbid, `/usage` page; 9 rows done; see `docs/runlog/phase2-36.md` |
 | phase2-32-rules | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/53 | layered rules loader, shared context budget, kernel rules, context breakdown, Memory/Captain experiments; 11 rows done; see `docs/runlog/phase2-32.md` |
 | phase2-34-mcp | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/55 | MCP registry/plugins; rows/statuses in `docs/runlog/phase2-34.md` |
 
 ## Next action
 
-1. Merge phase2-31 Drive UX when CI/review pass.
-2. Continue machine UX/devices/dock and Captain/work-surface units directly in the parent session. CAPY-061/062 need a paired-device target and an agent-callable subagent tool.
-3. Repair runner queue so failed starts requeue undelivered inbox items instead of dropping them.
+1. Continue machine UX/devices/dock and Captain/work-surface units directly in the parent session. CAPY-061/062 need a paired-device target and an agent-callable subagent tool.
+2. Repair runner queue so failed starts requeue undelivered inbox items instead of dropping them.
 
 ## Phase 1 summary (preserved)
 
