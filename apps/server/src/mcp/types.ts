@@ -92,8 +92,8 @@ function fromEntry(key: string, e: Record<string, any>, warnings: string[]): Mcp
   const url = e.url ?? e.serverUrl;
   if (e.type === 'sse') warnings.push(`${key}: legacy SSE transport imported as Streamable HTTP`);
   const auth: McpAuthInput = headers.length ? { kind: 'headers', headers } : { kind: 'none' };
-  if (url) return parseServerInput({ key: slug(key), name: key, transport: 'http', url, auth });
-  return parseServerInput({ key: slug(key), name: key, transport: 'stdio', command: [e.command, ...(e.args ?? [])], env: e.env, auth });
+  if (url) return parseServerInput({ key: slug(key), name: key, transport: 'http', url, auth, enabled: e.enabled !== false });
+  return parseServerInput({ key: slug(key), name: key, transport: 'stdio', command: [e.command, ...(e.args ?? [])], env: e.env, auth, enabled: e.enabled !== false });
 }
 
 /** Claude Code JSON (`mcpServers`), Codex TOML (`[mcp_servers.x]`), a URL, or a command line. */
