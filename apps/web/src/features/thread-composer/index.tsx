@@ -21,18 +21,18 @@ export function CommandPalette(){
  return <dialog open className='card palette' aria-label='command palette'><input autoFocus aria-label='go to thread' value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&hits[0])go(hits[0])}}/>{hits.map(t=><button key={t.id} onClick={()=>go(t)}>{t.code} {t.title}</button>)}</dialog>;
 }
 
-function Composer({value,setValue,onSend,threadId}:{value:string;setValue:(v:string)=>void;onSend:(text:string,files:Attachment[],mode:'queue'|'interrupt')=>Promise<void>;threadId?:string}){
- const[keymap,setKeymap]=useState<ComposerKeymap>(()=>loadKeymap(localStorage));const[files,setFiles]=useState<Attachment[]>([]);const[hits,setHits]=useState<Ref[]>([]);const ta=useRef<HTMLTextAreaElement>(null);
- const send=async(mode:'queue'|'interrupt'='queue')=>{if(!value.trim()&&!files.length)return;await onSend(value,files,mode);setValue('');setFiles([])};
+function Composer({value,setValue,onSend,threadId,attach=true}:{value:string;setValue:(v:string)=>void;onSend:(text:string,files:Attachment[],mode:'queue'|'interrupt')=>Promise<void>;threadId?:string;attach?:boolean}){
+ const[keymap,setKeymap]=useState<ComposerKeymap>(()=>loadKeymap(localStorage));const[files,setFiles]=useState<Attachment[]>([]);const[hits,setHits]=useState<Ref[]>([]);const[uploading,setUploading]=useState(0);const ta=useRef<HTMLTextAreaElement>(null);
+ const send=async(mode:'queue'|'interrupt'='queue')=>{if(uploading||!value.trim()&&!files.length)return;await onSend(value,files,mode);setValue('');setFiles([])};
  const changed=(v:string,caret:number)=>{setValue(v);const m=mentionQuery(v,caret);if(m)void lookup(m).then(setHits);else setHits([])};
  const mention=(t:Ref)=>{const c=ta.current?.selectionStart??value.length;const head=value.slice(0,c).replace(/@[\w-]*$/,`@${t.code} `);setValue(head+value.slice(c));setHits([])};
  return <form className='composer' onSubmit={e=>{e.preventDefault();void send()}}>
   <textarea ref={ta} aria-label='message' value={value} onChange={e=>changed(e.target.value,e.target.selectionStart)} onKeyDown={e=>{const a=keyAction(keymap,e);if(!a)return;e.preventDefault();if(a==='send')void send();else{const t=e.currentTarget,s=t.selectionStart;setValue(value.slice(0,s)+'\n'+value.slice(t.selectionEnd));requestAnimationFrame(()=>t.setSelectionRange(s+1,s+1))}}}/>
   {hits.map(t=><button type='button' key={t.id} onClick={()=>mention(t)}>@{t.code} {t.title}</button>)}
   {files.map(f=><small key={f.fileId}>{f.name}</small>)}
-  <input type='file' multiple aria-label='attach' onChange={e=>{const l=[...(e.target.files??[])];e.target.value='';void Promise.all(l.map(upload)).then(x=>setFiles(f=>[...f,...x]))}}/>
+  {attach&&<input type='file' multiple aria-label='attach' onChange={e=>{const l=[...(e.target.files??[])];e.target.value='';setUploading(n=>n+l.length);void Promise.all(l.map(upload)).then(x=>setFiles(f=>[...f,...x])).finally(()=>setUploading(n=>n-l.length))}}/>}
   <select aria-label='send key' value={keymap.send} onChange={e=>{const k={send:e.target.value as ComposerKeymap['send']};saveKeymap(localStorage,k);setKeymap(k)}}><option value='enter'>Enter sends</option><option value='mod+enter'>⌘/Ctrl+Enter sends</option></select>
-  <button type='submit'>Queue</button>
+  <button type='submit' disabled={uploading>0}>Queue</button>
   {threadId&&<><button type='button' onClick={()=>void send('interrupt')}>Interrupt</button><button type='button' onClick={()=>void api(`/threads/${threadId}/stop`,{method:'POST'})}>Stop</button></>}
  </form>;
 }
@@ -69,7 +69,7 @@ export function ThreadComposer({threadId,events:raw}:{threadId:string;events:Ev[
  return <>
   <nav className='ticks' aria-label='ticks'>{humans.map((e,i)=><button key={e.seq} aria-label={`Jump to ask ${i+1}`} onClick={()=>document.getElementById(`ev-${e.seq}`)?.scrollIntoView({block:'start'})}/>)}</nav>
   <section className='events'>{items.map(x=>x.kind==='work'?<details key={`w${x.seq}`} data-seq={x.seq}><summary>{x.label}</summary>{x.events.map(e=><small key={e.seq}>{e.kind}</small>)}</details>
-   :x.event.kind==='agent.message'?<article key={x.event.seq} id={`ev-${x.event.seq}`} data-seq={x.event.seq}>{sections(x.event.seq,text(x.event)).map(s=><section key={s.index}>{s.heading&&<h3>{s.heading}</h3>}<p>{s.text}</p><button onClick={()=>reply(s)}>Reply</button></section>)}</article>
+   :(x.event.kind==='agent.message'||x.event.kind==='agent.delta')?<article key={x.event.seq} id={`ev-${x.event.seq}`} data-seq={x.event.seq}>{sections(x.event.seq,text(x.event)).map(s=><section key={s.index}>{s.heading&&<h3>{s.heading}</h3>}<p>{s.text}</p><button onClick={()=>reply(s)}>Reply</button></section>)}</article>
    :<article key={x.event.seq} id={`ev-${x.event.seq}`} data-seq={x.event.seq}><small>{x.event.kind}</small><p>{text(x.event)}</p></article>)}</section>
   <RequestCards threadId={threadId}/>
   <Composer threadId={threadId} value={draft} setValue={setDraft} onSend={send}/>
@@ -79,7 +79,7 @@ export function ThreadComposer({threadId,events:raw}:{threadId:string;events:Ev[
 function Compose(){
  const[projects,setProjects]=useState<{id:string;name:string}[]>([]);const[projectId,setProject]=useState('');const[draft,setDraft]=useState(()=>deepLinkPrompt(location.hash,location.search));
  useEffect(()=>{api('/projects').then(setProjects).catch(()=>{})},[]);
- const create=async(text:string,files:Attachment[])=>{const t=await api('/threads',{method:'POST',body:JSON.stringify({projectId:projectId||null,title:text.split('\n')[0].slice(0,80),prompt:text,engine:'fake'})});if(files.length)await api(`/threads/${t.id}/inbox`,{method:'POST',body:JSON.stringify({text:'Attached files',mode:'queue',attachments:files.map(f=>f.fileId)})});location.hash=`#/threads/${t.id}`};
- return <main><h1>New thread</h1><select aria-label='project' value={projectId} onChange={e=>setProject(e.target.value)}><option value=''>No project</option>{projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select><Composer value={draft} setValue={setDraft} onSend={create}/></main>;
+ const create=async(text:string)=>{const t=await api('/threads',{method:'POST',body:JSON.stringify({projectId:projectId||null,title:text.split('\n')[0].slice(0,80),prompt:text,engine:'fake'})});location.hash=`#/threads/${t.id}`};
+ return <main><h1>New thread</h1><select aria-label='project' value={projectId} onChange={e=>setProject(e.target.value)}><option value=''>No project</option>{projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select><Composer value={draft} setValue={setDraft} onSend={create} attach={false}/></main>;
 }
 export default {path:'/compose',element:<Compose/>,nav:'Compose'}

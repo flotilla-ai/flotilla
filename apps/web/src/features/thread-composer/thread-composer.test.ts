@@ -23,4 +23,9 @@ describe('thread composer helpers',()=>{
  it('CAPY-471: ?prompt= deep link pre-fills the composer',()=>{
   expect(deepLinkPrompt('#/compose?prompt=Fix%20the%20login%0Anow','')).toBe('Fix the login\nnow');expect(deepLinkPrompt('#/compose','?prompt=hi')).toBe('hi');expect(deepLinkPrompt('#/compose','')).toBe('');
  });
+ it('CAPY-027: streamed agent.delta chunks merge into one sectioned reply',()=>{
+  const f=fold([{seq:1,kind:'agent.delta',payload:{text:'# A\none'}},{seq:2,kind:'agent.delta',payload:{text:'\n# B\ntwo'}},{seq:3,kind:'run.ended',payload:{}},{seq:4,kind:'agent.delta',payload:{text:'x'}}]);
+  expect(f.map(x=>x.kind)).toEqual(['event','work','event']);
+  const e=f[0].kind==='event'?f[0].event:null;expect(sections(e!.seq,e!.payload.text).map(s=>s.heading)).toEqual(['A','B']);
+ });
 });

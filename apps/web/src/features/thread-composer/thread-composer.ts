@@ -17,10 +17,13 @@ export function sections(seq:number,text:string):ThreadSection[]{
  flush();return out;
 }
 export const quote=(s:ThreadSection)=>[...(s.heading?[`**${s.heading}**`]:[]),...s.text.split('\n')].map(l=>`> ${l}`).join('\n')+'\n\n';
+const evText=(e:Ev):string=>typeof e.payload==='string'?e.payload:e.payload?.text??e.payload?.delta??'';
 const SHOWN=new Set(['user.message','agent.message','agent.delta','approval.requested']);
 export function fold(events:Ev[]):Folded[]{
  const out:Folded[]=[];
  for(const e of [...events].sort((a,b)=>a.seq-b.seq)){
+  const prev=out.at(-1);
+  if(e.kind==='agent.delta'&&prev?.kind==='event'&&prev.event.kind==='agent.delta'){prev.event={...prev.event,payload:{text:evText(prev.event)+evText(e)}};continue}
   if(SHOWN.has(e.kind)){out.push({kind:'event',event:e});continue}
   const last=out.at(-1);const group=last?.kind==='work'?last:(out.push({kind:'work',seq:e.seq,label:'',events:[]}),out.at(-1) as Extract<Folded,{kind:'work'}>);
   group.events.push(e);const calls=group.events.filter(x=>x.kind==='agent.tool_call').length;group.label=`Worked · ${calls} tool call${calls===1?'':'s'}`;

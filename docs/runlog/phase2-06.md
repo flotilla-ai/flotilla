@@ -91,3 +91,12 @@ EXIT 0
 - CAPY-012: images are passed to vendors as files only. The fake adapter declares `images: false`, so native image input to Claude Code/Codex is unverified (needs a vendor login; owned by the adapter units).
 - CAPY-472: the feedback tracker is any HTTP endpoint in `FLOTILLA_FEEDBACK_URL` that accepts `POST {title, body, threadId, threadCode}`. Not tried against GitHub/Linear. An agent-side MCP tool that drafts feedback is not wired; the owner drafts the report with `/feedback` or the API.
 - CAPY-032: "This Mac" (paired host machine) without a repo is not exercised here. Only the pool machine `/workspace` path is proven.
+
+## Devin Review round 1 (commit 7160463)
+
+- Fixed: streamed `agent.delta` chunks now merge into one reply that gets sections and Reply buttons (unit test added).
+- Fixed: Queue is disabled while files are still uploading, so a message cannot go out without its pending files.
+- Fixed: the New thread composer no longer offers attachments. `POST /threads` cannot carry file ids yet, and the old follow-up "Attached files" message reached the agent after the first prompt had already started. Attach from the thread composer instead.
+- Escalated: a feedback draft also shows on Needs you, and its generic Approve (`POST /approvals/:id/answer`) closes the draft without sending it. The fix belongs in the runner's generic answer path or the Needs-you filter (outside this unit).
+- Escalated: to attach files to a thread's first prompt, `ThreadRunner.createThread` and `POST /threads` need to accept attachment ids (outside this unit).
+- `make check` after round-1 fixes: exit 0; server 21 files, 123 passed, 1 skipped; web unit 5/5 composer; Playwright 16 passed.
