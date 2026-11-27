@@ -220,7 +220,7 @@ describe('secrets vault', () => {
     expect(await status()).toBe('failed');
     expect((await pool.query('SELECT state FROM runs WHERE thread_id=$1', [t.id])).rows).toEqual([{ state: 'failed' }]);
     expect(await runEnded(t.id)).toEqual([{ state: 'failed' }]);
-    expect(r.queued.get(t.id) ?? []).toEqual([]);
+    expect((await pool.query(`SELECT count(*)::int n FROM thread_inbox WHERE thread_id=$1 AND state='pending'`, [t.id])).rows[0].n).toBe(0);
   }, 20_000);
   it('CAPY-385: a failed secrets-file copy fails machine preparation before the agent starts', async () => {
     const failing = { ...driver, copyIn: async () => { throw new Error('putArchive failed'); }, stop: async () => undefined };
@@ -235,7 +235,7 @@ describe('secrets vault', () => {
     expect((await pool.query('SELECT state FROM runs WHERE thread_id=$1', [t.id])).rows).toEqual([{ state: 'failed' }]);
     expect((await pool.query('SELECT count(*)::int n FROM budget_holds WHERE scope_id=$1', [t.id])).rows[0].n).toBe(0);
     expect(await runEnded(t.id)).toEqual([{ state: 'failed' }]);
-    expect(r.queued.get(t.id) ?? []).toEqual([]);
+    expect((await pool.query(`SELECT count(*)::int n FROM thread_inbox WHERE thread_id=$1 AND state='pending'`, [t.id])).rows[0].n).toBe(0);
   }, 20_000);
 
   it('a thread at its spending cap pauses for budget approval even when the vault is unreadable', async () => {
