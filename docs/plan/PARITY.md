@@ -305,22 +305,22 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-299 | Skills | P2 | done | phase2-33 | https://github.com/flotilla-ai/flotilla/pull/52 | `parseSkillMd`/`validateSkill`: YAML frontmatter `name` + `description` required, name must match folder (lowercase-hyphen, <=64), description <=1024, folder <=256 KB; invalid folders are listed Not loaded with the reason. |
 | CAPY-300 | Skills | P2 | done | phase2-33 | https://github.com/flotilla-ai/flotilla/pull/52 | `GET /skills` returns load state per folder (loaded / not-loaded+reason / replaced+by; precedence repo > Drive project > Drive personal > plugin > built-in); `PUT /skills/disabled` turns one off. Web `#/skills` page (personal or per-project picker) shows Loaded / Not loaded: <reason> / Replaced by <source> with Turn on/off (render test). |
 | CAPY-301 | Skills | P2 | done | phase2-33 | https://github.com/flotilla-ai/flotilla/pull/52 | `POST /skills/import {from: claude-code|cursor|skills-cli, files}` copies `…/skills/<folder>/…` or `<folder>/…` trees into Drive skills keeping supporting files and origin. Reading those folders from the user's own disk (CLI/upload picker) is not built. |
-| CAPY-302 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-303 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-302 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | Remote (Streamable HTTP) + STDIO registry; runner writes 0600 `/run/flotilla/mcp.json` and passes `mcpConfigPath` only when `capabilities.mcp`; live Claude `--mcp-config` load unverified. |
+| CAPY-303 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | Server `key` is the config key and tool prefix (`mcp__<key>__<tool>`); unique per owner, 409 on clash. |
 | CAPY-304 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-305 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-305 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | none / encrypted API-key headers / OAuth with refresh 60 s before expiry; `${VAR}` headers resolve from thread env vars; local OAuth fixture. |
 | CAPY-306 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-307 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-308 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-309 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-310 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-311 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-307 | MCP & plugins | P2 | needs-human-login | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | BYO client id/secret + PKCE + redirect `${FLOTILLA_PUBLIC_URL}/api/v1/mcp/oauth/callback` proven against a local token fixture; real provider sign-in needs a login (runlog). |
+| CAPY-308 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | Agent proposal becomes a `kind=mcp` Review card (Approve/Decline); approve creates the server; web Review card on `#/mcp`. |
+| CAPY-309 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | Import Claude Code JSON, Codex TOML subset, URL, command line (`POST /mcp/import`). |
+| CAPY-310 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | Statuses, Test (config/auth/connect/initialize/tools) with failing step, 403 checklist; web row on `#/mcp`. STDIO connect checked on the thread machine only. |
+| CAPY-311 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | Test/OAuth errors scrubbed of every configured value >=8 chars (exact, via core `scrubString`); MCP values also join run event scrubbing. |
 | CAPY-312 | MCP & plugins | P4 | pending |  |  | Awaiting phase P4 unit. |
 | CAPY-313 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-314 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-315 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-316 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-317 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-317 | MCP & plugins | P2 | blocked | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | Proposal API `POST /threads/:id/mcp/proposals` + in-thread card proven; no agent-callable tool path from the thread machine yet (same gap as environment tools). |
 | CAPY-318 | Models & connections | P2 | needs-human-login | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | catalog rows (adapter+model, list price, BYOK, ZDR) proven with built-in free + operator fixture file; real vendor rows/prices: operator fills FLOTILLA_MODEL_CATALOG. |
 | CAPY-319 | Models & connections | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate the real default vendor model list/configuration with vendor login. |
 | CAPY-320 | Models & connections | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
@@ -522,8 +522,8 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-516 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-517 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-518 | GitHub | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-519 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-520 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-519 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | rename / enable / widen proposals answered via `/approvals/:id/answer` apply in one click; decline leaves the server unchanged. |
+| CAPY-520 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | OAuth start returns "Finish in your browser"; row shows Cancel; cancelled flows cannot complete (404). |
 | CAPY-521 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-522 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-523 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |

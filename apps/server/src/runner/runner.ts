@@ -9,7 +9,8 @@ import { seedWorkspace } from '../git/mirror.js';
 import type { AgentAdapter } from '@flotilla/core/types';
 import { getRunTokenService } from '../captain/tools/registry.js';
 import { captainMcpTar, tarFile } from '../captain/tools/mcpConfig.js';
-import { secretsTar, type SecretsStore } from '../secrets/store.js';
+import { secretsTar, tarFile as secretTar, type SecretsStore } from '../secrets/store.js';
+import type { McpStore } from '../mcp/store.js';
 import type { EnvVarMutation, PreparedSecrets } from '../secrets/types.js';
 import { ApiFailure } from '../api-platform/types.js';
 import { DELIVERY_MODES, PLAN_PROMPT, RunnerQueue, adapterError, parseCommand, type AdapterError, type ContextMeter, type DeliveryMode, type ThreadInboxItem } from './runner-queue.js';
@@ -22,7 +23,7 @@ const id = (p: string) => `${p}_${randomBytes(10).toString('base64url')}`;
 const budget = (maxUsd: number | null = null) => ({ maxUsd, maxTokens: null, maxWallSec: null, scope: 'thread' as const, onHit: 'pause-and-ask' as const, warnAt: 0.8 });
 /** Pre-run budget checks beyond the thread's own cap (e.g. monthly org/project windows); the first reason found pauses the run. */
 export const runGates: ((thread: Row) => Promise<{ why: string; shared: boolean } | null>)[] = [];
-export type RunnerDeps = { store: EventStore; driver: Driver; adapters: Map<string, AgentAdapter>; secrets?: Record<string,string>; projectFor?(row: Row): Row; vault?: Pick<SecretsStore, 'mutate' | 'prepare'>; resolveEngine?(userId: string, engine: Row): Promise<{ adapter: string; model: string | null; effort: unknown; connectionId: string | null; contextWindow?: number }>; runOut?: { onRunOut(threadId: string): Promise<{ switchedTo: string } | { approvalId: string }>; answer(approval: Row, optionId: string): Promise<boolean | void> } };
+export type RunnerDeps = { store: EventStore; driver: Driver; adapters: Map<string, AgentAdapter>; secrets?: Record<string,string>; projectFor?(row: Row): Row; vault?: Pick<SecretsStore, 'mutate' | 'prepare'>; resolveEngine?(userId: string, engine: Row): Promise<{ adapter: string; model: string | null; effort: unknown; connectionId: string | null; contextWindow?: number }>; runOut?: { onRunOut(threadId: string): Promise<{ switchedTo: string } | { approvalId: string }>; answer(approval: Row, optionId: string): Promise<boolean | void> }; mcp?: Pick<McpStore, 'prepare' | 'answer'> };
 type AfterRun=(input:{thread:Row;project:Row|null;runId:string;state:string;containerId:string;driver:Driver})=>Promise<void>;
 const afterRunHooks:AfterRun[]=[];
 export function onAfterRun(fn:AfterRun):()=>void{afterRunHooks.push(fn);return()=>{const i=afterRunHooks.indexOf(fn);if(i>=0)afterRunHooks.splice(i,1)}}
@@ -158,6 +159,7 @@ export class ThreadRunner {
     const approval = rows.rows[0]; if (!approval) return null;
     if (approval.kind === 'budget' && optionId === 'raise' && value && !(approval.detail as Row | null)?.shared) await this.pool.query(`UPDATE threads SET budget=jsonb_set(budget,'{maxUsd}',to_jsonb($2::int)),status='queued' WHERE id=$1`, [approval.thread_id, value]);
     if (approval.kind === 'budget' && optionId === 'stop') await this.stop(approval.thread_id);
+    if (approval.kind === 'mcp') await this.deps.mcp?.answer(approval, optionId, userId).catch(async (err) => { await this.pool.query(`UPDATE approvals SET state='open',answer=NULL WHERE id=$1`, [approvalId]); throw err; });
     let resume = approval.kind === 'run-out' && optionId === 'use';
     if (approval.kind === 'run-out' && (await this.deps.runOut?.answer(approval, optionId)) === false) resume = false;
     if (resume) await this.pool.query(`UPDATE threads SET status='queued' WHERE id=$1`, [approval.thread_id]);
@@ -237,10 +239,15 @@ export class ThreadRunner {
       }
     }
     if (runToken && 'copyIn' in this.deps.driver) await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', captainMcpTar(runToken.token)).catch(() => undefined);
+    const mcp = !runToken && adapter.manifest.capabilities?.mcp && 'copyIn' in this.deps.driver ? await this.deps.mcp?.prepare(threadId, prepared.env).catch(() => null) ?? null : null;
+    if (mcp) try { await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', Buffer.concat([secretTar('flotilla/mcp.json', Buffer.from(JSON.stringify(mcp.config)), '0000600'), Buffer.alloc(1024)])); } catch (err) {
+      await ((this.deps.driver as Driver & {remove?(id:string):Promise<void>}).remove?.(machine.containerId) ?? this.deps.driver.stop(machine.containerId)).catch(() => undefined);
+      return this.failStart(threadId, runId, new Error('MCP config could not be written to the machine', { cause: err }));
+    }
     let transport: ReturnType<Driver['transport']>;
     try { transport = this.deps.driver.transport(machine.containerId); } catch (err) { tokenService?.endRun(runId); throw err; }
     let usage = { ...zero }; let state: 'completed' | 'cancelled' | 'failed' | 'paused_budget' | 'run_out' = 'completed'; let error: AdapterError | null = null; const started = Date.now();
-    const eventSecrets = { ...this.deps.secrets, ...prepared.env, ...(runToken ? { FLOTILLA_MCP_TOKEN: runToken.token } : {}) };
+    const eventSecrets = { ...this.deps.secrets, ...prepared.env, ...(runToken ? { FLOTILLA_MCP_TOKEN: runToken.token } : {}), ...mcp?.secrets };
     const scrubber = createDeltaScrubber(eventSecrets);
     const item = await this.inbox.claim(threadId, runId); const planRun = item?.plan === true || thread.plan_mode === true;
     if (item?.plan && !thread.plan_mode) await this.pool.query('UPDATE threads SET plan_mode=true WHERE id=$1', [threadId]);
@@ -252,7 +259,7 @@ export class ThreadRunner {
     const eng = thread.engine as { model?: string | null; effort?: string | null };
     this.live.set(threadId, { runId, adapter, sessionId: null });
     let stream: AsyncIterable<AdapterEvent>;
-    try { stream = adapter.start({ runId: runId as never, threadId: threadId as never, prompt, cwd, env: prepared.env, transport, resumeSessionId: null, attachments: files, model: eng.model ?? null, effort: eng.effort ?? null, contextWindow: (thread.engine as Row).contextWindow ?? null, vendorBudget: { maxMicroUsd: policy.maxUsd }, auth: { kind: 'none' }, mcpConfigPath: runToken ? '/run/flotilla/mcp.json' : null, images: [] } as never); } catch (err) { tokenService?.endRun(runId); throw err; }
+    try { stream = adapter.start({ runId: runId as never, threadId: threadId as never, prompt, cwd, env: prepared.env, transport, resumeSessionId: null, attachments: files, model: eng.model ?? null, effort: eng.effort ?? null, contextWindow: (thread.engine as Row).contextWindow ?? null, vendorBudget: { maxMicroUsd: policy.maxUsd }, auth: { kind: 'none' }, mcpConfigPath: runToken || mcp ? '/run/flotilla/mcp.json' : null, images: [] } as never); } catch (err) { tokenService?.endRun(runId); throw err; }
     try {
       for await (const event of stream) {
         if (this.cancelled.has(threadId)) { state = 'cancelled'; await adapter.cancel(runId as never).catch(() => undefined); break; }
