@@ -1,5 +1,6 @@
 import React,{useEffect,useRef,useState} from 'react';import {api} from '../../lib/api.js';
 import {deepLinkPrompt,fold,keyAction,loadKeymap,mentionQuery,quote,saveKeymap,sections,type ComposerKeymap,type Ev,type ThreadSection} from './thread-composer.js';
+import {keyEventAction,loadShortcuts} from '../keyboard-shortcuts/model.js';
 import './thread-composer.css';
 type Ref={id:string;code:string;title:string};type Attachment={fileId:string;name:string};
 type Card={id:string;title:string;inline:null|{kind:'env';name:string}|{kind:'desktop';url:string}|{kind:'feedback';title:string;body:string}};
@@ -14,7 +15,7 @@ async function upload(f:File):Promise<Attachment>{
 
 export function CommandPalette(){
  const[open,setOpen]=useState(false);const[q,setQ]=useState('');const[hits,setHits]=useState<Ref[]>([]);
- useEffect(()=>{const k=(e:KeyboardEvent)=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();setOpen(o=>!o)}if(e.key==='Escape')setOpen(false)};addEventListener('keydown',k);return()=>removeEventListener('keydown',k)},[]);
+ useEffect(()=>{const k=(e:KeyboardEvent)=>{if(e.isComposing||e.keyCode===229)return;if(e.key==='Escape'){setOpen(false);return}const target=e.target as HTMLElement|null;if(target?.closest('input,textarea,select,[contenteditable=true]'))return;const mac=navigator.platform.toLowerCase().includes('mac');if(keyEventAction(loadShortcuts(localStorage),e.key,{ctrl:e.ctrlKey,alt:e.altKey,shift:e.shiftKey,meta:e.metaKey},mac)==='commandMenu'){e.preventDefault();setOpen(o=>!o)}};addEventListener('keydown',k);return()=>removeEventListener('keydown',k)},[]);
  useEffect(()=>{if(open&&q)void lookup(q).then(setHits);else setHits([])},[open,q]);
  if(!open)return null;
  const go=(t:Ref)=>{location.hash=`#/threads/${t.id}`;setOpen(false);setQ('')};
