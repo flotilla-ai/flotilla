@@ -96,7 +96,7 @@ apps/server lint: Done
 EXIT 0
 ```
 
-## After merging `origin/flotilla/p1` `6b5546a` and review fixes
+## After merging `origin/flotilla/p1` `2aefb24` and review fixes
 `make check` (includes `pnpm --filter @flotilla/server test`):
 ```
 apps/gate test:  Test Files  2 passed (2)
@@ -108,23 +108,23 @@ packages/adapters/host test:  Test Files  1 passed (1)
 packages/adapters/host test:       Tests  3 passed (3)
 apps/web test:  Test Files  7 passed (7)
 apps/web test:       Tests  18 passed (18)
-packages/adapters/claude-code test:  Test Files  1 passed (1)
-packages/adapters/claude-code test:       Tests  7 passed (7)
 packages/adapters/codex test:  Test Files  1 passed (1)
 packages/adapters/codex test:       Tests  5 passed (5)
+packages/adapters/claude-code test:  Test Files  1 passed (1)
+packages/adapters/claude-code test:       Tests  7 passed (7)
 packages/adapters/generic-cli test:  Test Files  1 passed (1)
 packages/adapters/generic-cli test:       Tests  4 passed (4)
 packages/adapters/fake test:  Test Files  1 passed (1)
 packages/adapters/fake test:       Tests  3 passed (3)
-apps/server test:  Test Files  24 passed (24)
-apps/server test:       Tests  156 passed | 1 skipped (157)
-apps/gate lint: Done
+apps/server test:  Test Files  25 passed (25)
+apps/server test:       Tests  167 passed | 1 skipped (168)
 packages/core lint: Done
+apps/gate lint: Done
 packages/adapters/host lint: Done
 apps/web lint: Done
 packages/adapters/claude-code lint: Done
-packages/adapters/fake lint: Done
 packages/adapters/generic-cli lint: Done
+packages/adapters/fake lint: Done
 packages/adapters/codex lint: Done
 apps/server lint: Done
 EXIT 0
