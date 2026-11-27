@@ -166,4 +166,20 @@ describe('thread runner',()=>{
     expect(seenPrompt).toContain('Repair the failing environment build.');
     await snapRunner.drain();
   },20_000);
+  it('failed starts requeue claimed input without cancelling queued messages',async()=>{
+    await pool.query(`INSERT INTO threads (id,code,role,owner_id,title,status,engine,budget,spent) VALUES ('thr_failstart','FS-1','thread','usr_test','fail start','queued','{}','{}','{}')`);
+    await pool.query(`INSERT INTO runs (id,thread_id,ordinal,trigger,state,usage) VALUES ('run_failstart','thr_failstart',1,'{}','starting','{}')`);
+    await pool.query(`INSERT INTO thread_inbox (id,thread_id,root_id,mode,text,state,run_id,delivered_at) VALUES
+      ('inb_claimed','thr_failstart','inb_claimed','queue','claimed','delivered','run_failstart',now()),
+      ('inb_pending','thr_failstart','inb_pending','queue','pending','pending',NULL,NULL),
+      ('inb_cancelled','thr_failstart','inb_cancelled','queue','cancelled','cancelled',NULL,NULL)`);
+    await expect((runner as never as {failStart(t:string,r:string,e:unknown):Promise<never>}).failStart('thr_failstart','run_failstart',new Error('machine setup failed'))).rejects.toThrow('machine setup failed');
+    const rows=(await pool.query(`SELECT id,state,run_id FROM thread_inbox WHERE thread_id='thr_failstart' ORDER BY id`)).rows;
+    expect(rows).toEqual([
+      {id:'inb_cancelled',state:'cancelled',run_id:null},
+      {id:'inb_claimed',state:'pending',run_id:null},
+      {id:'inb_pending',state:'pending',run_id:null}
+    ]);
+    expect((await pool.query(`SELECT state FROM runs WHERE id='run_failstart'`)).rows[0].state).toBe('failed');
+  },20_000);
 });

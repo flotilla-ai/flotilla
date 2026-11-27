@@ -363,7 +363,9 @@ export class ThreadRunner {
     for (const r of rows.rows) this.kick(r.thread_id as string);
   }
   private async failStart(threadId: string, runId: string, err: unknown): Promise<never> {
-    await this.inbox.cancelAll(threadId);
+    // A start failure must not discard user input. Anything this run claimed becomes pending again;
+    // unclaimed queued messages stay pending and user-cancelled rows remain cancelled.
+    await this.pool.query(`UPDATE thread_inbox SET state='pending',delivered_at=NULL,run_id=NULL WHERE thread_id=$1 AND run_id=$2 AND state='delivered'`, [threadId, runId]);
     await this.pool.query('DELETE FROM budget_holds WHERE run_id=$1', [runId]);
     await this.pool.query(`UPDATE runs SET state='failed',ended_at=now() WHERE id=$1`, [runId]);
     await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'run.ended', source: 'kernel', trust: 'trusted', payload: { state: 'failed', usage: zero } }] as never);
