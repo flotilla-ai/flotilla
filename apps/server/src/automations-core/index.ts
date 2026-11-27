@@ -15,6 +15,8 @@ export interface AutomationRun {
   id: string; automationId: string; triggerType: TriggerType; triggerKey: string; status: 'queued' | 'skipped' | 'duplicate' | 'failed';
   threadId: string | null; payload: Record<string, unknown>; skipReason: string | null; createdAt: string;
 }
+export type PublicAutomationRun = Omit<AutomationRun, 'payload'>
+export type PublicAutomationBatch = Omit<AutomationBatch, 'events'> & { eventCount: number }
 export interface AutomationBatch { id: string; automationId: string; state: 'open' | 'flushed' | 'cancelled'; events: Record<string, unknown>[] }
 export type Gate = (input: { runWhen: string; prompt: string; payload: Record<string, unknown>; model: Record<string, unknown> }) => Promise<boolean>;
 export type ModelResolver = (requested: string | null, pinned: boolean) => Promise<string | null>;
@@ -75,10 +77,17 @@ function valueMatch(rule: unknown, actual: unknown): boolean {
     const r = rule as Record<string, unknown>; const text = String(actual ?? '');
     if (typeof r.equals === 'string' && r.equals !== text) return false;
     if (typeof r.contains === 'string' && !text.includes(r.contains)) return false;
-    if (typeof r.regex === 'string') { try { if (!new RegExp(r.regex).test(text)) return false; } catch { return false; } }
+    if (typeof r.regex === 'string') { try { if (!safeRegex(r.regex, text)) return false; } catch { return false; } }
     return Boolean(r.equals ?? r.contains ?? r.regex);
   }
   return String(rule ?? '') === String(actual ?? '');
+}
+function safeRegex(pattern: string, text: string): boolean {
+  // Project-controlled regexes run on the shared event loop. Bound the input and reject constructs
+  // that commonly create exponential backtracking; this keeps the feature useful without a native dependency.
+  if (pattern.length > 200 || text.length > 4096) return false;
+  if (/\\[1-9]|\(\?[=!<]|\([^)]*[+*][^)]*\)[+*]/.test(pattern)) return false;
+  return new RegExp(pattern).test(text);
 }
 export function conditionsMatch(conditions: Record<string, unknown>, payload: Record<string, unknown>): boolean {
   for (const [key, rule] of Object.entries(conditions)) if (!valueMatch(rule, payload[key])) return false;
@@ -209,7 +218,7 @@ export class AutomationStore {
     }
     return out;
   }
-  async webhook(token: string, payload: Record<string, unknown>, idem: string | null, signature: string | null = null, rawBody = ''): Promise<{ result: 'accepted' | 'duplicate' | 'no-match' | 'batched'; run?: AutomationRun; batch?: AutomationBatch }> {
+  async webhook(token: string, payload: Record<string, unknown>, idem: string | null, signature: string | null = null, rawBody = ''): Promise<{ result: 'accepted' | 'duplicate' | 'no-match' | 'batched'; run?: PublicAutomationRun; batch?: PublicAutomationBatch }> {
     const [row] = await this.q('SELECT * FROM automations WHERE webhook_hash=$1 AND state=$2', [sha256(token), 'active']);
     if (!row) return { result: 'no-match' };
     const a = toAutomation(row); const trig = a.triggers.find((t) => t.type === 'webhook');
@@ -220,12 +229,13 @@ export class AutomationStore {
     }
     if (trig.batch) {
       const batch = await this.appendBatch(a, payload);
-      return { result: 'batched', batch };
+      return { result: 'batched', batch: { id: batch.id, automationId: batch.automationId, state: batch.state, eventCount: batch.events.length } };
     }
     const run = await this.insertRun(a, 'webhook', 'webhook', payload, idem);
-    if (run.status === 'duplicate') return { result: 'duplicate', run };
-    if (run.status === 'skipped' && run.skipReason === 'no matching trigger') return { result: 'no-match', run };
-    return { result: run.status === 'skipped' && run.skipReason === 'conditions did not match' ? 'no-match' : 'accepted', run };
+    const publicRun = (r: AutomationRun): PublicAutomationRun => ({ id: r.id, automationId: r.automationId, triggerType: r.triggerType, triggerKey: r.triggerKey, status: r.status, threadId: r.threadId, skipReason: r.skipReason, createdAt: r.createdAt });
+    if (run.status === 'duplicate') return { result: 'duplicate', run: publicRun(run) };
+    if (run.status === 'skipped' && run.skipReason === 'no matching trigger') return { result: 'no-match', run: publicRun(run) };
+    return { result: run.status === 'skipped' && run.skipReason === 'conditions did not match' ? 'no-match' : 'accepted', run: publicRun(run) };
   }
   private async appendBatch(a: Automation, payload: Record<string, unknown>): Promise<AutomationBatch> {
     let [b] = await this.q("SELECT * FROM automation_batches WHERE automation_id=$1 AND state='open' ORDER BY created_at DESC LIMIT 1", [a.id]);
@@ -258,12 +268,14 @@ export class AutomationStore {
         const key = `${t.cron}:${t.timezone}`;
         const [last] = await this.q("SELECT max(created_at) AS at FROM automation_runs WHERE automation_id=$1 AND trigger_type='schedule' AND trigger_key=$2", [a.id, key]);
         const base = Math.max(new Date(a.createdAt).getTime(), last?.at ? new Date(last.at as string).getTime() : 0);
-        let minute = Math.floor(base / 60_000) * 60_000 + 60_000;
         let latest: Date | null = null;
         const end = Math.floor(now.getTime() / 60_000) * 60_000;
-        for (; minute <= end && minute <= base + 7 * 24 * 60 * 60_000; minute += 60_000) {
+        // Scan backwards from now rather than forwards from the last run. Sparse monthly/yearly
+        // schedules are still discovered when their day arrives; missed occurrences coalesce to the
+        // newest due minute inside the recovery window.
+        for (let minute = end; minute > base && minute >= end - 7 * 24 * 60 * 60_000; minute -= 60_000) {
           const d = new Date(minute);
-          if (cronMatches(String(t.cron), String(t.timezone ?? 'UTC'), d)) latest = d;
+          if (cronMatches(String(t.cron), String(t.timezone ?? 'UTC'), d)) { latest = d; break; }
         }
         if (latest) out.push(await this.insertRun(a, 'schedule', key, { at: latest.toISOString(), cron: t.cron, timezone: t.timezone, coalesced: latest.getTime() !== end }, `cron:${a.id}:${key}:${Math.floor(latest.getTime() / 60000)}`));
       }

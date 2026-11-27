@@ -40,6 +40,7 @@ export async function withIdempotency(c: Context, next: Next): Promise<Response 
     throw err;
   }
   const type = c.res.headers.get('content-type') ?? 'application/json';
+  if (c.res.headers.get('x-flotilla-no-replay') === '1') { await store.finishRequest(principal.userId, requestId, null); return; }
   const ok = c.res.status >= 200 && c.res.status < 300 && !type.includes('event-stream');
   await store.finishRequest(principal.userId, requestId, ok ? { status: c.res.status, body: await c.res.clone().text(), contentType: type } : null);
 }

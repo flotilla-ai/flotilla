@@ -8,7 +8,11 @@ const body = async (c: Context) => ((await c.req.json().catch(() => null)) ?? {}
 /** Stored automation definitions plus manual and GitHub-trigger entrypoints. */
 export function createAutomationsCoreRoute(store = () => automationStore(undefined, { startRun: async ({ threadId, prompt }) => { await defaultRunner().message(threadId, prompt, 'queue'); } })) {
   const app = new Hono();
-  app.post('/projects/:id/automations', async (c) => c.json(await store().create(userId(c), c.req.param('id'), await body(c)), 201));
+  app.post('/projects/:id/automations', async (c) => {
+    const created = await store().create(userId(c), c.req.param('id'), await body(c));
+    c.header('x-flotilla-no-replay', '1');
+    return c.json(created, 201);
+  });
   app.get('/projects/:id/automations', async (c) => c.json({ items: await store().list(userId(c), c.req.param('id')) }));
   app.post('/automations/:id/trigger', async (c) => c.json(await store().trigger(userId(c), c.req.param('id'), await body(c)), 202));
   app.post('/automations/:id/github-trigger', async (c) => {
