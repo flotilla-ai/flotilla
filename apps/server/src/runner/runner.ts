@@ -181,7 +181,7 @@ export class ThreadRunner {
       thread.branch = seeded.branch ?? thread.branch;
     };
     if (!this.pooled(thread)) { const m = await start(); await seed(m.containerId, false); return m; }
-    return this.deps.machines!.boot(threadId, (project?.id as string | undefined) ?? null, start, this.deps.driver as never, seed);
+    return this.deps.machines!.boot(threadId, (project?.id as string | undefined) ?? null, start, this.deps.driver as never, seed, JSON.stringify(project?.egress_allow ?? []));
   }
   /** User "Wake machine" button / agent wake: boots the pool machine and lets it wind down unless a run holds it. */
   async wakeMachine(threadId: string): Promise<void> {
@@ -216,7 +216,7 @@ export class ThreadRunner {
     const pooled = this.pooled(thread);
     let machine = { containerId: '' };
     try { machine = await this.machineFor(thread, project, runToken ? { FLOTILLA_MCP_TOKEN: runToken.token } : {}); } catch (err) { tokenService?.endRun(runId); return this.failStart(threadId, runId, err); }
-    if (Object.keys(prepared.env).length) {
+    if (Object.keys(prepared.env).length || (pooled && 'copyIn' in this.deps.driver)) {
       try {
         if (!('copyIn' in this.deps.driver)) throw new Error('machine driver cannot receive the secrets file');
         await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', secretsTar(prepared.env));
