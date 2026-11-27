@@ -48,6 +48,21 @@ beforeAll(async () => {
 afterAll(async () => { await pool?.end(); if (container) spawn('sh', ['-c', `sleep 5; docker rm -f ${container}`], { detached: true, stdio: 'ignore' }).unref(); });
 
 describe('api platform', () => {
+  it('automation create idempotency replays a redacted response instead of duplicating or storing the token', async () => {
+    const { token } = await mint({ name: 'automation-idempotency' });
+    await pool.query('INSERT INTO projects (id,owner_id,name,repo,trust,budget,code) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (id) DO NOTHING', ['prj_idem_auto', humanId, 'Auto', '{}', 'untrusted', '{}', 'AIA']);
+    const body = { requestId: 'create-automation-once', name: 'Keyed', prompt: 'x', triggers: [{ type: 'webhook' }] };
+    const first = await call('/api/v1/projects/prj_idem_auto/automations', { method: 'POST', bearer: token, json: body });
+    expect(first.status).toBe(201);
+    const firstBody = await first.json() as any;
+    expect(firstBody.webhookToken).toBeTruthy();
+    const replay = await call('/api/v1/projects/prj_idem_auto/automations', { method: 'POST', bearer: token, json: body });
+    expect(replay.status).toBe(201); expect(replay.headers.get('idempotent-replayed')).toBe('true');
+    const replayBody = await replay.json() as any;
+    expect(replayBody.id).toBe(firstBody.id);
+    expect((await pool.query('SELECT count(*)::int n FROM automations WHERE project_id=$1', ['prj_idem_auto'])).rows[0].n).toBe(1);
+    expect((await pool.query('SELECT body FROM api_idempotency WHERE request_id=$1', ['create-automation-once'])).rows[0].body).not.toContain(firstBody.webhookToken);
+  });
   it('CAPY-453: mints flt_ bearer keys only from an app session, honours expiry and revoke, has no rotate verb', async () => {
     const { key, token } = await mint({ name: 'ci', expiresAt: new Date(Date.now() + 86400_000).toISOString() });
     expect(token).toMatch(/^flt_[A-Za-z0-9_-]{40,}$/);
