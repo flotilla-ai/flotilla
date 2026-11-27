@@ -1,0 +1,66 @@
+import { execFile, spawn } from 'node:child_process';
+import { promisify } from 'node:util';
+import pg from 'pg';
+import { Hono } from 'hono';
+import { afterAll, beforeAll, expect, it } from 'vitest';
+import { migrate } from '../db/migrate.js';
+import { ApiFailure, apiError } from '../api-platform/types.js';
+import { apiPlatformStore } from '../api-platform/store.js';
+import { createApiIssuesRoute } from '../routes/api-issues.route.js';
+import { ApiIssuesStore } from './index.js';
+
+const exec = promisify(execFile); let container = ''; let pool: pg.Pool; let app: Hono; let url = '';
+async function call(method: string, path: string, body?: unknown) { const r = await app.request(`http://x/api/v1${path}`, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) }); return { status: r.status, json: await r.json().catch(() => null) as any, response: r }; }
+beforeAll(async () => {
+  container = (await exec('docker', ['run', '-d', '--rm', '-p', '127.0.0.1::5432', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', 'postgres:16'])).stdout.trim();
+  const port = (await exec('docker', ['port', container, '5432/tcp'])).stdout.trim().split(':').pop(); url = `postgres://postgres@127.0.0.1:${port}/postgres`;
+  for (let i = 0; i < 40; i++) { try { const c = new pg.Client({ connectionString: url }); await c.connect(); await c.end(); break; } catch { await new Promise((r) => setTimeout(r, 250)); } }
+  await migrate(url); pool = new pg.Pool({ connectionString: url });
+  await pool.query(`INSERT INTO users (id,email,role) VALUES ('usr_ai','ai@example.invalid','admin'),('usr_ai2','ai2@example.invalid','member')`);
+  const store = new ApiIssuesStore(pool); app = new Hono(); app.onError((err, c) => err instanceof ApiFailure ? apiError(c, err.kind, err.message) : apiError(c, 'Internal', String(err)));
+  app.use('*', async (c, next) => { c.set('userId' as never, 'usr_ai' as never); await next(); });
+  app.route('/api/v1', createApiIssuesRoute(() => store).app);
+}, 30_000);
+afterAll(async () => { await pool?.end(); if (container) spawn('sh', ['-c', `sleep 3; docker rm -f ${container}`], { detached: true, stdio: 'ignore' }).unref(); });
+it('CAPY-568..592: public issues CRUD, comments, timeline, relations, links, files, states, labels and prefix', async () => {
+  const label = await call('POST', '/issue-labels', { name: 'bug', color: '#ff0000', description: 'defect' }); expect(label.status).toBe(201);
+  expect((await call('GET', '/issue-labels')).json.items).toEqual([expect.objectContaining({ id: label.json.id, name: 'bug' })]);
+  expect((await call('PATCH', `/issue-labels/${label.json.id}`, { description: 'confirmed defect' })).json.description).toBe('confirmed defect');
+  const files = apiPlatformStore(url); const grant = await files.createUpload('usr_ai', { name: 'issue.txt', contentType: 'text/plain', size: 5 }, 'http://x'); await files.completeUpload(grant.fileId, new URL(grant.uploadUrl).searchParams.get('token')!, async () => Buffer.from('issue'));
+  const made = await call('POST', '/issues', { title: 'First bug', body: 'broken', assigneeId: 'usr_ai2', labelIds: [label.json.id], fileIds: [grant.fileId], dueDate: '2027-01-01' }); expect(made.status).toBe(201); expect(made.json.identifier).toMatch(/^ISS-\d+$/); expect(made.json.stateId).toBe('ist_backlog');
+  const other = await call('POST', '/issues', { title: 'Other issue' }); expect(other.status).toBe(201);
+  expect((await call('GET', '/issues?q=First')).json.items.map((x: any) => x.id)).toEqual([made.json.id]);
+  expect((await call('GET', `/issues/${made.json.identifier}`)).json.title).toBe('First bug');
+  expect((await call('PATCH', `/issues/${made.json.id}`, { title: 'First bug updated', stateId: 'ist_progress', assigneeId: null })).json).toMatchObject({ title: 'First bug updated', stateId: 'ist_progress', assigneeId: null });
+  const comment = await call('POST', `/issues/${made.json.id}/comments`, { body: 'looking now' }); expect(comment.status).toBe(201);
+  expect((await call('GET', `/issues/${made.json.id}/comments`)).json.items).toEqual([expect.objectContaining({ id: comment.json.id, body: 'looking now' })]);
+  const timeline = (await call('GET', `/issues/${made.json.id}/timeline`)).json.items; expect(timeline.map((x: any) => x.kind)).toEqual(expect.arrayContaining(['created', 'updated', 'commented', 'comment']));
+  const rel = await call('POST', `/issues/${made.json.id}/relations`, { otherIssueId: other.json.id, type: 'blocks' }); expect(rel.status).toBe(201);
+  expect((await call('GET', `/issues/${made.json.id}/relations`)).json.items).toEqual([expect.objectContaining({ id: rel.json.id, type: 'blocks' })]);
+  const link = await call('POST', `/issues/${made.json.id}/links`, { kind: 'thread', target: 'thr_ai' }); expect(link.status).toBe(201);
+  expect((await call('DELETE', `/issues/${made.json.id}/links/${link.json.id}`)).status).toBe(204);
+  expect((await call('POST', `/issues/${made.json.id}/files`, { fileIds: [grant.fileId] })).json.attached).toBe(1);
+  const dl = await app.request(`http://x/api/v1/issues/${made.json.id}/files/${grant.fileId}/download`); expect(dl.status).toBe(200); expect(Buffer.from(await dl.arrayBuffer()).toString()).toBe('issue');
+  const custom = await call('POST', '/issue-states', { name: 'Review' }); expect(custom.status).toBe(201);
+  expect((await call('PATCH', `/issue-states/${custom.json.id}`, { name: 'In Review' })).json.name).toBe('In Review');
+  const states = (await call('GET', '/issue-states')).json.items; expect((await call('POST', '/issue-states/reorder', { ids: [...states].reverse().map((x: any) => x.id) })).json.items[0].id).toBe(states.at(-1).id);
+  expect((await call('POST', `/issue-states/${custom.json.id}/default`)).json.isDefault).toBe(true);
+  expect((await call('DELETE', `/issue-states/${custom.json.id}`)).status).toBe(409);
+  await call('PATCH', `/issues/${made.json.id}`, { stateId: 'ist_backlog' }); await call('PATCH', `/issues/${other.json.id}`, { stateId: 'ist_backlog' });
+  await call('POST', '/issue-states/ist_backlog/default');
+  expect((await call('DELETE', `/issue-states/${custom.json.id}`)).status).toBe(204);
+  expect((await call('GET', '/issue-settings/prefix')).json.prefix).toBe('ISS');
+  expect((await call('PUT', '/issue-settings/prefix', { prefix: 'FLT' })).json.prefix).toBe('FLT');
+  const prefixed = await call('POST', '/issues', { title: 'Prefixed' }); expect(prefixed.json.identifier).toMatch(/^FLT-\d+$/);
+  expect((await call('DELETE', `/issues/${made.json.id}/relations/${rel.json.id}`)).status).toBe(204);
+  expect((await call('DELETE', `/issue-labels/${label.json.id}`)).status).toBe(204);
+  expect((await call('GET', `/issues/${made.json.id}`)).json.labels).toEqual([]);
+  await pool.query(`UPDATE users SET role='member' WHERE id='usr_ai'`);
+  expect((await call('PUT', '/issue-settings/prefix', { prefix: 'BAD' })).status).toBe(403);
+  expect((await call('POST', '/issue-states', { name: 'Nope' })).status).toBe(403);
+  expect((await call('POST', '/issue-labels', { name: 'nope' })).status).toBe(403);
+  await pool.query(`UPDATE users SET role='admin' WHERE id='usr_ai'`);
+  const beforeMissingDefault = (await call('GET', '/issue-states')).json.items.filter((x: any) => x.isDefault).length;
+  expect((await call('POST', '/issue-states/ist_missing/default')).status).toBe(404);
+  expect((await call('GET', '/issue-states')).json.items.filter((x: any) => x.isDefault).length).toBe(beforeMissingDefault);
+}, 30_000);
