@@ -31,6 +31,7 @@ Counted in `docs/plan/PARITY.md` on this branch: done 85, pending 501, needs-hum
 | phase2-04-model-policy-api | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/36 | model policy + model API; 2 rows done (335, 336), 3 needs-human-login (333, 337, 484), 2 blocked (338 no model-backed title/summary generator, 485 no web connections editor) |
 | phase2-10-environments | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/39 | environments model/store/executor seams; 2 rows done, 7 blocked on phase2-11/phase2-12 wiring; see `docs/runlog/phase2-10.md` |
 | phase2-17-wakes | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/45 | wake router, watches/timers, background jobs, cross-thread peek/send, held messages; 9 rows done, 4 blocked; see `docs/runlog/phase2-17.md` |
+| phase2-11-snapshots | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/50 | snapshot spec/builder/history/boot plan + `/snapshots` page; 4 rows done, 2 blocked on phase2-12 boot wiring; see `docs/runlog/phase2-11.md` |
 
 | phase2-06-thread-composer | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/40 | composer keymap/attachments, request cards + Undo, thread codes, sections/ticks/reading place, deep link, owner-approved feedback; 10 rows done; see `docs/runlog/phase2-06.md` |
 
@@ -50,4 +51,4 @@ None.
 
 ## Unverified items
 
-See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. Unverified items for phase2-01 through phase2-05 and phase2-07 through phase2-10 are listed in `docs/runlog/phase2-0{1,2,3,4,5,7,8,9}.md` `docs/runlog/phase2-10.md` and `docs/runlog/phase2-17.md` (phase2-05 web UI display is not built); phase2-04 live commands (`claude auth login`, `codex login`, GPT-6 context window, Base URL gateways) are in `docs/runlog/phase2-04.md`.
+See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. Unverified items for phase2-01 through phase2-05 and phase2-07 through phase2-10 are listed in `docs/runlog/phase2-0{1,2,3,4,5,7,8,9}.md` `docs/runlog/phase2-10.md`, `docs/runlog/phase2-11.md` and `docs/runlog/phase2-17.md` (phase2-05 web UI display is not built); phase2-04 live commands (`claude auth login`, `codex login`, GPT-6 context window, Base URL gateways) are in `docs/runlog/phase2-04.md`.

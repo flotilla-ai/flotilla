@@ -195,12 +195,12 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-189 | Environment & snapshots | P2 | done | phase2-10 |  | + menu lists services (port, preview), commands (runnable) and terminals with status dots; failed is orange. API `GET /threads/:id/environment`, UI e2e `apps/web/e2e/environments.spec.ts` (mocked API). Terminal entries stay empty until a terminal unit reports them. |
 | CAPY-190 | Environment & snapshots | P2 | blocked | phase2-10 |  | `environment.read`/`environment.replace` (whole spec, validated, stale `baseVersion` refused, own project only) via `POST /threads/:id/environment/tools/:name`. Blocked: not yet in the Captain/agent tool registry; verify needs phase2-12 must call `registerEnvironmentMachine` and `EnvironmentStore.prepare` at machine boot. |
 | CAPY-191 | Environment & snapshots | P2 | done | phase2-10 |  | A completed run whose repo has `.flotilla/setup.json` (preferred) or `.capy/setup.json` becomes a new `repo-file` version (`onAfterRun` + `copyOut`); `POST /projects/:id/environment/import` too. Capy field names are inferred. |
-| CAPY-192 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-193 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-194 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-195 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-196 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-197 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-192 | Environment & snapshots | P2 | blocked | https://github.com/flotilla-ai/flotilla/pull/50 | `snapshots.test.ts` CAPY-192 | Capture + hourly check run on real completed runs (`onAfterRun`); new threads still boot `FLOTILLA_THREAD_IMAGE` until phase2-12 machine core calls `SnapshotStore.bootPlan`. |
+| CAPY-193 | Environment & snapshots | P2 | done | https://github.com/flotilla-ai/flotilla/pull/50 | `snapshots.test.ts` CAPY-193; `e2e/snapshots.spec.ts` | Repo choice limited to project repos; disk-budget check fails the build at `repos`. |
+| CAPY-194 | Environment & snapshots | P2 | done | https://github.com/flotilla-ai/flotilla/pull/50 | `snapshots.test.ts` CAPY-194; `e2e/snapshots.spec.ts` | 64/128/256 GB tags; alsoSmaller tags every smaller tier that fits. Tier is a budget check, not a Docker disk quota. |
+| CAPY-195 | Environment & snapshots | P2 | done | https://github.com/flotilla-ai/flotilla/pull/50 | `snapshots.test.ts` CAPY-195 | Secrets file, bundles, history, git credentials and secret env removed; grep verify refuses capture on a leak. |
+| CAPY-196 | Environment & snapshots | P2 | done | https://github.com/flotilla-ai/flotilla/pull/50 | `snapshots.test.ts` CAPY-196; `e2e/snapshots.spec.ts` | Build history with per-step logs; "Ask why it failed" prompt. |
+| CAPY-197 | Environment & snapshots | P2 | blocked | https://github.com/flotilla-ai/flotilla/pull/50 | `snapshots.test.ts` CAPY-197 | `bootPlan` falls back to last good/base image with a repair prompt, but nothing calls it at boot yet (phase2-12 machine core). |
 | CAPY-198 | Cloud machines | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-199 | Cloud machines | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-200 | Cloud machines | P3 | pending |  |  | Awaiting phase P3 unit. |
