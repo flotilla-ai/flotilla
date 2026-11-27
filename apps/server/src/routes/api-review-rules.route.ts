@@ -1,9 +1,10 @@
 import { Hono, type Context } from 'hono';
 import pg from 'pg';
+import { ApiFailure } from '../api-platform/types.js';
 import { ApiReviewRulesStore } from '../api-review-rules/index.js';
 
 const user = (c: Context) => c.get('userId') as string;
-const body = async (c: Context) => ((await c.req.json().catch(() => null)) ?? {}) as Record<string, unknown>;
+const body = async (c: Context) => { const parsed = await c.req.json().catch(() => null); if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new ApiFailure('ValidationFailed', 'JSON object body required'); return parsed as Record<string, unknown> };
 let one: ApiReviewRulesStore | null = null;
 export function apiReviewRulesStore(databaseUrl = process.env.DATABASE_URL ?? 'postgres://postgres@postgres:5432/flotilla') { one ??= new ApiReviewRulesStore(new pg.Pool({ connectionString: databaseUrl, max: 3 })); return one; }
 export function createApiReviewRulesRoute(getStore = () => apiReviewRulesStore()) {
