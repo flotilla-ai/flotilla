@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useState} from 'react';import {bottomOrder,closeTabs,defaultPrefs,filterCommands,hideItem,loadJson,moveItem,onboardingSteps,reopenClosed,sanitizePrefs,saveJson,sidebarGroups,splitPane,type BottomItem,type CommandCategory,type CommandItem,type Folder,type NavigationPrefs,type Pane,type SidebarSection,type Tab,type ThreadNav,threadPaneTabs} from './model.js';
+import React,{useEffect,useMemo,useState} from 'react';import {closeTabs,defaultPrefs,filterCommands,hideItem,loadJson,moveItem,onboardingSteps,reopenClosed,sanitizePrefs,saveJson,sidebarGroups,splitPane,type CommandCategory,type CommandItem,type Folder,type NavigationPrefs,type Pane,type Tab,type ThreadNav,threadPaneTabs} from './model.js';
 
 const key='flotilla.navigation.prefs';const onboardingKey='flotilla.onboarding';
 const demoThreads:ThreadNav[]=[{id:'cap1',title:'Captain',project:'ops',folderId:null,pinned:false,tags:[],kind:'captain'},{id:'t1',title:'Fix checkout',project:'shop',folderId:'f1',pinned:true,tags:['urgent']},{id:'t2',title:'Write docs',project:'docs',folderId:null,pinned:false,tags:[]}];
