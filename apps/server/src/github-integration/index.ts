@@ -38,8 +38,9 @@ export class GitHubIntegrationStore {
     const missing = permissionsSufficient(permissions); if (missing.length) throw new ApiFailure('ValidationFailed', `installation is missing required permissions: ${missing.join(', ')}`);
     const repositories = Array.isArray(input.repositories) ? input.repositories.map(String) : [];
     const iid = id('ghi');
-    await this.pool.query('INSERT INTO github_installations (id,account_id,installation_id,subject,repositories,permissions,dependency_reader) VALUES ($1,$2,$3,$4,$5,$6,$7)', [iid, accountId, installationId, subject, JSON.stringify(repositories), JSON.stringify(permissions), input.dependencyReader === true]);
-    return camel((await this.pool.query('SELECT * FROM github_installations WHERE id=$1', [iid])).rows[0]) as GitHubInstallation;
+    await this.pool.query(`INSERT INTO github_installations (id,account_id,installation_id,subject,repositories,permissions,dependency_reader) VALUES ($1,$2,$3,$4,$5,$6,$7)
+      ON CONFLICT (account_id,installation_id) DO UPDATE SET revoked_at=NULL,subject=$4,repositories=$5,permissions=$6,dependency_reader=$7`, [iid, accountId, installationId, subject, JSON.stringify(repositories), JSON.stringify(permissions), input.dependencyReader === true]);
+    return camel((await this.pool.query('SELECT * FROM github_installations WHERE account_id=$1 AND installation_id=$2', [accountId, installationId])).rows[0]) as GitHubInstallation;
   }
   async installations(userId: string, accountId: string): Promise<GitHubInstallation[]> { await this.account(accountId, userId); return (await this.pool.query('SELECT * FROM github_installations WHERE account_id=$1 AND revoked_at IS NULL ORDER BY subject', [accountId])).rows.map(camel) as GitHubInstallation[]; }
   async setIdentity(userId: string, accountId: string, identity: unknown, email?: unknown): Promise<GitHubAccount> {
