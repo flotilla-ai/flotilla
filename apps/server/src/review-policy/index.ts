@@ -10,7 +10,9 @@ type Row = Record<string, any>;
 const id=(p:string)=>`${p}_${randomBytes(8).toString('hex')}`;
 const strings=(v:unknown,name:string)=>{if(!Array.isArray(v)||v.some(x=>typeof x!=='string'))throw new ApiFailure('ValidationFailed',`${name} must be a string array`);return v as string[]};
 export function pathMatch(pattern:string,path:string):boolean{
+ if(pattern.length>256||path.length>4096)throw new ApiFailure('ValidationFailed','glob pattern or path is too long');
  const memo=new Map<string,boolean>();
+ const stateBudget=20000;
  const match=(pi:number,si:number):boolean=>{
   const key=`${pi}:${si}`;const cached=memo.get(key);if(cached!==undefined)return cached;
   let out=false;
@@ -20,7 +22,7 @@ export function pathMatch(pattern:string,path:string):boolean{
    out=match(next,si)||(si<path.length&&match(pi,si+1));
   }else if(pattern[pi]==='*')out=match(pi+1,si)||(si<path.length&&path[si]!=='/'&&match(pi,si+1));
   else out=si<path.length&&pattern[pi]===path[si]&&match(pi+1,si+1);
-  memo.set(key,out);return out;
+  memo.set(key,out);if(memo.size>stateBudget)throw new ApiFailure('ValidationFailed','glob pattern is too complex');return out;
  };
  return match(0,0);
 }
