@@ -101,7 +101,7 @@ interface AdapterCapabilities {
 }
 type AuthMethod =
   | { kind: "vendor-login"; command: string[] }   // user runs it inside their own container/runner, e.g. ["claude","auth","login"]
-  | { kind: "api-key"; envVar: string }           // stored in Flotilla's secret vault, injected per run
+  | { kind: "api-key"; envVar: string; baseUrlEnvVar?: string } // stored in Flotilla's secret vault, injected per run; baseUrlEnvVar carries a connection's Base URL
   | { kind: "none" };
 
 // ---------- Event (append-only log; source of truth) ----------
@@ -210,6 +210,7 @@ interface AgentAdapter {
 interface StartInput {
   threadId: ThreadId; runId: RunId; cwd: string; prompt: string; attachments: string[];
   model: string | null; effort: string | null;
+  contextWindow?: number | null;      // tokens, from the catalog entry; adapters that can raise the window apply it
   mcpConfigPath: string | null; rulesPaths: string[];
   env: Record<string, string>;        // only secrets the thread was granted; never vendor login files
   auth: AuthMethod["kind"];           // chosen by the runner from Project.trust (§6a); claude adds --bare iff "api-key"
@@ -225,7 +226,7 @@ type AdapterEvent =
   | { t: "usage"; usdMicro?: MicroUsd; inputTokens?: number; outputTokens?: number; cacheTokens?: number; model?: string; cumulative: boolean }
       // adapters convert vendor dollars once, at the boundary: Math.round(usd * 1e6). cumulative = totals so far in this run (vs a delta)
   | { t: "ask"; kind: AskKind; question: string; options: { id: string; label: string }[] }
-  | { t: "done"; stopReason: "end_turn" | "cancelled" | "max_turns" | "error"; error?: string };
+  | { t: "done"; stopReason: "end_turn" | "cancelled" | "max_turns" | "error" | "run_out"; error?: string };
 
 export type {
   ThreadId,
