@@ -12,6 +12,7 @@ export type MonitorDeps = {
 };
 export class CheckMonitor {
   readonly greenRecorded = new Set<string>();
+  readonly greenWaking = new Set<string>();
   readonly greenSent = new Set<string>();
   readonly attempts = new Map<string, AutofixAttempt[]>();
   readonly terminalSent = new Set<string>();
@@ -36,7 +37,14 @@ export class CheckMonitor {
         this.greenRecorded.add(key);
         await this.deps.store.appendEvents(threadId as Event['threadId'], [{ threadId: threadId as Event['threadId'], runId: null, kind: 'ci.passed', source: 'github', trust: 'trusted', payload: { repo, number, sha } }]);
       }
-      if (!this.greenSent.has(key) && await this.wakeIfActive(threadId, `CI passed for ${repo}#${number}`)) this.greenSent.add(key);
+      if (!this.greenSent.has(key) && !this.greenWaking.has(key)) {
+        this.greenWaking.add(key);
+        try {
+          if (await this.wakeIfActive(threadId, `CI passed for ${repo}#${number}`)) this.greenSent.add(key);
+        } finally {
+          this.greenWaking.delete(key);
+        }
+      }
       return state;
     }
     const failing = checks.find((x) => !['success', 'neutral', 'skipped'].includes(x.conclusion ?? ''));

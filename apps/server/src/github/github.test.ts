@@ -97,6 +97,18 @@ describe('github client and autofix wake logic', () => {
     expect(wakes).toEqual([]);
     expect(monitor.attempts.get('o/r#1') ?? []).toEqual([]);
   });
+
+  it('does not duplicate a green wake when webhook and poll processing overlap', async () => {
+    const wakes: string[] = [];
+    const monitor = new CheckMonitor({
+      pool: { query: async () => ({ rows: [{ archived_at: null }] }) } as never,
+      store: { appendEvents: async () => undefined } as never,
+      clientFor: () => ({ checkRuns: async () => [{ status: 'completed', conclusion: 'success', name: 'check' }] }) as never,
+      wake: async (_id: string, text: string) => { await new Promise((r) => setTimeout(r, 1)); wakes.push(text); }
+    });
+    await Promise.all([monitor.process('o/r', 1, 'thr_race', 'sha'), monitor.process('o/r', 1, 'thr_race', 'sha')]);
+    expect(wakes).toEqual(['CI passed for o/r#1']);
+  });
   it('routes check_run webhooks to the owning thread', async () => {
     const seen: string[] = [];
     const monitor = { deps: { pool: { query: async () => ({ rows: [{ thread_id: 'thr_owner' }] }) } }, process: async (_r: string, _n: number, thread: string) => { seen.push(thread); return 'green'; } };

@@ -23,7 +23,7 @@ After the fix:
 ```text
 pnpm --filter @flotilla/server exec vitest run src/github/github.test.ts --reporter=dot
 Test Files  1 passed (1)
-Tests  7 passed (7)
+Tests  8 passed (8)
 ```
 
 Full gate:
@@ -36,7 +36,7 @@ pnpm -r lint: Done
 ```
 
 ## Decisions
-- CI events are still appended once for archived threads so their event log remains current; only agent wakes are suppressed. Deferred green/autofix wakes are not marked consumed until actually delivered.
+- CI events are still appended once for archived threads so their event log remains current; only agent wakes are suppressed. Deferred green/autofix wakes are not marked consumed until actually delivered. An in-flight green wake is marked before awaiting the archived check and wake so overlapping webhook/poll processing cannot enqueue it twice.
 - Terminal autofix approvals may still be recorded. They do not start a run by themselves and are visible when the owner unarchives the thread.
 - The archived check is re-run immediately before each wake, closing the check-log fetch race; a wake that lands after that check is still theoretically racy but no atomic wake/archive transaction exists yet.
 
