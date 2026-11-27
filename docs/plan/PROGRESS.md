@@ -5,7 +5,7 @@ Current `flotilla/p1` head before this PR: `f89b0ca` (phase2-25 review policy).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after phase2-22 and phase2-25: done 286, pending 232, needs-human-login 23, n-a 22, blocked 73.
+Counted in `docs/plan/PARITY.md` after phase2-22 and phase2-25: done 288, pending 225, needs-human-login 24, n-a 22, blocked 77.
 
 ## Unit table
 
@@ -59,7 +59,7 @@ Counted in `docs/plan/PARITY.md` after phase2-22 and phase2-25: done 286, pendin
 | phase2-25-review-policy | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/76 | review context/policy/guides/evidence/stack detection; see `docs/runlog/phase2-25.md` |
 ## Next action
 
-1. Merge phase2-22 after its gate, then continue device execution and dock CLI units directly in the parent session.
+1. Merge dock CLI and device execution after their gates, then continue remaining phase-2 units.
 2. Keep live GitHub rows fixture-backed and marked needs-human-login until a real operator login verifies them.
 
 ## Phase 1 summary (preserved)

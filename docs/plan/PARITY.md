@@ -244,12 +244,12 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-241 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-242 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-243 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-244 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-245 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-246 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-244 | Devices & desktop app | P2 | blocked | phase2-15 |  |  Placement records container isolation and a git identity shape, but the runner does not yet execute on the paired device as the user or prove linked-folder sandboxing.  |
+| CAPY-245 | Devices & desktop app | P2 | blocked | phase2-15 |  |  History import accepts explicit local-only requests but does not parse Claude Code/Codex histories or create threads.  |
+| CAPY-246 | Devices & desktop app | P2 | blocked | phase2-15 |  |  No free-model execution policy exists for This Mac/no-plan device runs.  |
 | CAPY-247 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-248 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-249 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-249 | Devices & desktop app | P2 | done | phase2-15 |  |  Per-device worktree validation requires an absolute local folder with at least 1 GB free.  |
 | CAPY-250 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-251 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-252 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
@@ -423,7 +423,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-420 | Linear | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-421 | Linear | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-422 | Other integrations | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-423 | Other integrations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-423 | Other integrations | P2 | needs-human-login | phase2-15 |  |  Fixture validation covers tagged ephemeral nodes, ACL shape, vault/secret OAuth references and disconnect state. Operator verification: set a real Tailscale OAuth client in the vault, put /api/v1/devices/:id/tailscale, then verify the tagged ephemeral node appears and disappears on disconnect.  |
 | CAPY-424 | Other integrations | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-425 | Other integrations | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-426 | Other integrations | P3 | pending |  |  | Awaiting phase P3 unit. |
@@ -488,9 +488,9 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-485 | Models & connections | P2 | blocked | phase2-04 | https://github.com/flotilla-ai/flotilla/pull/36 | Proven offline: PATCH `/api/v1/connections/:id` `{baseUrl}` (http/https only) reaches the next run as `ANTHROPIC_BASE_URL`/`OPENAI_BASE_URL` (manifest `baseUrlEnvVar`). Blocked: no web connections editor yet (same web unit as CAPY-332). Live gateway: `ANTHROPIC_BASE_URL=<gateway> claude -p ok --bare` with the operator's key, unverified. |
 | CAPY-486 | Models & connections | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-487 | Usage & analytics | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-488 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-488 | Devices & desktop app | P2 | done | phase2-15 |  |  Worktree folder policy is stored per paired device and exposed by the API.  |
 | CAPY-489 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-490 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-490 | Devices & desktop app | P2 | blocked | phase2-15 |  |  Placement API distinguishes cloud/paired device and waiting-reconnect, but thread rows do not yet render that placement or execute the reconnect handoff.  |
 | CAPY-491 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-492 | Captains | P2 | done | phase2-21 |  | API creates a crew thread in the Captain project and adds/removes crew membership. |
 | CAPY-493 | Captains | P2 | done | phase2-21 |  | Captain photo upload stores bounded png/jpeg/webp bytes and org library selection is supported. |
