@@ -96,7 +96,7 @@ apps/server lint: Done
 EXIT 0
 ```
 
-## After merging `origin/flotilla/p1` `eba906f`
+## After merging `origin/flotilla/p1` `eba906f` and review fixes
 `make check` (includes `pnpm --filter @flotilla/server test`):
 ```
 packages/core test:  Test Files  6 passed (6)
@@ -117,19 +117,25 @@ packages/adapters/generic-cli test:       Tests  4 passed (4)
 packages/adapters/fake test:  Test Files  1 passed (1)
 packages/adapters/fake test:       Tests  3 passed (3)
 apps/server test:  Test Files  24 passed (24)
-apps/server test:       Tests  154 passed | 1 skipped (155)
+apps/server test:       Tests  155 passed | 1 skipped (156)
 apps/gate lint: Done
 packages/core lint: Done
 packages/adapters/host lint: Done
 apps/web lint: Done
-packages/adapters/fake lint: Done
-packages/adapters/generic-cli lint: Done
 packages/adapters/codex lint: Done
 packages/adapters/claude-code lint: Done
+packages/adapters/fake lint: Done
+packages/adapters/generic-cli lint: Done
 apps/server lint: Done
 EXIT 0
 ```
 CI run 1 on `4f614c0` failed once in `runner-queue.test.ts` CAPY-476/026 (`usedTokens` 0 vs 1500); that test does not use `machines` and passed 3/3 locally in isolation and in the run above (unverified flake).
+
+## Devin Review round 1 (`bf223f5`)
+- fixed (`2063aec`): `sleep`/`delete` claim the lease row before touching the container, so a sweep read before a re-hold (or a second sweep) does nothing; `admit` returns busy when this thread's lease is already starting/awake, so competing wakes share one start; stuck `starting` leases go back to `sleeping` on `reset()`.
+- fixed (`2063aec`, `f2229ca`): lease stores the project egress policy; an idle awake machine with a different policy is slept and restarted with the new gate policy; pool runs always rewrite `/run/flotilla/secrets.env`, so a previous owner's variables cannot survive.
+- escalated: a failed resume deletes the workspace before rebuilding (CAPY-212 rebuild), and the 14-day delete has no production WIP push; both stay in CAPY-212's blocked remainder.
+Red test before the fix: `review: a stale sweep cannot sleep a re-held machine ...` failed with `expected undefined to be false`.
 
 ## Unverified
 - Real Docker sleep/wake with `flotilla-thread:dev` (container removal, volume reuse, `deleteWorkspace` volume removal) was not run; tests use a fake driver.
