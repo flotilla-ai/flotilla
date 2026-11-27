@@ -55,8 +55,8 @@ it('CAPY-399/400/401/402/405/518: multiple accounts, managed installations, comm
   expect((await call('DELETE', `/github/accounts/${org.json.id}`, undefined, 'usr_admin')).status).toBe(204);
   const relink = await call('POST', '/github/accounts', { login: 'acme', kind: 'organization', tokenRef: 'vault:acme-relinked' });
   expect(relink.status).toBe(201); expect(relink.json.id).toBe(org.json.id);
-  const reattach = await call('POST', `/github/accounts/${org.json.id}/installations`, { installationId: 'inst-1', subject: 'acme', repositories: ['acme/app'], permissions: REQUIRED_PERMISSIONS });
-  expect(reattach.status).toBe(201); expect(reattach.json.revokedAt).toBeNull();
+  const reattach = await call('POST', `/github/accounts/${org.json.id}/installations`, { installationId: 'inst-1', subject: 'acme', permissions: REQUIRED_PERMISSIONS });
+  expect(reattach.status).toBe(201); expect(reattach.json).toMatchObject({ revokedAt: null, repositories: ['acme/app', 'acme/private-deps'], dependencyReader: true });
   expect((await call('DELETE', `/github/accounts/${org.json.id}`, undefined, 'usr_admin')).status).toBe(204);
   expect((await call('GET', '/github/accounts')).json.items.map((x: any) => x.login)).toEqual(['user-login']);
 });
