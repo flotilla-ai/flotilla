@@ -175,3 +175,4 @@
 - 2026-11-27: boot uses `SnapshotStore.bootPlan(projectId)` (newest good image, else `FLOTILLA_THREAD_IMAGE`/`flotilla-thread:dev`; a newer failed build adds a repair prompt naming `environment.read|replace|verify`). Parent integration wires this into runner machine startup after phase2-12. Undo: remove the `snapshots` runner dependency.
 - phase2-31: Drive share tokens are bearer capabilities; only token hashes are stored. Anonymous write shares save as the creator with source `upload` because Drive sources have no anonymous identity.
 - phase2-31: concurrent conflicts merge only when both current and incoming contents are append-only extensions of the caller's base version; all other conflicts still fail closed.
+- phase2-37: troubleshooting content is static operator documentation; its typed index exists only as test-owned coverage inventory, so no runtime table is warranted.

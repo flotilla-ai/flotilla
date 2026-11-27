@@ -1,11 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 2, waves 3-6 continuing in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-Current `flotilla/p1` head: `e2e4c66` (phase2-31 Drive UX).
+Current `flotilla/p1` head before this PR: `eda204f` (repair-13 progress).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` on this branch after Drive UX: done 197, pending 368, needs-human-login 18, n-a 22, blocked 31.
+Counted in `docs/plan/PARITY.md` on this branch after Drive UX: done 198, pending 367, needs-human-login 18, n-a 22, blocked 31.
 
 ## Unit table
 
@@ -42,6 +42,7 @@ Counted in `docs/plan/PARITY.md` on this branch after Drive UX: done 197, pendin
 | phase2-36-usage-billing-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/54 | usage report/series/balance API, monthly org/project budget windows, machine-minute pricing, run-out free ask/forbid, `/usage` page; 9 rows done; see `docs/runlog/phase2-36.md` |
 | phase2-32-rules | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/53 | layered rules loader, shared context budget, kernel rules, context breakdown, Memory/Captain experiments; 11 rows done; see `docs/runlog/phase2-32.md` |
 | phase2-34-mcp | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/55 | MCP registry/plugins; rows/statuses in `docs/runlog/phase2-34.md` |
+| phase2-37-support-docs | in review | 1 |  | troubleshooting guide/index covering all 12 required operator topics; CAPY-464 done; see `docs/runlog/phase2-37.md` |
 
 ## Next action
 
