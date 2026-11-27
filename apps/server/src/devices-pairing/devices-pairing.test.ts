@@ -56,10 +56,13 @@ it('CAPY-228/229/230/231: pairing trust, machine picker metadata, workspace poli
   const root = await mkdtemp(join(tmpdir(), 'flt-scan-'));
   await mkdir(join(root, 'one', '.git'), { recursive: true }); await writeFile(join(root, 'one', '.git', 'config'), '[remote "origin"]\n url = https://github.com/acme/one.git\n');
   await mkdir(join(root, 'nested', 'two', '.git'), { recursive: true }); await writeFile(join(root, 'nested', 'two', '.git', 'config'), '[remote "origin"]\n\turl\t=\tgit@github.com:acme/two.git\n');
+  await mkdir(join(root, 'three', '.git'), { recursive: true }); await writeFile(join(root, 'three', '.git', 'config'), '[remote "origin"]\n url = ssh://git@github.com/acme/three.git\n');
   const scanned = await scanGitFolders(root);
-  expect(scanned.map((x) => x.remote).sort()).toEqual(['git@github.com:acme/two.git', 'https://github.com/acme/one.git']);
+  expect(scanned.map((x) => x.remote).sort()).toEqual(['git@github.com:acme/two.git', 'https://github.com/acme/one.git', 'ssh://git@github.com/acme/three.git']);
   const reported = await call('/api/v1/device-pairing/folders', { method: 'POST', token: claimed.body.token, json: { folders: scanned } });
-  expect(reported.status).toBe(200); expect(reported.body.projectFolders).toHaveLength(2);
+  expect(reported.status).toBe(200); expect(reported.body.projectFolders).toHaveLength(3);
+  expect((await call('/api/v1/device-pairing/folders', { method: 'POST', token: claimed.body.token, json: {} })).status).toBe(400);
+  expect((await call('/api/v1/devices')).body.items.find((x: any) => x.id === claimed.body.device.id).projectFolders).toHaveLength(3);
   expect((await call(`/api/v1/devices/${claimed.body.device.id}/revoke`, { method: 'POST', json: {} })).body.trust).toBe('revoked');
   expect((await call('/api/v1/device-pairing/heartbeat', { method: 'POST', token: claimed.body.token, json: { status: 'online' } })).status).toBe(403);
   expect(Date.parse(claimed.body.device.waitUntil) - Date.parse(claimed.body.device.createdAt)).toBe(24 * 60 * 60_000);

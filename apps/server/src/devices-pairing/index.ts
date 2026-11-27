@@ -38,7 +38,7 @@ function folderLinks(raw: unknown): ProjectFolderLink[] {
   if (!Array.isArray(raw) || raw.length > 100) throw new ApiFailure('ValidationFailed', 'projectFolders must be an array of at most 100 links');
   return raw.map((x) => {
     const f = x as Record<string, unknown>;
-    if (!validPath(f.path) || typeof f.remote !== 'string' || !/^https?:\/\/[^\s]+$|^[\w.-]+@[\w.-]+:.+/.test(f.remote)) throw new ApiFailure('ValidationFailed', 'each project folder needs a path and git remote');
+    if (!validPath(f.path) || typeof f.remote !== 'string' || !/^(https?|ssh):\/\/[^\s]+$|^[\w.-]+@[\w.-]+:.+/.test(f.remote)) throw new ApiFailure('ValidationFailed', 'each project folder needs a path and git remote');
     return { path: String(f.path), remote: String(f.remote), projectId: f.projectId == null ? null : String(f.projectId) };
   });
 }
@@ -76,12 +76,14 @@ export class DevicesPairingStore {
     return r;
   }
   async update(ownerId: string, id: string, input: Record<string, unknown>): Promise<PairedDevice> {
-    const existing = toDevice(await this.owned(ownerId, id));
-    const ws = input.workspacePolicy === undefined ? existing.workspacePolicy : workspacePolicy(input.workspacePolicy);
-    const prefs = input.settings === undefined ? existing.settings : settings(input.settings, existing.settings);
-    const folders = input.projectFolders === undefined ? existing.projectFolders : folderLinks(input.projectFolders);
+    await this.owned(ownerId, id);
+    const ws = input.workspacePolicy === undefined ? null : JSON.stringify(workspacePolicy(input.workspacePolicy));
+    const prefs = input.settings === undefined ? null : JSON.stringify(settings(input.settings, {} as DeviceSettings));
+    const folders = input.projectFolders === undefined ? null : JSON.stringify(folderLinks(input.projectFolders));
     if (input.name !== undefined && (typeof input.name !== 'string' || !input.name.trim() || input.name.length > 80)) throw new ApiFailure('ValidationFailed', 'invalid device name');
-    const [r] = await this.q(`UPDATE paired_devices SET name=COALESCE($2,name),workspace_policy=$3,settings=$4,project_folders=$5,updated_at=now() WHERE id=$1 RETURNING *`, [id, input.name == null ? null : String(input.name).trim(), JSON.stringify(ws), JSON.stringify(prefs), JSON.stringify(folders)]);
+    const [r] = await this.q(`UPDATE paired_devices SET name=COALESCE($2,name),workspace_policy=COALESCE($3::jsonb,workspace_policy),
+      settings=CASE WHEN $4::jsonb IS NULL THEN settings ELSE settings || $4::jsonb END,project_folders=COALESCE($5::jsonb,project_folders),updated_at=now()
+      WHERE id=$1 RETURNING *`, [id, input.name == null ? null : String(input.name).trim(), ws, prefs, folders]);
     return toDevice(r);
   }
   async approve(ownerId: string, id: string): Promise<PairedDevice> {
@@ -102,12 +104,15 @@ export class DevicesPairingStore {
   async heartbeat(token: string, status: 'online' | 'asleep' | 'offline'): Promise<PairedDevice> {
     if (!['online','asleep','offline'].includes(status)) throw new ApiFailure('ValidationFailed', 'invalid device status');
     const d = await this.deviceByToken(token);
-    const [r] = await this.q('UPDATE paired_devices SET status=$2,last_seen_at=now(),updated_at=now() WHERE id=$1 RETURNING *', [d.id, status]);
+    const [r] = await this.q(`UPDATE paired_devices SET status=$2,last_seen_at=now(),updated_at=now() WHERE id=$1 AND trust<>'revoked' RETURNING *`, [d.id, status]);
+    if (!r) throw new ApiFailure('Forbidden', 'invalid device token');
     return toDevice(r);
   }
   async reportFolders(token: string, folders: unknown): Promise<PairedDevice> {
+    if (!Array.isArray(folders)) throw new ApiFailure('ValidationFailed', 'folders must be an array');
     const d = await this.deviceByToken(token); const links = folderLinks(folders);
-    const [r] = await this.q('UPDATE paired_devices SET project_folders=$2,last_seen_at=now(),updated_at=now() WHERE id=$1 RETURNING *', [d.id, JSON.stringify(links)]);
+    const [r] = await this.q(`UPDATE paired_devices SET project_folders=$2,last_seen_at=now(),updated_at=now() WHERE id=$1 AND trust<>'revoked' RETURNING *`, [d.id, JSON.stringify(links)]);
+    if (!r) throw new ApiFailure('Forbidden', 'invalid device token');
     return toDevice(r);
   }
   machinePicker(ownerId: string): Promise<{ items: unknown[] }> {
