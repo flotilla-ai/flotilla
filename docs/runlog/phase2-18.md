@@ -157,3 +157,15 @@ apps/server test:  Test Files  24 passed (24)
 apps/server test:       Tests  158 passed | 1 skipped (159)
 EXIT=0
 ```
+
+## Fourth review round (`7044426`)
+
+- Stale subagent diff: reproduced (`expected 'diff --git a/a.txt …' to contain '+three'`). Fixed in `9ca6dbb`: `diff` refreshes the mirror with the same `ensureMirror` helper as the stacked-start check, and falls back to the local mirror if the remote cannot be reached.
+- Missing wakes with `FLOTILLA_WAKES=0`: rejected. That setting is phase2-17's switch for turning event wakes off, and subagent wakes are event wakes.
+
+```text
+$ make check   # other packages unchanged, all passed
+apps/server test:  Test Files  24 passed (24)
+apps/server test:       Tests  158 passed | 1 skipped (159)
+EXIT=0
+```
