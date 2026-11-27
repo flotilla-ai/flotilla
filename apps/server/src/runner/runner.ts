@@ -205,7 +205,7 @@ export class ThreadRunner {
     let machine = { containerId: '' };
     {
       machine = await this.deps.driver.startThreadContainer({ threadId, code: thread.code, image: process.env.FLOTILLA_THREAD_IMAGE ?? 'flotilla-thread:dev', cpus: 1, memMb: 512, env: runToken ? { FLOTILLA_MCP_TOKEN: runToken.token } : {}, roMounts: [], egressAllow: project?.egress_allow as string[] ?? [], ...(place.workspaceFrom ? { workspaceFrom: place.workspaceFrom } : {}) }).catch((err) => { tokenService?.endRun(runId); throw err; });
-      if (project && !thread.branch && !place.workspaceFrom) {
+      if (project?.repo && !thread.branch && !place.workspaceFrom) {
         const seeded = await seedWorkspace({ id: threadId as never, code: thread.code as string, title: thread.title as string, branch: thread.branch as string | null, containerId: machine.containerId }, { id: project.id as never, repo: project.repo as never, trust: project.trust as never, token: process.env.GITHUB_TOKEN }, this.deps.driver).catch(() => ({ branch: null }));
         if (seeded.branch && seeded.branch !== thread.branch) await this.pool.query('UPDATE threads SET branch=$2 WHERE id=$1', [threadId, seeded.branch]);
         thread.branch = seeded.branch ?? thread.branch;
@@ -234,7 +234,7 @@ export class ThreadRunner {
     const eng = thread.engine as { model?: string | null; effort?: string | null };
     this.live.set(threadId, { runId, adapter, sessionId: null });
     let stream: AsyncIterable<AdapterEvent>;
-    try { stream = adapter.start({ runId: runId as never, threadId: threadId as never, prompt, cwd: project ? '/workspace/repo' : '/workspace', env: prepared.env, transport, resumeSessionId: null, attachments: files, model: eng.model ?? null, effort: eng.effort ?? null, contextWindow: (thread.engine as Row).contextWindow ?? null, vendorBudget: { maxMicroUsd: policy.maxUsd }, auth: { kind: 'none' }, mcpConfigPath: runToken ? '/run/flotilla/mcp.json' : null, images: [] } as never); } catch (err) { tokenService?.endRun(runId); throw err; }
+    try { stream = adapter.start({ runId: runId as never, threadId: threadId as never, prompt, cwd: project?.repo ? '/workspace/repo' : '/workspace', env: prepared.env, transport, resumeSessionId: null, attachments: files, model: eng.model ?? null, effort: eng.effort ?? null, contextWindow: (thread.engine as Row).contextWindow ?? null, vendorBudget: { maxMicroUsd: policy.maxUsd }, auth: { kind: 'none' }, mcpConfigPath: runToken ? '/run/flotilla/mcp.json' : null, images: [] } as never); } catch (err) { tokenService?.endRun(runId); throw err; }
     try {
       for await (const event of stream) {
         if (this.cancelled.has(threadId)) { state = 'cancelled'; await adapter.cancel(runId as never).catch(() => undefined); break; }
