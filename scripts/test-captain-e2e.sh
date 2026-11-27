@@ -12,8 +12,9 @@ for i in $(seq 1 90); do curl -fsS localhost:8080/healthz >/dev/null 2>&1 && bre
 curl -fsS localhost:8080/healthz >/dev/null
 setup_token=$(docker logs "${project}-server-1" 2>&1 | sed -n 's/.*first-run setup token: //p' | tail -1)
 test -n "$setup_token"
-curl -fsS -X POST localhost:8080/api/v1/auth/setup -H 'content-type: application/json' -d "{\"email\":\"captain-e2e@example.com\",\"password\":\"pass123456\",\"token\":\"$setup_token\"}" >/dev/null
-curl -fsS -c /tmp/flotilla-captain-cookies -X POST localhost:8080/api/v1/auth/login -H 'content-type: application/json' -d '{"email":"captain-e2e@example.com","password":"pass123456"}' >/tmp/flotilla-captain-login.json
+password=$(python3 -c 'import secrets;print(secrets.token_urlsafe(18))')
+curl -fsS -X POST localhost:8080/api/v1/auth/setup -H 'content-type: application/json' -d "{\"email\":\"captain-e2e@example.com\",\"password\":\"$password\",\"token\":\"$setup_token\"}" >/dev/null
+curl -fsS -c /tmp/flotilla-captain-cookies -X POST localhost:8080/api/v1/auth/login -H 'content-type: application/json' -d '{"email":"captain-e2e@example.com","password":"'"$password"'"}' >/tmp/flotilla-captain-login.json
 csrf=$(python3 -c 'import json;print(json.load(open("/tmp/flotilla-captain-login.json"))["csrfToken"])')
 curl -fsS -b /tmp/flotilla-captain-cookies -X POST localhost:8080/api/v1/captains -H 'content-type: application/json' -H "x-flotilla-csrf: $csrf" -d '{"title":"captain e2e","purpose":"start crew","engine":{"adapter":"fake"},"budget":{"maxUsd":20000,"maxTokens":null,"maxWallSec":null,"scope":"captain-subtree","onHit":"pause-and-ask","warnAt":0.8}}' >/tmp/flotilla-captain.json
 captain=$(python3 -c 'import json;print(json.load(open("/tmp/flotilla-captain.json"))["id"])')
