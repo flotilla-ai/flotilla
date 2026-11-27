@@ -71,7 +71,7 @@ function validateCron(expr: string, timezone: string): void {
   cronMatches(expr, timezone, new Date());
   const job = cronJob(expr, timezone);
   const first = job.nextRun(new Date());
-  const second = first ? job.nextRun(new Date(first.getTime() + 60_000)) : null;
+  const second = first ? job.nextRun(first) : null;
   if (first && second && second.getTime() - first.getTime() < 5 * 60_000) throw new ApiFailure('ValidationFailed', 'schedule frequency floor is 5 minutes');
 }
 function valueMatch(rule: unknown, actual: unknown): boolean {
@@ -144,7 +144,7 @@ export class AutomationStore {
     let adapter = 'fake'; let connectionId: string | null = null;
     if (model.pinned) {
       const catalog = modelsCatalogStore(this.databaseUrl);
-      const offers = (await catalog.list(userId)).filter((c) => c.enabled && c.status !== 'failed' && c.models.includes(String(model.name)));
+      const offers = (await catalog.candidates(userId)).filter((c) => c.models.includes(String(model.name)));
       if (!offers.length) throw new ApiFailure('Conflict', 'pinned model is unavailable; no substitution was made');
       adapter = offers[0].adapter;
       connectionId = (await catalog.resolve(userId, { adapter, model: model.name })).connectionId;

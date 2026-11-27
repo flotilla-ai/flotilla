@@ -18,9 +18,10 @@ export function legacyIdempotencyFingerprint(body: unknown): string {
   return createHash('sha256').update(canonical(body)).digest('hex');
 }
 function redactKeys(value: unknown, keys: Set<string>): unknown {
-  if (Array.isArray(value)) return value.map((x) => redactKeys(x, keys));
-  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, keys.has(k) ? '<redacted>' : redactKeys(v, keys)]));
-  return value;
+  // Idempotent-create responses are flat resource objects. Only redact top-level string secrets:
+  // nested user conditions may legitimately use the same names, and null must remain null.
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, keys.has(k) && typeof v === 'string' ? '<redacted>' : v]));
 }
 function redactedBody(body: string, contentType: string, header: string | null): string {
   if (!header || !contentType.includes('application/json')) return body;

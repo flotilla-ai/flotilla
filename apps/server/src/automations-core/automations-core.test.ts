@@ -39,6 +39,7 @@ it('CAPY-152/154/155/159/160/161/162/163/164/165/166/500: automation triggers, c
   expect((await createAutomation({ name: 'bad', prompt: 'x', triggers: [] })).status).toBe(400);
   expect((await createAutomation({ name: 'bad', prompt: 'x', triggers: Array(21).fill(manual) })).status).toBe(400);
   expect((await createAutomation({ name: 'bad', prompt: 'x', triggers: [{ type: 'schedule', cron: '* * * * *', timezone: 'UTC' }] })).status).toBe(400);
+  expect((await createAutomation({ name: 'bad', prompt: 'x', triggers: [{ type: 'schedule', cron: '0,1,10 * * * *', timezone: 'UTC' }] })).status).toBe(400);
   expect((await createAutomation({ name: 'bad', prompt: 'x', triggers: [{ type: 'schedule', cron: '*/5 * * * *', timezone: 'Mars/Olympus' }] })).status).toBe(400);
   expect((await createAutomation({ name: 'annual-ok', prompt: 'x', triggers: [{ type: 'schedule', cron: '0 0 1 1 *', timezone: 'UTC' }] })).status).toBe(201);
   expect(cronMatches('30 1 * * *', 'America/New_York', new Date('2026-03-08T06:30:00Z'))).toBe(true);

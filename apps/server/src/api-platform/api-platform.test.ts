@@ -51,7 +51,7 @@ describe('api platform', () => {
   it('automation create idempotency replays a redacted response instead of duplicating or storing the token', async () => {
     const { token } = await mint({ name: 'automation-idempotency' });
     await pool.query('INSERT INTO projects (id,owner_id,name,repo,trust,budget,code) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (id) DO NOTHING', ['prj_idem_auto', humanId, 'Auto', '{}', 'untrusted', '{}', 'AIA']);
-    const body = { requestId: 'create-automation-once', name: 'Keyed', prompt: 'x', triggers: [{ type: 'webhook' }] };
+    const body = { requestId: 'create-automation-once', name: 'Keyed', prompt: 'x', triggers: [{ type: 'webhook' }], conditions: { webhookUrl: 'user-condition-value' } };
     const first = await call('/api/v1/projects/prj_idem_auto/automations', { method: 'POST', bearer: token, json: body });
     expect(first.status).toBe(201);
     const firstBody = await first.json() as any;
@@ -60,6 +60,7 @@ describe('api platform', () => {
     expect(replay.status).toBe(201); expect(replay.headers.get('idempotent-replayed')).toBe('true');
     const replayBody = await replay.json() as any;
     expect(replayBody.id).toBe(firstBody.id);
+    expect(replayBody.webhookToken).toBe('<redacted>'); expect(replayBody.webhookUrl).toBe('<redacted>'); expect(replayBody.conditions.webhookUrl).toBe('user-condition-value');
     expect((await pool.query('SELECT count(*)::int n FROM automations WHERE project_id=$1', ['prj_idem_auto'])).rows[0].n).toBe(1);
     expect((await pool.query('SELECT body FROM api_idempotency WHERE request_id=$1', ['create-automation-once'])).rows[0].body).not.toContain(firstBody.webhookToken);
   });
