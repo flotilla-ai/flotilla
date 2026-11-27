@@ -4,8 +4,13 @@ import { automationStore } from '../automations-core/index.js';
 
 async function limitedJson(c: Context): Promise<{ payload: Record<string, unknown>; raw: string }> {
   if (Number(c.req.header('content-length') ?? 0) > 256 * 1024) throw new ApiFailure('PayloadTooLarge', 'webhook body exceeds 256 KB');
-  const raw = await c.req.text();
-  if (new TextEncoder().encode(raw).length > 256 * 1024) throw new ApiFailure('PayloadTooLarge', 'webhook body exceeds 256 KB');
+  const reader = c.req.raw.body?.getReader(); const chunks: Uint8Array[] = []; let size = 0;
+  for (;;) {
+    const next = await reader?.read(); if (!next || next.done) break;
+    size += next.value.length; if (size > 256 * 1024) { await reader!.cancel(); throw new ApiFailure('PayloadTooLarge', 'webhook body exceeds 256 KB'); }
+    chunks.push(next.value);
+  }
+  const raw = Buffer.concat(chunks).toString('utf8');
   const parsed = JSON.parse(raw || '{}') as unknown;
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new ApiFailure('ValidationFailed', 'webhook body must be a JSON object');
   return { payload: parsed as Record<string, unknown>, raw };

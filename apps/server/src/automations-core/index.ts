@@ -39,9 +39,12 @@ function cronSet(field: string, min: number, max: number): Set<number> {
   }
   return out;
 }
+const formatters = new Map<string, Intl.DateTimeFormat>();
 function zoned(date: Date, timezone: string): { minute: number; hour: number; day: number; month: number; dow: number } {
   try {
-    const parts = new Intl.DateTimeFormat('en-US', { timeZone: timezone, minute: 'numeric', hour: 'numeric', day: 'numeric', month: 'numeric', weekday: 'short', hour12: false }).formatToParts(date);
+    let formatter = formatters.get(timezone);
+    if (!formatter) formatters.set(timezone, (formatter = new Intl.DateTimeFormat('en-US', { timeZone: timezone, minute: 'numeric', hour: 'numeric', day: 'numeric', month: 'numeric', weekday: 'short', hour12: false })));
+    const parts = formatter.formatToParts(date);
     const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
     const dow = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[get('weekday') as 'Sun'] ?? 0;
     return { minute: Number(get('minute')), hour: Number(get('hour')) % 24, day: Number(get('day')), month: Number(get('month')), dow };
@@ -63,8 +66,7 @@ function validateCron(expr: string, timezone: string): void {
     const d = new Date(probe + i * 60_000);
     if (cronMatches(expr, timezone, d)) occurrences.push(d);
   }
-  if (occurrences.length < 2) throw new ApiFailure('ValidationFailed', 'schedule must occur at least twice in a week');
-  if (occurrences[1].getTime() - occurrences[0].getTime() < 5 * 60_000) throw new ApiFailure('ValidationFailed', 'schedule frequency floor is 5 minutes');
+  if (occurrences.length === 2 && occurrences[1].getTime() - occurrences[0].getTime() < 5 * 60_000) throw new ApiFailure('ValidationFailed', 'schedule frequency floor is 5 minutes');
 }
 function valueMatch(rule: unknown, actual: unknown): boolean {
   if (Array.isArray(rule)) return rule.some((x) => valueMatch(x, actual));
@@ -145,8 +147,10 @@ export class AutomationStore {
       if (t) return a.standingThreadId;
     }
     const tid = id('thr');
+    const [project] = await this.q('SELECT visibility FROM projects WHERE id=$1', [a.projectId]);
+    const visibility = a.threadMode === 'private' ? 'private' : String(project?.visibility ?? 'private');
     await this.q(`INSERT INTO threads (id,code,project_id,role,owner_id,title,status,engine,budget,spent,visibility) VALUES ($1,'',$2,'thread',$3,$4,'idle',$5,$6,$7,$8)`,
-      [tid, a.projectId, a.ownerId, `Automation: ${a.name}`, JSON.stringify({ adapter: 'fake', model: a.model.name, effort: null, connectionId: null }), JSON.stringify({ maxUsd: null, maxTokens: null, maxWallSec: null, scope: 'thread', onHit: 'pause-and-ask', warnAt: 0.8 }), JSON.stringify({ usd: 0, inputTokens: 0, outputTokens: 0, cacheTokens: 0, machineSec: 0 }), a.threadMode === 'private' ? 'private' : 'private']);
+      [tid, a.projectId, a.ownerId, `Automation: ${a.name}`, JSON.stringify({ adapter: 'fake', model: a.model.name, effort: null, connectionId: null }), JSON.stringify({ maxUsd: null, maxTokens: null, maxWallSec: null, scope: 'thread', onHit: 'pause-and-ask', warnAt: 0.8 }), JSON.stringify({ usd: 0, inputTokens: 0, outputTokens: 0, cacheTokens: 0, machineSec: 0 }), visibility]);
     if (a.threadMode === 'standing') await this.q('UPDATE automations SET standing_thread_id=$1,updated_at=now() WHERE id=$2', [tid, a.id]);
     return tid;
   }
