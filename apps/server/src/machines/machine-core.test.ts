@@ -146,7 +146,7 @@ describe('machine core', () => {
     await waitFor(async () => (await pool.query(`SELECT 1 FROM runs WHERE thread_id=$1 AND state='completed'`, [t])).rows.length > 0);
     expect(calls.filter((c) => c.startsWith('start')).length).toBe(before + 1);
     await waitFor(async () => (await ready()) === 'ready');
-    expect((await lease(t))).toMatchObject({ state: 'awake', holds: 0 });
+    await waitFor(async () => (await lease(t))?.holds === 0); expect((await lease(t))).toMatchObject({ state: 'awake', holds: 0 });
     expect(calls).not.toContain(`delete-workspace ${t}`);
     await call(`/threads/${t}/machine/keep-awake`, { method: 'DELETE' }); clock += 3 * MIN; await core.tick();
   }, 30_000);
