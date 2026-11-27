@@ -103,3 +103,21 @@ All other 16 server test files pass, including `thread-lifecycle` and `api-platf
 ## Escalations (out of scope, not fixed)
 - Joined collaborators can now read detail, messages and the stream, but `GET /threads` (list), `GET /approvals` and runner writes (`/message`, `/stop`, `/interrupt`, `/approvals/:id/answer`) stay owner-only (`ThreadRunner.owned`). Decide in a repair or collaboration unit whether joined members may drive a thread.
 - The GitHub check monitor unarchiving archived threads (parent note) is not addressed here.
+
+## Devin Review round 1 (on 8e27d56)
+- Open streams: an open stream now rechecks `canViewThread` before delivering each `thread.status` frame, because access only changes through those events (visibility, leave, takeover). When access is gone, the stream ends before that frame and before anything after it. Fixed in bcdc694.
+- Detail/messages TOCTOU: the visibility predicate (`viewable`) now runs in the same SQL statement as the fetch. Fixed in 1832650. The race itself has no test; the existing collaborator access tests cover the behavior.
+- Idempotent replay of `204` (leaving a private thread with an `Idempotency-Key`) returned 500 because it replayed an empty body. It now replays a null body. Fixed in a6b7991.
+
+Focused (`npx vitest run src/thread-api src/api-platform`):
+```
+ Test Files  2 passed (2)
+      Tests  17 passed (17)
+```
+`pnpm --filter @flotilla/server test`:
+```
+   × git mirror > collects and pushes without token in mirror config or agent hooks/config running 205ms
+ Test Files  1 failed | 16 passed (17)
+      Tests  1 failed | 88 passed | 1 skipped (90)
+```
+The one failure is the same pre-existing `git/mirror` fsmonitor flake. `pnpm -r typecheck` and `pnpm -r lint` both end in `Done` with no errors.
