@@ -40,5 +40,6 @@ it('CAPY-562..567/605..607/638: public folders, pins, upload/list/download and o
   const dl = await app.request(`http://x/api/v1/files/${grant.fileId}/download`); expect(dl.status).toBe(200); expect(dl.headers.get('content-type')).toBe('text/plain'); expect(Buffer.from(await dl.arrayBuffer()).toString()).toBe('hello');
   await pool.query(`INSERT INTO thread_inbox (id,thread_id,root_id,mode,state,text,attachments,by_user) VALUES ('inb_af','thr_af','inb_af','queue','pending','hello',$1::jsonb,'usr_af')`,[JSON.stringify([grant.fileId])]);
   expect((await call('GET', '/threads/thr_af/attachments')).json.items).toEqual([expect.objectContaining({ id: grant.fileId, name: 'hello.txt', status: 'uploaded' })]);
+  await pool.query(`UPDATE thread_inbox SET state='cancelled' WHERE id='inb_af'`);expect((await call('GET', '/threads/thr_af/attachments')).json.items).toEqual([]);await pool.query(`UPDATE thread_inbox SET state='pending' WHERE id='inb_af'`);
   expect((await call('GET', '/users')).json.items).toEqual(expect.arrayContaining([expect.objectContaining({ id: 'usr_af', email: 'af@example.invalid' }), expect.objectContaining({ id: 'usr_af2', role: 'admin' })]));
 }, 30_000);
