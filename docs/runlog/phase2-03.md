@@ -84,3 +84,16 @@ Before the merge, `make check` on `371f16b` passed end to end (`apps/server test
 | Custom endpoint missing from runs | escalated: adapters declare no base-URL env/capability, so a custom gateway URL cannot reach the CLI without inventing flags; needs an adapter capability (out of scope) |
 
 CI on `a6c3609` failed once on the pre-existing `runner.test.ts` pool-teardown race (`Cannot use a pool after calling end on the pool`, runner.ts:83); `7c76783` passed `check`. Escalated with the mirror flake.
+
+## After merging `flotilla/p1` @ `4772b1c` (repair-5)
+
+```
+$ pnpm --filter @flotilla/server test
+ Test Files  15 passed (15)
+      Tests  70 passed | 1 skipped (71)
+$ make check
+apps/server test:    × git mirror > collects and pushes without token in mirror config or agent hooks/config running 208ms
+apps/server test:       Tests  1 failed | 69 passed | 1 skipped (71)
+```
+
+The only `make check` failure is the pre-existing local `git/mirror.test.ts` flake (passes in CI and in the server test run above); still escalated.
