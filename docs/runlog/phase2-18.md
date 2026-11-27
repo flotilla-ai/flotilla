@@ -140,24 +140,7 @@ Devin Review on `75cc337`: "Stacked starts reject published branches" reproduced
 After the review fixes (measured):
 
 ```text
-$ make check
-packages/core test:  Test Files  6 passed (6)
-packages/core test:       Tests  15 passed (15)
-apps/gate test:  Test Files  2 passed (2)
-apps/gate test:       Tests  5 passed (5)
-apps/web test$ vitest run --passWithNoTests src
-packages/adapters/host test:  Test Files  1 passed (1)
-packages/adapters/host test:       Tests  3 passed (3)
-apps/web test:  Test Files  4 passed (4)
-apps/web test:       Tests  14 passed (14)
-packages/adapters/codex test:  Test Files  1 passed (1)
-packages/adapters/codex test:       Tests  5 passed (5)
-packages/adapters/claude-code test:  Test Files  1 passed (1)
-packages/adapters/claude-code test:       Tests  7 passed (7)
-packages/adapters/generic-cli test:  Test Files  1 passed (1)
-packages/adapters/generic-cli test:       Tests  4 passed (4)
-packages/adapters/fake test:  Test Files  1 passed (1)
-packages/adapters/fake test:       Tests  3 passed (3)
+$ make check   # other packages unchanged, all passed
 apps/server test:  Test Files  23 passed (23)
 apps/server test:       Tests  143 passed | 1 skipped (144)
 EXIT=0
@@ -170,9 +153,7 @@ CI run 1 on `855dadf` failed in the pre-existing `runner-queue.test.ts` CAPY-465
 Real merge `3131388` (parents `60550f3`, `eba906f`). Conflicts in `PARITY.md` (kept phase2-17 rows CAPY-043..051 and phase2-18 rows CAPY-052..062), `PROGRESS.md` and `DECISIONS-LOG.md` (kept both units' entries). Row counts recounted from `PARITY.md`.
 
 ```text
-$ make check
-apps/web test:  Test Files  5 passed (5)
-apps/web test:       Tests  15 passed (15)
+$ make check   # other packages unchanged, all passed
 apps/server test:  Test Files  24 passed (24)
 apps/server test:       Tests  156 passed | 1 skipped (157)
 EXIT=0
