@@ -17,15 +17,22 @@ for i in $(seq 1 90); do curl -fsS localhost:8080/healthz >/dev/null 2>&1 && bre
 curl -fsS localhost:8080/healthz >/dev/null
 password=$(python3 -c 'import secrets;print(secrets.token_urlsafe(18))')
 setup_token=$(docker logs "${project}-server-1" 2>&1 | sed -n 's/.*first-run setup token: //p' | tail -1)
-curl -fsS -X POST localhost:8080/api/v1/auth/setup -H 'content-type: application/json' -d "{\"email\":\"egress-e2e@example.com\",\"password\":\"$password\",\"token\":\"$setup_token\"}" >/dev/null
-curl -fsS -c /tmp/flotilla-ui-cookies -X POST localhost:8080/api/v1/auth/login -H 'content-type: application/json' -d '{"email":"egress-e2e@example.com","password":"'"$password"'"}' >/tmp/flotilla-egress-login.json
+setup_body=$(mktemp); chmod 600 "$setup_body"; printf '{"email":"egress-e2e@example.com","password":"%s","token":"%s"}' "$password" "$setup_token" >"$setup_body"
+curl -fsS -X POST localhost:8080/api/v1/auth/setup -H 'content-type: application/json' -d @"$setup_body" >/dev/null
+rm -f "$setup_body"
+login_body=$(mktemp); chmod 600 "$login_body"; printf '{"email":"egress-e2e@example.com","password":"%s"}' "$password" >"$login_body"
+curl -fsS -c /tmp/flotilla-ui-cookies -X POST localhost:8080/api/v1/auth/login -H 'content-type: application/json' -d @"$login_body" >/tmp/flotilla-egress-login.json
+rm -f "$login_body"
 csrf=$(python3 -c 'import json;print(json.load(open("/tmp/flotilla-egress-login.json"))["csrfToken"])')
+csrf_cfg=$(mktemp); chmod 600 "$csrf_cfg"; printf 'header = "x-flotilla-csrf: %s"\n' "$csrf" >"$csrf_cfg"
 db() { docker exec "${project}-postgres-1" psql -U postgres -d flotilla -tAqc "$1"; }
 owner=$(db "select id from users where email='egress-e2e@example.com'")
 db "insert into threads (id,code,project_id,role,owner_id,title,status,engine,budget,spent) values ('$thread_id','FLO-PV01',null,'thread','$owner','preview fixture','idle','{}','{}','{}')"
-preview=$(curl -fsS -b /tmp/flotilla-ui-cookies -X POST localhost:8080/api/v1/threads/$thread_id/preview-token -H 'content-type: application/json' -H "x-flotilla-csrf: $csrf" -d '{"port":3000}')
-one=$(python3 -c 'import json,sys;print(json.loads(sys.argv[1])["token"])' "$preview")
-share=$(python3 -c 'import json,sys;print(json.loads(sys.argv[1])["shareToken"])' "$preview")
+preview=$(curl -fsS -b /tmp/flotilla-ui-cookies -X POST localhost:8080/api/v1/threads/$thread_id/preview-token -H 'content-type: application/json' -K "$csrf_cfg" -d '{"port":3000}')
+preview_file=$(mktemp); chmod 600 "$preview_file"; printf %s "$preview" >"$preview_file"
+one=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["token"])' "$preview_file")
+share=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["shareToken"])' "$preview_file")
+rm -f "$preview_file"
 
 docker network create --internal --subnet 10.211.0.0/24 "$thread_net" >/dev/null
 docker network create --internal --subnet 11.0.0.0/24 "$public_net" >/dev/null
@@ -39,10 +46,9 @@ docker network connect --alias fixture.private.test "$private_net" flt-egress-fi
 preview_js='require("http").createServer((q,r)=>{r.end("preview-ok")}).listen(3000,"0.0.0.0")'
 docker run -d --name flt-FLO-PV01 --network "$thread_net" flotilla-thread:dev node -e "$preview_js" >/dev/null
 
-gate_token=$(docker exec "${project}-server-1" cat /run/flotilla-gate/token)
 gate_ip=$(docker inspect -f '{{with index .NetworkSettings.Networks "'$thread_net'"}}{{.IPAddress}}{{end}}' "${project}-gate-1")
 allow='["fixture.public.test","fixture.private.test"]'
-docker exec -e GT="$gate_token" -e ALLOW="$allow" -e GIP="$gate_ip" -e NET="$thread_net" "${project}-server-1" node -e 'fetch(`http://gate:3129/networks/${process.env.NET}`,{method:"PUT",headers:{authorization:`Bearer ${process.env.GT}`,"content-type":"application/json"},body:JSON.stringify({allow:JSON.parse(process.env.ALLOW),gateIp:process.env.GIP})}).then(r=>process.exit(r.status===204?0:1))'
+docker exec -e ALLOW="$allow" -e GIP="$gate_ip" -e NET="$thread_net" "${project}-server-1" node -e 'const fs=require("fs");const gt=fs.readFileSync("/run/flotilla-gate/token","utf8").trim();fetch(`http://gate:3129/networks/${process.env.NET}`,{method:"PUT",headers:{authorization:`Bearer ${gt}`,"content-type":"application/json"},body:JSON.stringify({allow:JSON.parse(process.env.ALLOW),gateIp:process.env.GIP})}).then(r=>process.exit(r.status===204?0:1))'
 proxy_env=(--network "$thread_net" -e HTTP_PROXY=http://gate:3128 -e HTTPS_PROXY=http://gate:3128)
 public_out=$(docker run --rm "${proxy_env[@]}" flotilla-thread:dev wget -qO- --timeout=5 -e use_proxy=yes -e http_proxy=http://gate:3128 -e https_proxy=http://gate:3128 http://fixture.public.test:8088/ 2>/dev/null || true)
 private_out=$(docker run --rm "${proxy_env[@]}" flotilla-thread:dev wget -qO- --timeout=5 -e use_proxy=yes -e http_proxy=http://gate:3128 -e https_proxy=http://gate:3128 http://fixture.private.test:8088/ 2>/dev/null || true)
@@ -53,10 +59,14 @@ printf 'egress public=%s private_len=%s denied_len=%s\n' "$public_out" "${#priva
 [ -z "$denied_out" ]
 
 sleep 1
-bearer_code=$(curl -sS -o /tmp/preview-body -w '%{http_code}' -c /tmp/preview-cookies -L "http://localhost:8081/p/FLO-PV01/3000/?token=$one")
+preview_cfg=$(mktemp); chmod 600 "$preview_cfg"; printf 'url = "http://localhost:8081/p/FLO-PV01/3000/?token=%s"\n' "$one" >"$preview_cfg"
+bearer_code=$(curl -sS -K "$preview_cfg" -o /tmp/preview-body -w '%{http_code}' -c /tmp/preview-cookies -L)
+rm -f "$preview_cfg"
 no_token_code=$(curl -sS -o /dev/null -w '%{http_code}' "http://localhost:8081/p/FLO-PV01/3000/")
 ui_cookie_code=$(curl -sS -o /dev/null -w '%{http_code}' -b /tmp/flotilla-ui-cookies "http://localhost:8081/p/FLO-PV01/3000/")
-share_code=$(curl -sS -o /dev/null -w '%{http_code}' "http://localhost:8081/p/FLO-PV01/3000/?share=$share")
+share_cfg=$(mktemp); chmod 600 "$share_cfg"; printf 'url = "http://localhost:8081/p/FLO-PV01/3000/?share=%s"\n' "$share" >"$share_cfg"
+share_code=$(curl -sS -K "$share_cfg" -o /dev/null -w '%{http_code}')
+rm -f "$share_cfg" "$csrf_cfg"
 gate_no_token=$(docker exec "${project}-server-1" node -e 'const n=require("net").connect(3128,"gate",()=>n.write("CONNECT flt-FLO-PV01:3000 HTTP/1.1\r\nHost: flt-FLO-PV01:3000\r\n\r\n"));n.once("data",d=>{console.log(d.toString().split(" ")[1]);n.end()});setTimeout(()=>process.exit(1),3000)' | tail -1 || true)
 printf 'preview bearer=%s no_token=%s ui_cookie=%s share=%s gate_no_token=%s\n' "$bearer_code" "$no_token_code" "$ui_cookie_code" "$share_code" "$gate_no_token"
 [ "$bearer_code" = 200 ]
