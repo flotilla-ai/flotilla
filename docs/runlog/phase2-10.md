@@ -95,6 +95,10 @@ exit=0
 - resolved: the + menu returns an empty menu for an owned thread with no project, instead of 409.
 - escalated (out of scope): `apps/server/src/runner/runner-queue.test.ts` (phase2-05) is flaky in CI: CAPY-476/026 `usedTokens` 0 vs 1500 on `fe5e76e`, passed on rerun; phase2-04 PR CI also failed on CAPY-469 in the same file. Recommend a parent repair PR.
 
+## Devin Review round 2 (`1c4a462`)
+- resolved: an oversized `.flotilla/setup.json` stops the import; it no longer falls back to `.capy/setup.json`.
+- CI rerun: `runner-queue.test.ts` CAPY-465 flaked once on `1c4a462` (same out-of-scope phase2-05 flake as round 1).
+
 ## Unverified
 - No real Docker thread machine runs setup/startup yet (needs phase2-12 to call `registerEnvironmentMachine` + `prepare`); proven with a local-process transport.
 - Readiness probe uses bash `/dev/tcp` inside the machine; not tried on a real machine image.
