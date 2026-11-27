@@ -14,3 +14,10 @@ Dispositions:
 - blocked: CAPY-130 (no real checkout/agent execution yet), CAPY-134 (PR-page/@mention entry points not connected), CAPY-137 (adapter credential policy not enforced)
 
 The durable core proves rounds, exact-head/read-only metadata, credit tiers, posting policy, finding validation, triage/readiness, suppression and incremental re-review semantics. It deliberately does not claim a live checkout or GitHub writeback.
+
+Full verification on the merged branch:
+
+```text
+make check
+exit 0
+```

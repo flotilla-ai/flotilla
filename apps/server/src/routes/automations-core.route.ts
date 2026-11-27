@@ -14,6 +14,8 @@ export function createAutomationsCoreRoute(store = () => automationStore(undefin
     return c.json(created, 201);
   });
   app.get('/projects/:id/automations', async (c) => c.json({ items: await store().list(userId(c), c.req.param('id'), { state: c.req.query('state'), createdBefore: c.req.query('createdBefore'), createdAfter: c.req.query('createdAfter') }) }));
+  app.get('/automations/:id', async (c) => c.json(await store().getOwned(userId(c), c.req.param('id'))));
+  app.put('/automations/:id', async (c) => c.json(await store().update(userId(c), c.req.param('id'), await body(c))));
   app.post('/automations/:id/pause', async (c) => c.json(await store().setState(userId(c), c.req.param('id'), 'paused')));
   app.post('/automations/:id/resume', async (c) => c.json(await store().setState(userId(c), c.req.param('id'), 'active')));
   app.delete('/automations/:id', async (c) => c.json(await store().setState(userId(c), c.req.param('id'), 'deleted')));

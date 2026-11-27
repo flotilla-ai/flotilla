@@ -40,6 +40,7 @@ export class ReviewCoreStore {
     const effort = String(input.effort ?? 'medium') as ReviewEffort; if (!['low','medium','high','flex'].includes(effort)) throw new ApiFailure('ValidationFailed', 'invalid review effort');
     const last = await this.latest(userId, repo, pr); const round = (last?.round ?? 0) + 1;
     const rid = id('rev');
+    if (last && last.head_sha !== head) await this.pool.query('UPDATE review_findings SET superseded=true,updated_at=now() WHERE owner_id=$1 AND repo=$2 AND pr_number=$3 AND NOT superseded', [userId, repo, pr]);
     const [r] = await this.q(`INSERT INTO review_runs (id,owner_id,repo,pr_number,head_sha,base_sha,round,status,source,instructions,effort,credits,adapter,connection_id,last_reviewed_sha) VALUES ($1,$2,$3,$4,$5,$6,$7,'completed',$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
       [rid, userId, repo, pr, head, base, round, source, input.instructions == null ? null : String(input.instructions), effort, reviewCredits(effort, round), String(input.adapter ?? 'fake'), input.connectionId == null ? null : String(input.connectionId), last?.head_sha ?? null]);
     await this.pool.query('UPDATE review_settings SET reviewed_once=true WHERE owner_id=$1 AND repo=$2', [userId, repo]);
@@ -56,7 +57,7 @@ export class ReviewCoreStore {
   }
   private async ownedRun(userId: string, runId: string): Promise<Row> { const [r] = await this.q('SELECT * FROM review_runs WHERE id=$1 AND owner_id=$2', [runId, userId]); if (!r) throw new ApiFailure('NotFound', 'review run not found'); return r }
   async addFindings(userId: string, runId: string, items: Row[]): Promise<ReviewFinding[]> {
-    const rr = await this.ownedRun(userId, runId); if (!Array.isArray(items)) throw new ApiFailure('ValidationFailed', 'items must be an array');
+    const rr = await this.ownedRun(userId, runId); const latestRun = await this.latest(userId, rr.repo, rr.pr_number); if (latestRun?.id !== rr.id) throw new ApiFailure('Conflict', 'cannot add findings to a superseded review round'); if (!Array.isArray(items)) throw new ApiFailure('ValidationFailed', 'items must be an array');
     const settings = await this.settings(userId, rr.repo); const out: ReviewFinding[] = [];
     for (const item of items) {
       const kind = String(item.kind ?? 'finding'); if (!['finding','note'].includes(kind)) throw new ApiFailure('ValidationFailed', 'kind must be finding or note');
@@ -68,7 +69,7 @@ export class ReviewCoreStore {
         if (!['confirmed','investigate'].includes(String(item.confidence))) throw new ApiFailure('ValidationFailed', 'invalid finding confidence');
       }
       const prior = await this.q(`SELECT * FROM review_findings WHERE owner_id=$1 AND repo=$2 AND pr_number=$3 AND fingerprint=$4 ORDER BY round DESC LIMIT 1`, [userId, rr.repo, rr.pr_number, fp]);
-      if (prior[0] && (prior[0].status === 'irrelevant' || (prior[0].status === 'resolved' && prior[0].body === body))) continue;
+      if (prior[0]?.status === 'irrelevant') continue;
       const posted = kind === 'note' ? settings.includeNotes : (rank[String(item.severity)] >= rank[settings.postingThreshold] && (item.confidence === 'confirmed' || settings.includeInvestigate));
       try {
         const [r] = await this.q(`INSERT INTO review_findings (id,run_id,owner_id,repo,pr_number,round,kind,category,severity,confidence,file,line,body,fingerprint,posted) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
@@ -89,8 +90,19 @@ export class ReviewCoreStore {
   }
   async state(userId: string, repoInput: string, prInput: number): Promise<{ run: ReviewRun | null; findings: ReviewFinding[]; readiness: { ready: boolean; override: boolean; blockedBy: ReviewFinding[] } }> {
     const repo = repoName(repoInput); const pr = prNumber(prInput); const latest = await this.latest(userId, repo, pr);
-    const rows = latest ? await this.q('SELECT * FROM review_findings WHERE owner_id=$1 AND repo=$2 AND pr_number=$3 AND NOT superseded ORDER BY round,file,line', [userId, repo, pr]) : [];
+    const rows = latest ? await this.q('SELECT * FROM review_findings WHERE owner_id=$1 AND repo=$2 AND pr_number=$3 AND round=$4 AND NOT superseded ORDER BY round,file,line', [userId, repo, pr, latest.round]) : [];
     const findings = rows.map(finding); const blockedBy = findings.filter((f) => f.kind === 'finding' && f.status === 'open' && f.severity === 'high' && f.confidence === 'confirmed');
     const override = latest?.ready_override === true; return { run: latest ? run(latest) : null, findings, readiness: { ready: override || blockedBy.length === 0, override, blockedBy } };
   }
+}
+
+export async function reviewPushFromWebhook(store: ReviewCoreStore, body: Row): Promise<number> {
+  if (body.action !== 'synchronize') return 0;
+  const pr = body.pull_request as Row | undefined; const repo = (body.repository as Row | undefined)?.full_name;
+  const number = Number(pr?.number); const head = (pr?.head as Row | undefined)?.sha;
+  if (typeof repo !== 'string' || !Number.isInteger(number) || typeof head !== 'string') return 0;
+  const owners = await store.pool.query('SELECT DISTINCT owner_id FROM review_runs WHERE repo=$1 AND pr_number=$2', [repo, number]);
+  let made = 0;
+  for (const row of owners.rows as Row[]) if (await store.push(String(row.owner_id), repo, number, head)) made++;
+  return made;
 }

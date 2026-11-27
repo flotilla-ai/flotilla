@@ -6,7 +6,7 @@ import { afterAll, beforeAll, expect, it } from 'vitest';
 import { migrate } from '../db/migrate.js';
 import { ApiFailure, apiError } from '../api-platform/types.js';
 import { createReviewCoreRoute } from '../routes/review-core.route.js';
-import { ReviewCoreStore, reviewCredits } from './index.js';
+import { ReviewCoreStore, reviewCredits, reviewPushFromWebhook } from './index.js';
 
 const exec = promisify(execFile); let container = ''; let pool: pg.Pool; let app: Hono; let store: ReviewCoreStore;
 async function call(method: string, path: string, body?: unknown) {
@@ -66,13 +66,17 @@ it('CAPY-130..141,498: review rounds, findings, effort, triage, posting policy a
   const irrelevantAgain = await call('POST', `/reviews/${pushed.json.id}/findings`, { items: [{ kind: 'finding', category: 'bug', severity: 'high', confidence: 'confirmed', file: 'src/a.ts', line: 9, body: 'null dereference', fingerprint: 'fp-high' }] });
   expect(irrelevantAgain.json.items).toHaveLength(0);
   await store.triage('usr_r', high.id, 'resolved');
-  const failedFix = await call('POST', `/reviews/${pushed.json.id}/findings`, { items: [{ kind: 'finding', category: 'bug', severity: 'high', confidence: 'confirmed', file: 'src/a.ts', line: 9, body: 'null dereference returned', fingerprint: 'fp-high' }] });
+  const failedFix = await call('POST', `/reviews/${pushed.json.id}/findings`, { items: [{ kind: 'finding', category: 'bug', severity: 'high', confidence: 'confirmed', file: 'src/a.ts', line: 9, body: 'null dereference', fingerprint: 'fp-high' }] });
   expect(failedFix.json.items).toHaveLength(1); expect(failedFix.json.items[0]).toMatchObject({ round: 2, status: 'open' });
+  expect((await call('POST', `/reviews/${run.json.id}/findings`, { items: [{ kind: 'finding', category: 'bug', severity: 'high', confidence: 'confirmed', file: 'src/a.ts', line: 9, body: 'late old head', fingerprint: 'fp-late' }] })).status).toBe(409);
+  expect((await call('GET', '/reviews/acme/app/7')).json.readiness.blockedBy.map((x:any)=>x.fingerprint)).toEqual(['fp-high']);
 
   expect((await call('POST', '/reviews/push', { repo: 'acme/app', prNumber: 7, headSha: 'bbbbbbb' }))).toMatchObject({ status: 200 });
   await call('PUT', '/reviews/settings/acme/app', { automaticMode: 'once' });
   expect((await call('POST', '/reviews/push', { repo: 'acme/app', prNumber: 7, headSha: 'ccccccc' })).status).toBe(200);
   await call('PUT', '/reviews/settings/acme/app', { automaticMode: 'off' });
   expect((await call('POST', '/reviews/push', { repo: 'acme/app', prNumber: 7, headSha: 'ddddddd' })).status).toBe(200);
+  await call('PUT', '/reviews/settings/acme/app', { automaticMode: 'every-push' });
+  expect(await reviewPushFromWebhook(store, { action: 'synchronize', repository: { full_name: 'acme/app' }, pull_request: { number: 7, head: { sha: 'eeeeeee' } } })).toBe(1);
   expect((await call('POST', '/reviews', { repo: 'acme/app', prNumber: 7, headSha: 'not-a-sha' })).status).toBe(400);
 }, 30_000);
