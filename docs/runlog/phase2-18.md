@@ -135,6 +135,8 @@ Failing first for the publish fix (before the `mirror.ts` change):
 Error: protected-branch: refusing push to flotilla/FLO-PREV-web
 ```
 
+Devin Review on `75cc337`: "Stacked starts reject published branches" reproduced (`expected '' to contain 'flotilla/FLO-NEXT-api'` for the mirror after `collectAndPush`); fixed by an `update-ref` after each push in `git/mirror.ts`. The double-spend finding stays escalated.
+
 After the review fixes (measured):
 
 ```text
