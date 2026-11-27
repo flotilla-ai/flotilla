@@ -41,7 +41,22 @@ CAPY-639 failed only on its last assertion (`/usage/balance` with the API key); 
 `make check` (after merge, exit 0): server `Test Files 24 passed (24)`, `Tests 153 passed | 1 skipped (154)`; gate 5, core 15, web 17, host 3, codex 5, claude-code 7, generic-cli 4, fake 3 passed.
 `pnpm -r lint`: exit 0.
 
+## Devin Review round 1
+Fixed:
+- Deleted-thread spend is kept in `usage_tombstones`.
+- The thread cap is checked against the ledger.
+- Raise on a shared cap no longer overwrites the thread cap.
+- An old free offer is refused after `runOutFree: 'never'`.
+- Private titles in the report are shown only to the current owner.
+
+All five are covered by new assertions in `usage-billing-api.test.ts`.
+
+Escalated: machine time is sampled every 10 s by the runner ticker, so a run shorter than its first sample has no machine cost. This belongs to phase2-12 machine core metering.
+
+Re-run: `npx vitest run src/usage-billing-api src/thread-lifecycle src/runner src/models-catalog` gave `Test Files 6 passed (6)` and `Tests 51 passed (51)`.
+
 ## Unverified
+- Runs shorter than the 10 s machine ticker get no machine cost (escalated to phase2-12).
 - Machine minutes are priced per runner type `pool` (the only type until phase2-12 machine core records sizes); no real machine sizes are metered here.
 - `/usage` is proven by a render test, not a browser e2e.
 - Real vendor run-out detection is CAPY-333 (`needs-human-login`); CAPY-481 is proven with a scripted `run_out` adapter. Operator check with a real Claude subscription: `pnpm --filter @flotilla/server exec vitest run src/usage-billing-api` covers the fixture path; for live, sign in with `claude login` in a thread machine, exhaust the subscription, and confirm the run-out card shows `Use Flotilla free models` instead of switching.
