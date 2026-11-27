@@ -1,11 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 2, waves 3-6 continuing in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-Current `flotilla/p1` head before this PR: `09c329c` (phase2-28 automation API).
+Current `flotilla/p1` head before this PR: `8a1ea5b` (phase2-23 PR autofix).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after phase2-24 (combined with in-flight phase2-23): done 272, pending 255, needs-human-login 22, n-a 22, blocked 65.
+Counted in `docs/plan/PARITY.md` after phase2-24: done 272, pending 255, needs-human-login 22, n-a 22, blocked 65.
 
 ## Unit table
 
@@ -54,11 +54,12 @@ Counted in `docs/plan/PARITY.md` after phase2-24 (combined with in-flight phase2
 | phase2-27-automation-control | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/71 | automation control operations, cap, webhook rotation, filters; 4 rows done, Drive/machine/output rows blocked; see `docs/runlog/phase2-27.md` |
 | repair-19-runner-requeue | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/72 | failed starts requeue claimed input instead of cancelling user messages |
 | phase2-28-automation-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/73 | automation REST CRUD, run/batch controls, state transitions; see `docs/runlog/phase2-28.md` |
-| phase2-24-review-core | in review | 1 |  | durable review rounds/findings/triage/readiness/posting policy; 10 rows done, real checkout/PR entry/credential policy rows blocked; see `docs/runlog/phase2-24.md` |
+| phase2-23-pr-autofix | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/74 | PR settings/list/actions/review actor and no-CI wake foundation; see `docs/runlog/phase2-23.md` |
+| phase2-24-review-core | in review | 1 |  | durable review rounds/findings/triage/readiness/posting policy; see `docs/runlog/phase2-24.md` |
 ## Next action
 
-1. Continue machine UX/devices/dock and Captain/work-surface units directly in the parent session. CAPY-061/062 need a paired-device target and an agent-callable subagent tool.
-2. Repair runner queue so failed starts requeue undelivered inbox items instead of dropping them.
+1. Merge phase2-23 after its gate, then integrate review core/policy and continue Captain/device/dock units directly in the parent session.
+2. Keep live GitHub rows fixture-backed and marked needs-human-login until a real operator login verifies them.
 
 ## Phase 1 summary (preserved)
 
