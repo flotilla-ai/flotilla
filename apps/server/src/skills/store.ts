@@ -104,7 +104,7 @@ export class SkillStore {
   /** Before each run: refresh repo skills, mount every loaded skill into the agent-native folders, and point the agent at invoked ones. */
   async prepareRun(input: { thread: Row; project: Row | null; runId: string; containerId: string; driver: unknown; transport: ProcessTransport; cwd: string; prompt: string; text: string }): Promise<string> {
     const projectId = (input.thread.project_id as string | null) ?? null;
-    if (input.project && projectId) await this.scanRepo(projectId, input.transport, input.cwd).catch((err) => console.warn('skills repo scan', (err as Error).message));
+    if (input.project?.repo && projectId) await this.scanRepo(projectId, input.transport, input.cwd).catch((err) => console.warn('skills repo scan', (err as Error).message));
     const loaded = (await this.list(input.thread.owner_id, projectId)).filter((s) => s.load.state === 'loaded');
     const driver = input.driver as CopyIn;
     if (driver.copyIn && loaded.length) await driver.copyIn.call(driver, input.containerId, SKILL_HOME, skillsTar(loaded));
