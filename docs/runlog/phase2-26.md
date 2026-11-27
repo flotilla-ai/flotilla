@@ -17,6 +17,17 @@ Tests  1 passed (1)
 
 Server typecheck after the focused test: `tsc --noEmit` rc=0.
 
+Final `make check` after merging current `flotilla/p1`:
+
+```text
+Test Files  37 passed (37)
+Tests  242 passed | 1 skipped (243)
+apps/server lint: Done
+CHECK_RC=0
+```
+
+`python3 docs/plan/scripts/parity_coverage.py P2` printed `P2: 353 rows covered exactly once`.
+
 The test proves validation of 1–20 triggers, cron field/IANA timezone validation, the 5-minute floor and a DST transition case; GitHub webhook fixture mapping and delivery idempotency; webhook HMAC, 256 KB cap, no-match and duplicate outcomes; batching list/flush/cancel; manual triggers; substring/regex/list conditions; pinned-model failure without substitution; new/standing/existing/private thread modes; normal thread creation and runner start handoff; and multiple schedules with same-minute duplicate suppression.
 
 ## Unverified
