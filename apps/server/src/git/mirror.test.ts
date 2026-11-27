@@ -78,6 +78,16 @@ describe('git mirror', () => {
     sh('git config user.email a@x && git config user.name a && echo bad >> README.md && git add . && git commit -m bad',join(root,'repo'));
     await expect(collectAndPush(thread,project,driver,mirrors)).rejects.toThrow('protected-branch');
   },30_000);
+  it('seeds and pushes a configured custom branch prefix', async () => {
+    const root=mkdtempSync(join(base,'custom-')); const driver=new FakeDriver(root); const custom={...thread,id:'thr_custom',branch:null};
+    const seeded=await seedWorkspace(custom,project,driver,mirrors,'feature');
+    expect(seeded.branch).toBe('feature/FLO-1-test-work');
+    sh('git config user.email a@x && git config user.name a && echo custom >> README.md && git add . && git commit -m custom',join(root,'repo'));
+    const out=await collectAndPush({...custom,branch:seeded.branch},project,driver,mirrors);
+    expect(out.pushedSha).toMatch(/^[0-9a-f]{40}$/);
+    expect(sh(`git --git-dir ${remote} rev-parse refs/heads/feature/FLO-1-test-work`).trim()).toBe(out.pushedSha);
+  },30_000);
+
   it('rejects a bundle for a branch owned by another thread code', async () => {
     const root=mkdtempSync(join(base,'foreign-')); const driver=new FakeDriver(root);
     await seedWorkspace(thread,project,driver,mirrors);

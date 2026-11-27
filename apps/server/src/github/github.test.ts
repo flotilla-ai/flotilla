@@ -42,6 +42,22 @@ describe('github client and autofix wake logic', () => {
     expect((await app.request('http://x/api/v1/webhooks/github', { method: 'POST', body, headers: { 'x-hub-signature-256': sig } })).status).toBe(202);
     expect(seen).toBe(1);
   });
+  it('syncs unlinked installed pull requests with metadata and records check state', async () => {
+    const writes: unknown[][] = [];
+    const pr = { number: 9, title: 'External', user: { login: 'Alice' }, labels: [{ name: 'bug' }], draft: false, state: 'open', merged_at: null, head: { ref: 'external/branch', sha: 'abc' }, base: { ref: 'main' }, html_url: 'x' };
+    const monitor = new CheckMonitor({
+      pool: { query: async (sql: string, args: unknown[] = []) => { writes.push([sql, ...args]); return { rows: [] }; } } as never,
+      store: { appendEvents: async () => {} } as never,
+      clientFor: () => ({ listPrs: async () => [pr], checkRuns: async () => [{ status: 'completed', conclusion: 'success', name: 'check' }] }) as never,
+      wake: async () => {}
+    });
+    await monitor.syncRepo('o/r');
+    const insert = writes.find((x) => String(x[0]).includes('INSERT INTO prs'));
+    expect(insert).toBeTruthy(); expect(insert?.slice(1)).toEqual(['o/r', 9, 'external/branch', 'External', 'alice', 'open', '["bug"]', false, 'green']);
+    expect(insert?.[0]).toContain('thread_id,head_branch');
+    expect(insert?.[0]).toContain('VALUES ($1,$2,NULL');
+  });
+
   it('wakes green once and stops repeated failing signatures', async () => {
     const events: unknown[] = []; const wakes: string[] = [];
     let checks = [{ status: 'completed', conclusion: 'success', name: 'check' }];

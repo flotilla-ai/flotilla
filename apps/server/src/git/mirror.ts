@@ -68,7 +68,7 @@ async function runTransport(transport: ProcessTransport, argv: string[], cwd: st
 function slug(title: string): string { return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'work'; }
 async function tarOne(file: string, inner: string): Promise<Buffer> { return (await exec('tar', ['-C', join(file, '..'), '-cf', '-', inner], { encoding: 'buffer', maxBuffer: 256 * 1024 * 1024 } as never)).stdout as unknown as Buffer; }
 
-export async function seedWorkspace(thread: GitThread, project: GitProject, driver: GitDriver, root = '/data/mirrors'): Promise<{ branch: string }> {
+export async function seedWorkspace(thread: GitThread, project: GitProject, driver: GitDriver, root = '/data/mirrors', branchPrefix = 'flotilla'): Promise<{ branch: string }> {
   const mirror = await ensureMirror(project, root);
   const tmp = mkdtempSync(join(tmpdir(), 'flt-seed-'));
   try {
@@ -78,15 +78,16 @@ export async function seedWorkspace(thread: GitThread, project: GitProject, driv
     await driver.copyIn(thread.containerId, '/tmp', tar);
     const transport = driver.transport(thread.containerId);
     await runTransport(transport, ['git', 'clone', '--branch', project.repo.baseBranch, '/tmp/seed.bundle', '/workspace/repo'], '/workspace');
-    const branch = thread.branch ?? `flotilla/${thread.code}-${slug(thread.title)}`;
+    const branch = thread.branch ?? `${branchPrefix}/${thread.code}-${slug(thread.title)}`;
     await runTransport(transport, ['git', 'switch', '-c', branch], '/workspace/repo');
     if (project.repo.baseBranch !== branch && project.repo.baseBranch.startsWith('flotilla/')) await runTransport(transport, ['git', 'branch', '-D', project.repo.baseBranch], '/workspace/repo');
     return { branch };
   } finally { rmSync(tmp, { recursive: true, force: true }); }
 }
 
+function branchPrefix(thread: GitThread): string { return thread.branch?.split(`${thread.code}-`)[0]?.replace(/\/$/, '') || 'flotilla' }
 function branchOwnedByThread(branch: string, thread: GitThread): boolean {
-  return branch.startsWith(`flotilla/${thread.code}-`);
+  return branch.startsWith(`${branchPrefix(thread)}/${thread.code}-`);
 }
 export async function mirrorDefaultBranch(mirror: string, fallback: string, env: NodeJS.ProcessEnv): Promise<string> {
   try {
@@ -98,7 +99,7 @@ export async function collectAndPush(thread: GitThread, project: GitProject, dri
   return serialized(project.repo.fullName, async () => {
     const mirror = await ensureMirror(project, root);
     const transport = driver.transport(thread.containerId);
-    await runTransport(transport, ['git', '-c', 'core.hooksPath=/dev/null', '-c', 'core.fsmonitor=false', '-c', 'credential.helper=', '-c', 'core.sshCommand=', 'bundle', 'create', '/tmp/thread.bundle', '--glob=refs/heads/flotilla/*'], '/workspace/repo');
+    await runTransport(transport, ['git', '-c', 'core.hooksPath=/dev/null', '-c', 'core.fsmonitor=false', '-c', 'credential.helper=', '-c', 'core.sshCommand=', 'bundle', 'create', '/tmp/thread.bundle', `--glob=refs/heads/${branchPrefix(thread)}/*`], '/workspace/repo');
     const tar = await driver.copyOut(thread.containerId, '/tmp/thread.bundle');
     const tmp = mkdtempSync(join(tmpdir(), 'flt-push-'));
     try {
@@ -116,7 +117,7 @@ export async function collectAndPush(thread: GitThread, project: GitProject, dri
       const parsed = refs.map((line) => {
         const [ref, object] = line.split(' ');
         const branch = ref.slice(prefix.length + 1);
-        assertPushAllowed(branch, { baseBranch: project.repo.baseBranch, defaultBranch });
+        assertPushAllowed(branch, { baseBranch: project.repo.baseBranch, defaultBranch, writePrefix: branchPrefix(thread) });
         if (!branchOwnedByThread(branch, thread)) throw new KernelDenied('protected-branch', `refusing push to foreign thread branch ${branch}`);
         return { ref, object, branch };
       });

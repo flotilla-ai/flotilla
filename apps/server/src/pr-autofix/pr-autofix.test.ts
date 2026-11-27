@@ -27,7 +27,8 @@ afterAll(async()=>{await pool?.end();if(container)spawn('sh',['-c',`sleep 5; doc
 it('CAPY-110/111/112/115/117/120/123/125: pull settings, filters, fixture actions, review identity and no-CI wake',async()=>{
  expect((await call('PUT','/pulls/settings',{branchPrefix:'release'})).status).toBe(400);
  const settings=await call('PUT','/pulls/settings',{branchPrefix:'feature',draftDefault:true,openInFlotilla:false});expect(settings.json).toMatchObject({branchPrefix:'feature',draftDefault:true,openInFlotilla:false,personalOverride:true});
- const list=await call('GET','/pulls');expect(list.json.items.map((x:any)=>`${x.repo}#${x.number}`).sort()).toEqual(['acme/api#1','acme/api#2','acme/api#4','acme/web#3']);
+ await pool.query(`INSERT INTO prs (repo,number,thread_id,head_branch,title,author,state,labels,draft,checks_state) VALUES ('acme/api',5,NULL,'external/x','External API','alice','open','[]',false,'green')`);
+ const list=await call('GET','/pulls');expect(list.json.items.map((x:any)=>`${x.repo}#${x.number}`).sort()).toEqual(['acme/api#1','acme/api#2','acme/api#4','acme/api#5','acme/web#3']);
  expect((await call('GET','/pulls?q=author:alice status:open label:bug')).json.items.map((x:any)=>x.number)).toEqual([1]);
  const one=await call('GET','/pulls/acme/api/1');expect(one.status).toBe(200);expect(one.json.blockedReason).toBe('checks are failing');await pool.query(`UPDATE prs SET checks_state='green' WHERE repo='acme/api' AND number=1`);
  expect((await call('POST','/pulls/acme/api/2/actions',{action:'merge',method:'squash'})).status).toBe(409);

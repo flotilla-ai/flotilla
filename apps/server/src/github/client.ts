@@ -1,4 +1,4 @@
-export type GithubPr = { number: number; head: { ref: string; sha: string }; base: { ref: string }; html_url: string };
+export type GithubPr = { number: number; head: { ref: string; sha: string }; base: { ref: string }; html_url: string; title?: string; user?: { login?: string }; labels?: { name?: string }[]; draft?: boolean; state?: string; merged_at?: string | null; updated_at?: string };
 export type CheckRun = { status: string; conclusion: string | null; name: string; details_url?: string; output?: { text?: string } };
 export class GitHubClient {
   constructor(readonly token: string, readonly baseUrl = 'https://api.github.com') {}
@@ -15,6 +15,8 @@ export class GitHubClient {
     try { return await this.req<GithubPr>(`/repos/${repo}/pulls`, { method: 'POST', body: JSON.stringify({ title, head: branch, base }) }); }
     catch { const raced = await this.findPr(repo, branch); if (raced) return raced; throw new Error('open PR failed'); }
   }
+  listPrs(repo: string): Promise<GithubPr[]> { return this.req<GithubPr[]>(`/repos/${repo}/pulls?state=all&per_page=100`); }
+  getPr(repo: string, number: number): Promise<GithubPr> { return this.req<GithubPr>(`/repos/${repo}/pulls/${number}`); }
   checkRuns(repo: string, sha: string): Promise<CheckRun[]> { return this.req<{ check_runs: CheckRun[] }>(`/repos/${repo}/commits/${sha}/check-runs`).then((x) => x.check_runs); }
   async checkLog(repo: string, run: CheckRun): Promise<string> {
     if (run.output?.text) return run.output.text.split('\n').slice(-200).join('\n');
