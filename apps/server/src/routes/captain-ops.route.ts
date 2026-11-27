@@ -1,8 +1,8 @@
-import {Hono,type Context} from 'hono';import pg from 'pg';import {ApiFailure} from '../api-platform/types.js';import {CaptainOpsStore} from '../captain-ops/index.js';
+import {Hono,type Context} from 'hono';import pg from 'pg';import {ApiFailure} from '../api-platform/types.js';import {CaptainOpsStore} from '../captain-ops/index.js';import {PrAutofixStore} from '../pr-autofix/index.js';
 const user=(c:Context)=>c.get('userId')as string;const body=async(c:Context)=>{try{return ((await c.req.json())??{})as Record<string,unknown>}catch{throw new ApiFailure('ValidationFailed','request body must be valid JSON')}};let one:CaptainOpsStore|null=null;
-export function captainOpsStore(databaseUrl=process.env.DATABASE_URL??'postgres://postgres@postgres:5432/flotilla'){one??=new CaptainOpsStore(new pg.Pool({connectionString:databaseUrl}));return one}
+export function captainOpsStore(databaseUrl=process.env.DATABASE_URL??'postgres://postgres@postgres:5432/flotilla'){if(!one){const pool=new pg.Pool({connectionString:databaseUrl});const prs=new PrAutofixStore(pool);one=new CaptainOpsStore(pool,async(action,userId)=>{if(action.action==='merge')await prs.act(userId,String(action.repo),Number(action.number),{action:'merge',method:'squash'});else throw new ApiFailure('ValidationFailed','unsupported digest action')})}return one}
 export function createCaptainOpsRoute(getStore=()=>captainOpsStore()){const app=new Hono();
- app.get('/captains/:id/digest',async c=>c.json(await getStore().digest(user(c),c.req.param('id'))));
+ app.get('/captain-ops/:id/digest',async c=>c.json(await getStore().digest(user(c),c.req.param('id'))));
  app.put('/captains/:id/documents/:file',async c=>c.json(await getStore().writeDocument(user(c),c.req.param('id'),c.req.param('file'),(await body(c)).content)));
  app.get('/captains/:id/digest-items',async c=>c.json({items:await getStore().digestItems(user(c),c.req.param('id'))}));
  app.post('/captains/:id/digest-items',async c=>c.json(await getStore().addDigestItem(user(c),c.req.param('id'),(await body(c)).text),201));
