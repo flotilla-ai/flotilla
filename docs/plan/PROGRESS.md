@@ -33,7 +33,7 @@ Counted in `docs/plan/PARITY.md` on this branch: done 85, pending 501, needs-hum
 | phase2-17-wakes | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/45 | wake router, watches/timers, background jobs, cross-thread peek/send, held messages; 9 rows done, 4 blocked; see `docs/runlog/phase2-17.md` |
 
 | phase2-06-thread-composer | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/40 | composer keymap/attachments, request cards + Undo, thread codes, sections/ticks/reading place, deep link, owner-approved feedback; 10 rows done; see `docs/runlog/phase2-06.md` |
-| phase2-34-mcp | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/PRNUM | MCP registry, import, OAuth, Test, redaction, proposals; 9 done, 1 needs-human-login (307), 1 blocked (317); see `docs/runlog/phase2-34.md` |
+| phase2-34-mcp | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/55 | MCP registry, import, OAuth, Test, redaction, proposals; 9 done, 1 needs-human-login (307), 1 blocked (317); see `docs/runlog/phase2-34.md` |
 
 ## Next action
 

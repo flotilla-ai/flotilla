@@ -1,5 +1,7 @@
 # phase2-34 MCP registry and plugins
 
+PR: https://github.com/flotilla-ai/flotilla/pull/55
+
 Branch `flotilla/phase2-34-mcp` from `origin/flotilla/p1` (`eba906f`), then real-merged `6b5546a`. Local MCP/OAuth fixture server (node http), capture adapter, temporary Postgres 16 container. No vendor calls or logins.
 
 ## Rows
