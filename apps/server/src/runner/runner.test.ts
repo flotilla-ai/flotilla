@@ -61,4 +61,12 @@ describe('thread runner',()=>{
     expect(after.state).toBe('open'); expect(after.answer).toBeNull();
     await runner.stop(t.id as string,'usr_test');
   },20_000);
+  it('starts repoless project threads in /workspace without seeding a repo (CAPY-177)',async()=>{
+    const cwds:string[]=[]; const seen={...fakeAdapter,start:(input:{cwd:string})=>{cwds.push(input.cwd);return fakeAdapter.start(input as never);}};
+    const st=new EventStore((pool as unknown as {options:{connectionString:string}}).options.connectionString); const r=new ThreadRunner({store:st,driver:driver as never,adapters:new Map([['fake',seen as never]])});
+    await pool.query(`INSERT INTO projects (id,owner_id,name,repo,trust,egress_allow,budget,code) VALUES ('prj_empty','usr_test','Empty',NULL,'untrusted','[]','{}','EMP')`);
+    const t=await r.createThread({ownerId:'usr_test',title:'notes',prompt:'hello',projectId:'prj_empty',requestId:'req-empty'});
+    await waitFor(`SELECT * FROM events WHERE thread_id=$1 AND kind='run.ended'`,[t.id as string]); await r.drain(); await st.pool.end();
+    expect(cwds).toEqual(['/workspace']); expect(t.code).toBe('EMP-1');
+  },20_000);
 });
