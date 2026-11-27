@@ -100,4 +100,4 @@ Running 4 tests using 1 worker
 
   4 passed (3.2s)
 ```
-Review round 3 fixes: unjoined shared threads now appear in the Inbox (members who left stay hidden). Thread controls act on the thread whose card is shown. Save is disabled until the selected scope has loaded. Personal auto-archive days: empty means inherit org, 0 means off.
+Review round 3 fixes: unjoined shared threads now appear in the Inbox (members who left stay hidden). Thread controls act on the thread whose card is shown. Save is disabled until the selected scope has loaded. Personal auto-archive days: empty means inherit org, 0 means off. Round 4: `thread_members.joined` is now nullable. NULL means never joined, false means left, so Read, Subscribe and Mark all read keep unjoined shared threads visible. Rename/Regenerate are hidden until the viewer joins, and failed bulk results trigger an alert and are left out of Undo.

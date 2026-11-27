@@ -9,7 +9,7 @@ ALTER TABLE threads ADD COLUMN IF NOT EXISTS folder text;
 CREATE TABLE IF NOT EXISTS thread_members (
   thread_id text NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
   user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  joined boolean NOT NULL DEFAULT false,
+  joined boolean,
   subscribed boolean NOT NULL DEFAULT false,
   last_read_seq integer NOT NULL DEFAULT 0,
   marked_unread boolean NOT NULL DEFAULT false,

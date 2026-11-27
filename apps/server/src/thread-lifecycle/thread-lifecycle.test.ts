@@ -152,7 +152,7 @@ describe('thread lifecycle', () => {
   });
 
   it('CAPY-022: join, leave, subscribe and unsubscribe', async () => {
-    const id = await thread({ visibility: 'shared' }); expect((await call('bob', '/me/threads')).body.items.map((t: { id: string }) => t.id)).toContain(id);
+    const id = await thread({ visibility: 'shared' }); await act('bob', id, { action: 'subscribe' }); await act('bob', id, { action: 'read' }); expect((await call('bob', '/me/threads')).body.items.map((t: { id: string }) => t.id)).toContain(id);
     expect((await act('bob', id, { action: 'join' })).body.member).toMatchObject({ joined: true, subscribed: true });
     expect((await call('bob', '/me/threads')).body.items.map((t: { id: string }) => t.id)).toContain(id);
     expect((await act('bob', id, { action: 'unsubscribe' })).body.member).toMatchObject({ joined: true, subscribed: false });

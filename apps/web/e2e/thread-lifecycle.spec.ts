@@ -20,7 +20,7 @@ test('CAPY-022/023 collaborator joins, subscribes and takes over a shared thread
  const {posts}=await inbox(page);await page.getByText('Theirs').click();
  for(const name of ['Join','Subscribe','Take over'])await page.getByRole('button',{name,exact:true}).click();
  await expect.poll(()=>posts.map(p=>p.action)).toEqual(['join','subscribe','takeover']);
- await expect(page.getByRole('button',{name:'Transfer'})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'Transfer'})).toHaveCount(0);await expect(page.getByRole('button',{name:'Rename'})).toHaveCount(0);
 });
 test('CAPY-017/473 org title instructions, regenerate-when and auto-archive settings',async({page})=>{
  const {puts}=await inbox(page);await page.getByLabel('settings scope').selectOption('org');
@@ -30,7 +30,7 @@ test('CAPY-017/473 org title instructions, regenerate-when and auto-archive sett
 });
 test('CAPY-018/019/020/021/474/475 bulk range archive+undo, delete, mark all read, mention badge, cost',async({page})=>{
  const bulk:any[]=[];let readAll=0;
- await page.route('**/api/v1/threads/bulk',async r=>{bulk.push(r.request().postDataJSON());return r.fulfill({json:{results:[]}})});
+ await page.route('**/api/v1/threads/bulk',async r=>{const b=r.request().postDataJSON();bulk.push(b);return r.fulfill({json:{results:b.threadIds.map((id:string)=>({id,ok:true}))}})});
  await page.route('**/api/v1/threads/read-all',r=>{readAll++;return r.fulfill({json:{marked:2}})});
  await page.route('**/api/v1/threads/*/cost',r=>r.fulfill({json:{total:{usd:1500},byKind:{input:10,output:20,cache:5},byModel:[{model:'fake-1',usd:1500}]}}));
  await inbox(page);await expect(page.getByText('@1').first()).toBeVisible();

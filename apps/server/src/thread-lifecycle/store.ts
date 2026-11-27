@@ -32,7 +32,7 @@ const VIEW = `SELECT t.*, m.user_id AS m_user, m.joined, m.subscribed, m.last_re
 const toView = (r: Row): ThreadLifecycle => ({
   id: r.id, code: r.code, title: r.title, titleSource: r.title_source, status: r.status, ownerId: r.owner_id, visibility: r.visibility,
   archivedAt: r.archived_at?.toISOString() ?? null, pinned: r.pinned, tags: r.tags, folder: r.folder,
-  member: r.m_user ? { userId: r.m_user, joined: r.joined, subscribed: r.subscribed, lastReadSeq: r.last_read_seq, markedUnread: r.marked_unread } : null,
+  member: r.m_user ? { userId: r.m_user, joined: r.joined === true, subscribed: r.subscribed, lastReadSeq: r.last_read_seq, markedUnread: r.marked_unread } : null,
   unread: Boolean(r.marked_unread) || r.unread_count > 0, unreadCount: r.unread_count, mentions: r.mentions
 });
 
@@ -62,7 +62,7 @@ export class ThreadLifecycleStore {
   }
   async list(userId: string, archived: 'exclude' | 'only' | 'all' = 'exclude'): Promise<ThreadLifecycle[]> {
     const filter = archived === 'all' ? '' : archived === 'only' ? 'AND t.archived_at IS NOT NULL' : 'AND t.archived_at IS NULL';
-    return (await this.q(`${VIEW} WHERE (t.owner_id=$1 OR m.joined OR (t.visibility='shared' AND m.user_id IS NULL)) ${filter} ORDER BY t.pinned DESC, t.updated_at DESC, t.id`, [userId])).map(toView);
+    return (await this.q(`${VIEW} WHERE (t.owner_id=$1 OR m.joined OR (t.visibility='shared' AND m.joined IS NOT FALSE)) ${filter} ORDER BY t.pinned DESC, t.updated_at DESC, t.id`, [userId])).map(toView);
   }
 
   async apply(threadId: string, userId: string, a: ThreadAction): Promise<ThreadLifecycle | null> {
@@ -123,7 +123,7 @@ export class ThreadLifecycleStore {
 
   async readAll(userId: string): Promise<number> {
     const rows = await this.q(`INSERT INTO thread_members (thread_id,user_id,last_read_seq)
-      SELECT t.id,$1,COALESCE((SELECT max(seq) FROM events WHERE thread_id=t.id),0) FROM threads t LEFT JOIN thread_members m ON m.thread_id=t.id AND m.user_id=$1 WHERE t.owner_id=$1 OR m.joined
+      SELECT t.id,$1,COALESCE((SELECT max(seq) FROM events WHERE thread_id=t.id),0) FROM threads t LEFT JOIN thread_members m ON m.thread_id=t.id AND m.user_id=$1 WHERE t.owner_id=$1 OR m.joined OR (t.visibility='shared' AND m.joined IS NOT FALSE)
       ON CONFLICT (thread_id,user_id) DO UPDATE SET last_read_seq=EXCLUDED.last_read_seq, marked_unread=false RETURNING thread_id`, [userId]);
     return rows.length;
   }
