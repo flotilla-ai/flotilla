@@ -9,6 +9,7 @@ import type { AdapterEvent, AgentAdapter, StartInput } from '@flotilla/core/type
 import { migrate } from '../db/migrate.js';
 import { EventStore } from '../events/store.js';
 import { ThreadRunner } from '../runner/runner.js';
+import { privateAddress } from './store.js';
 import { parseImport, toolName } from './types.js';
 
 const exec = promisify(execFile);
@@ -37,7 +38,7 @@ beforeAll(async () => {
   const p = (await exec('docker', ['port', container, '5432/tcp'])).stdout.trim().split(':').pop();
   url = `postgres://postgres@127.0.0.1:${p}/postgres`;
   for (let i = 0; i < 40; i++) { try { const c = new pg.Client({ connectionString: url }); await c.connect(); await c.end(); break; } catch { await new Promise((r) => setTimeout(r, 250)); } }
-  await migrate(url); process.env.DATABASE_URL = url; process.env.FLOTILLA_PUBLIC_URL = 'https://flotilla.example'; process.env.FLOTILLA_MASTER_KEY ??= randomBytes(32).toString('base64url');
+  await migrate(url); process.env.DATABASE_URL = url; process.env.FLOTILLA_PUBLIC_URL = 'https://flotilla.example'; process.env.FLOTILLA_MASTER_KEY ??= randomBytes(32).toString('base64url'); process.env.FLOTILLA_MCP_ALLOW_PRIVATE = '1';
   pool = new pg.Pool({ connectionString: url });
   const { authStore } = await import('../auth/store.js'); const auth = authStore(url);
   owner = (await auth.setup('owner@x', 'pw', await auth.getSetupToken()))!.userId;
@@ -176,5 +177,27 @@ describe('MCP registry', () => {
     const declined = (await post(`/threads/${t}/mcp/proposals`, { action: 'rename', serverId: sentry.id, key: 'nope' })).json;
     await post(`/approvals/${declined.id}/answer`, { optionId: 'decline' });
     expect((await call(`/mcp/servers/${sentry.id}`)).json.key).toBe('sentry-io');
+  });
+  it('CAPY-310/305 egress: Test and OAuth refuse private addresses unless FLOTILLA_MCP_ALLOW_PRIVATE=1', async () => {
+    for (const ip of ['127.0.0.1', '10.1.2.3', '172.20.0.1', '192.168.1.1', '169.254.169.254', '100.64.0.1', '::1', 'fd00::1', 'fe80::1', '::ffff:127.0.0.1', '::ffff:7f00:1']) expect([ip, privateAddress(ip)]).toEqual([ip, true]);
+    for (const ip of ['8.8.8.8', '1.1.1.1', '2606:4700::1111']) expect([ip, privateAddress(ip)]).toEqual([ip, false]);
+    const port = new URL(base).port;
+    const lit = (await post('/mcp/servers', { key: 'priv-lit', transport: 'http', url: `${base}/mcp` })).json;
+    const dns = (await post('/mcp/servers', { key: 'priv-dns', transport: 'http', url: `http://localhost:${port}/mcp` })).json;
+    const meta = (await post('/mcp/servers', { key: 'priv-meta', transport: 'http', url: 'http://169.254.169.254/latest/meta-data' })).json;
+    const oauth = (await post('/mcp/servers', { key: 'priv-oauth', transport: 'http', url: 'https://mcp.example.com/mcp', auth: { kind: 'oauth', authorizeUrl: 'https://auth.example.com/authorize', tokenUrl: `${base}/token`, clientId: 'c3' } })).json;
+    delete process.env.FLOTILLA_MCP_ALLOW_PRIVATE;
+    try {
+      for (const s of [lit, dns, meta]) {
+        const r = (await post(`/mcp/servers/${s.id}/test`)).json;
+        expect(r).toMatchObject({ ok: false, failingStep: 'connect' });
+        expect(r.steps.find((x: any) => x.name === 'connect').detail).toContain('FLOTILLA_MCP_ALLOW_PRIVATE=1');
+      }
+      const n = grants.length; const flow = (await post(`/mcp/servers/${oauth.id}/oauth/start`)).json;
+      const cb = await call(`/mcp/oauth/callback?state=${new URL(flow.authorizeUrl).searchParams.get('state')}&code=code-1`);
+      expect([cb.status, grants.length]).toEqual([400, n]); expect(cb.json.error).toContain('private network address');
+    } finally { process.env.FLOTILLA_MCP_ALLOW_PRIVATE = '1'; }
+    expect((await post(`/mcp/servers/${lit.id}/test`)).json).toMatchObject({ ok: true });
+    expect((await post(`/mcp/servers/${dns.id}/test`)).json).toMatchObject({ ok: true });
   });
 });

@@ -1,4 +1,8 @@
 import { createHash, randomBytes } from 'node:crypto';
+import { lookup as dnsLookup } from 'node:dns';
+import { request as httpRequest } from 'node:http';
+import { request as httpsRequest } from 'node:https';
+import { BlockList, isIP } from 'node:net';
 import pg from 'pg';
 import { scrubString } from '@flotilla/core/kernel/scrub';
 import { migrate } from '../db/migrate.js';
@@ -17,6 +21,30 @@ const named = (b: Bag): Record<string, string> => ({
   ...Object.fromEntries(Object.entries(b.headers ?? {}).map(([k, v]) => [`header:${k}`, v])), ...Object.fromEntries(Object.entries(b.env ?? {}).map(([k, v]) => [`env:${k}`, v])),
   ...(b.clientSecret ? { clientSecret: b.clientSecret } : {}), ...(b.accessToken ? { accessToken: b.accessToken } : {}), ...(b.refreshToken ? { refreshToken: b.refreshToken } : {})
 });
+
+const PRIVATE = new BlockList();
+for (const [a, p] of [['0.0.0.0', 8], ['10.0.0.0', 8], ['100.64.0.0', 10], ['127.0.0.0', 8], ['169.254.0.0', 16], ['172.16.0.0', 12], ['192.0.0.0', 24], ['192.168.0.0', 16], ['198.18.0.0', 15], ['224.0.0.0', 3]] as const) PRIVATE.addSubnet(a, p, 'ipv4');
+for (const [a, p] of [['::', 127], ['64:ff9b::', 96], ['fc00::', 7], ['fe80::', 10], ['ff00::', 8]] as const) PRIVATE.addSubnet(a, p, 'ipv6');
+/** Loopback, private, link-local (incl. cloud metadata), CGNAT, multicast and IPv4-mapped addresses. */
+export const privateAddress = (ip: string) => PRIVATE.check(ip, isIP(ip) === 6 ? 'ipv6' : 'ipv4');
+const blocked = (what: string) => new ApiFailure('ValidationFailed', `${what} is a private network address; the operator can set FLOTILLA_MCP_ALLOW_PRIVATE=1 to allow it`);
+/** Server-side MCP/OAuth egress: fails closed on private addresses (checked on the resolved IP, so DNS rebinding is covered), no redirects, 10 s deadline. */
+export function egress(url: string, init: { method: string; headers: Record<string, string>; body: string }): Promise<{ status: number; ok: boolean; header(name: string): string | null; text: string }> {
+  const allow = process.env.FLOTILLA_MCP_ALLOW_PRIVATE === '1'; const u = new URL(url); const host = u.hostname.replace(/^\[|\]$/g, '');
+  if (!allow && isIP(host) && privateAddress(host)) return Promise.reject(blocked(host));
+  return new Promise((resolve, reject) => {
+    const check = ((hostname: string, opts: { all?: boolean }, cb: (...a: unknown[]) => void) => dnsLookup(hostname, { ...opts, all: true }, (err, addrs) => {
+      const bad = !err && !allow && addrs.find((a) => privateAddress(a.address));
+      if (err || bad) return cb(err ?? blocked(`${hostname} (${bad && bad.address})`), '', 0);
+      if (opts.all) cb(null, addrs); else cb(null, addrs[0].address, addrs[0].family);
+    })) as never;
+    const req = (u.protocol === 'https:' ? httpsRequest : httpRequest)(u, { method: init.method, headers: init.headers, lookup: check, timeout: 10_000 }, (res) => {
+      const chunks: Buffer[] = []; res.on('data', (c: Buffer) => chunks.push(c)); res.on('error', reject);
+      res.on('end', () => { const status = res.statusCode ?? 0; resolve({ status, ok: status >= 200 && status < 300, header: (n) => { const v = res.headers[n.toLowerCase()]; return v === undefined ? null : String(v); }, text: Buffer.concat(chunks).toString('utf8') }); });
+    });
+    req.on('timeout', () => req.destroy(new Error('timed out after 10 s'))); req.on('error', reject); req.end(init.body);
+  });
+}
 
 export class McpStore {
   readonly pool: pg.Pool;
@@ -101,8 +129,8 @@ export class McpStore {
   }
   private async token(r: Row, bag: Bag, form: Record<string, string>): Promise<void> {
     const o = (r.config as Row).oauth;
-    const res = await fetch(o.tokenUrl, { method: 'POST', signal: AbortSignal.timeout(10_000), headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' }, body: new URLSearchParams({ client_id: o.clientId, ...(bag.clientSecret ? { client_secret: bag.clientSecret } : {}), ...form }) });
-    const j = (await res.json().catch(() => ({}))) as Row;
+    const res = await egress(o.tokenUrl, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' }, body: new URLSearchParams({ client_id: o.clientId, ...(bag.clientSecret ? { client_secret: bag.clientSecret } : {}), ...form }).toString() });
+    let j: Row = {}; try { j = JSON.parse(res.text); } catch { /* non-JSON error body */ }
     if (!res.ok || typeof j.access_token !== 'string') throw new ApiFailure('Unauthorized', scrubString(`token endpoint returned ${res.status}: ${JSON.stringify(j)}`, named(bag)).slice(0, 300));
     const next = { ...bag, accessToken: j.access_token, refreshToken: typeof j.refresh_token === 'string' ? j.refresh_token : bag.refreshToken };
     await this.saveBag(r, next, new Date(Date.now() + (Number(j.expires_in) || 3600) * 1000));
@@ -145,11 +173,11 @@ export class McpStore {
     if (r.transport === 'stdio') { step('connect', null, 'STDIO servers start on the thread machine; checked on the next run'); return done(); }
     let session: string | null = null; let n = 0;
     const send = async (method: string, params: unknown, notify = false) => {
-      const res = await fetch(r.url, { method: 'POST', signal: AbortSignal.timeout(10_000), headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream', ...(session ? { 'mcp-session-id': session } : {}), ...this.headers(bag, {}) }, body: JSON.stringify({ jsonrpc: '2.0', method, params, ...(notify ? {} : { id: ++n }) }) });
-      session = res.headers.get('mcp-session-id') ?? session; httpStatus = res.status;
-      const text = await res.text();
+      const res = await egress(r.url, { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream', ...(session ? { 'mcp-session-id': session } : {}), ...this.headers(bag, {}) }, body: JSON.stringify({ jsonrpc: '2.0', method, params, ...(notify ? {} : { id: ++n }) }) });
+      session = res.header('mcp-session-id') ?? session; httpStatus = res.status;
+      const text = res.text;
       if (!res.ok) return { status: res.status, error: scrubString(text, named(bag)).slice(0, 500) };
-      const data = res.headers.get('content-type')?.includes('text/event-stream') ? text.split('\n').filter((l) => l.startsWith('data:')).map((l) => l.slice(5).trim()).find((l) => l.includes('"id"')) : text;
+      const data = res.header('content-type')?.includes('text/event-stream') ? text.split('\n').filter((l) => l.startsWith('data:')).map((l) => l.slice(5).trim()).find((l) => l.includes('"id"')) : text;
       return { status: res.status, json: data ? JSON.parse(data) as Row : null };
     };
     let init;
