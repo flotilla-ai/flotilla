@@ -27,7 +27,7 @@ Counted in `docs/plan/PARITY.md` on this branch: done 90, pending 495, needs-hum
 | phase2-05-runner-queue | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/34 | durable inbox, steer/queue, versions, retry, /plan gate; 4 rows done, 10 web-UI rows blocked |
 | repair-6-git-hook-test | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/35 | isolate git hook test from external scans |
 | phase2-08-thread-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/37 | public REST verbs + status frames for 11 lifecycle rows; collaborator read access; see `docs/runlog/phase2-08.md` |
-| phase2-29-projects | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/TBD | repoless/lazy/multi-repo projects, descriptions, codes, sources, private; 5 rows done, CAPY-181 needs-human-login; see `docs/runlog/phase2-29.md` |
+| phase2-29-projects | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/42 | repoless/lazy/multi-repo projects, descriptions, codes, sources, private; 5 rows done, CAPY-181 needs-human-login; see `docs/runlog/phase2-29.md` |
 
 ## Next action
 
