@@ -83,3 +83,7 @@ apps/server test:       Tests  1 failed | 71 passed | 1 skipped (73)
 make exit 2
 ```
 This local failure is the `git/mirror.test.ts` failure recorded above. It is outside phase2-05 scope, and the same test passed in CI on 9c7c69d.
+
+## Integration renumber
+
+Parent integration rule: phase2-03 keeps migration prefix 0006, so this unit's migration is now `0007_runner_queue.sql`. Migrations run in name order and nothing else refers to the file name.
