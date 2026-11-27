@@ -75,7 +75,7 @@ exit=2
 
 ## Unverified
 - A model-backed title generator. The offline heuristic is tested, and the org and personal instructions it receives are asserted. No `needs-human-login` command is needed until a model unit wires one in.
-- The web Inbox page has a unit test for range selection only. It has not been driven in a browser.
+- The Inbox e2e runs the real web UI with the API mocked by Playwright. It was not run against a live server and database together.
 - Mentions match `@<email local part>` (substring match).
 - Machine cost uses the thread's current machine.
 
@@ -85,3 +85,18 @@ exit=2
   - `read.route.ts` and `stream.route.ts` are owner-only, so joined collaborators cannot open shared threads from the Inbox.
   - The GitHub CheckMonitor wake (`github.module.ts`) runs `runner.message` on archived threads, and the kernel message unarchives them. The recommended fix is for the check monitor to skip archived threads.
 - After the fixes: focused tests passed 11/11. `pnpm --filter @flotilla/server test`: 14/15 files and 72 tests passed, 1 skipped. The one failure is the known `git mirror` flake, which is not touched by this unit. Run alone twice, the same mirror file passed once (4/4) and failed once (1 failed | 3 passed).
+
+## Parent review: UI controls
+The Inbox now has controls for every row. When one thread is selected it shows Rename, Regenerate title, Join/Leave, Subscribe/Unsubscribe, Take over (non-owner, shared threads only), Share/Make private and Transfer (owner only). There is a settings card with a Personal/Org scope, title instructions, regenerate-when and auto-archive days. Each is proven by Playwright against mocked API routes; the server behavior is covered by the focused suite above.
+
+`pnpm --filter @flotilla/web exec playwright test e2e/thread-lifecycle.spec.ts`:
+```
+Running 4 tests using 1 worker
+
+  ✓  1 e2e/thread-lifecycle.spec.ts:13:1 › CAPY-017/024 owner renames, regenerates, shares and transfers (634ms)
+  ✓  2 e2e/thread-lifecycle.spec.ts:19:1 › CAPY-022/023 collaborator joins, subscribes and takes over a shared thread (459ms)
+  ✓  3 e2e/thread-lifecycle.spec.ts:25:1 › CAPY-017/473 org title instructions, regenerate-when and auto-archive settings (339ms)
+  ✓  4 e2e/thread-lifecycle.spec.ts:31:1 › CAPY-018/019/020/021/474/475 bulk range archive+undo, delete, mark all read, mention badge, cost (735ms)
+
+  4 passed (3.8s)
+```
