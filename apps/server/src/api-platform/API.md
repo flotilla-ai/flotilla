@@ -37,6 +37,20 @@ GET /api/v1/threads/:id/messages
 POST /api/v1/threads/:id/message
 POST /api/v1/threads/:id/stop
 
+Thread lifecycle verbs take no body except `rename` (`{"title":"..."}`) and return the caller's view of the thread (`id, title, titleSource, status, ownerId, visibility, archivedAt, member, unread, unreadCount, mentions`, ...). `read` and `unread` return `{ threadId, unread, unreadCount, mentions, lastReadSeq, markedUnread }`. Leaving a private thread returns `204`. Rename, archive, unarchive, takeover, title regeneration, join and leave are also streamed as `status` frames whose `payload.action` is `renamed`, `archived`, `unarchived`, `takeover`, `title-regenerated`, `joined` or `left`; read state and subscriptions are per viewer and never streamed. A thread is visible to its owner, to joined members, and to anyone when it is shared.
+
+POST /api/v1/threads/:id/rename
+POST /api/v1/threads/:id/archive
+POST /api/v1/threads/:id/unarchive
+POST /api/v1/threads/:id/takeover
+POST /api/v1/threads/:id/regenerate-title
+POST /api/v1/threads/:id/read
+POST /api/v1/threads/:id/unread
+POST /api/v1/threads/:id/join
+POST /api/v1/threads/:id/leave
+POST /api/v1/threads/:id/subscribe
+POST /api/v1/threads/:id/unsubscribe
+
 Upload a file, then attach it by `fileId`:
 
 ```sh

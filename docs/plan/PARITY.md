@@ -547,17 +547,17 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-541 | API: threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-542 | API: threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-543 | API: threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-544 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-545 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-546 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-547 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-548 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-549 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-550 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-551 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-552 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-553 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-554 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-544 | API: threads | P2 | done | phase2-08 |  | `POST /api/v1/threads/:id/rename {title}` (bearer) returns ThreadLifecycle; `status` frame `renamed`. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-545 | API: threads | P2 | done | phase2-08 |  | `POST /api/v1/threads/:id/archive`; 409 for active threads; `status` frame `archived`. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-546 | API: threads | P2 | done | phase2-08 |  | `POST /api/v1/threads/:id/unarchive` restores prior status; `status` frame `unarchived`. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-547 | API: threads | P2 | done | phase2-08 |  | `POST /api/v1/threads/:id/takeover` on shared threads (404 private); `status` frame `takeover` from/to. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-548 | API: threads | P2 | done | phase2-08 |  | `POST /api/v1/threads/:id/regenerate-title` returns auto title <=50 chars; `status` frame `title-regenerated`. Model-backed generator unverified (offline heuristic). Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-549 | API: threads | P2 | done | phase2-08 |  | `POST /api/v1/threads/:id/read` returns ThreadReadState; per viewer, not streamed. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-550 | API: threads | P2 | done | phase2-08 |  | `POST /api/v1/threads/:id/unread` returns ThreadReadState (markedUnread); per viewer, not streamed. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-551 | API: threads | P2 | done | phase2-08 |  | `POST /api/v1/threads/:id/join` returns membership; `status` frame `joined`. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-552 | API: threads | P2 | done | phase2-08 |  | `POST /api/v1/threads/:id/leave` returns membership (204 for private); owner 409; `status` frame `left`. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-553 | API: threads | P2 | done | phase2-08 |  | `POST /api/v1/threads/:id/subscribe` returns membership; per viewer, not streamed. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
+| CAPY-554 | API: threads | P2 | done | phase2-08 |  | `POST /api/v1/threads/:id/unsubscribe` returns membership; per viewer, not streamed. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
 | CAPY-555 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-556 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-557 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |

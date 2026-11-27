@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import pg from 'pg';
+import { canViewThread } from '../thread-api/access.js';
 
 function camel(row: Record<string, unknown>): Record<string, unknown> { return Object.fromEntries(Object.entries(row).map(([k,v]) => [k.replace(/_([a-z])/g, (_,x) => x.toUpperCase()), v])); }
 function userId(c: unknown): string { return (c as { get(key: string): string }).get('userId'); }
@@ -11,12 +12,12 @@ export function createReadRoute(pool = new pg.Pool({ connectionString: process.e
     return c.json(rows.rows.map(camel));
   });
   app.get('/threads/:id', async (c) => {
-    const rows = await pool.query('SELECT * FROM threads WHERE id=$1 AND owner_id=$2', [c.req.param('id'), userId(c)]);
+    if (!(await canViewThread(pool, c.req.param('id'), userId(c)))) return c.json({ error: 'not found' }, 404);
+    const rows = await pool.query('SELECT * FROM threads WHERE id=$1', [c.req.param('id')]);
     return rows.rows[0] ? c.json(camel(rows.rows[0])) : c.json({ error: 'not found' }, 404);
   });
   app.get('/threads/:id/messages', async (c) => {
-    const owner = await pool.query('SELECT id FROM threads WHERE id=$1 AND owner_id=$2', [c.req.param('id'), userId(c)]);
-    if (!owner.rows[0]) return c.json({ error: 'not found' }, 404);
+    if (!(await canViewThread(pool, c.req.param('id'), userId(c)))) return c.json({ error: 'not found' }, 404);
     const after = Number(c.req.query('after') ?? 0);
     const limit = Math.min(Number(c.req.query('limit') ?? 100), 500);
     const rows = await pool.query('SELECT id,thread_id,seq,run_id,kind,at,source,trust,payload,request_id FROM events WHERE thread_id=$1 AND seq>$2 ORDER BY seq LIMIT $3', [c.req.param('id'), after, limit]);
