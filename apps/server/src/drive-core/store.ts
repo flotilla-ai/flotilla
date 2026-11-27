@@ -82,7 +82,7 @@ export class DriveStore {
   }
 
   /** Content-addressed blob in the files volume plus a Postgres version row; no git. */
-  async save(scope: DriveScope, path: string, data: Buffer, opts: { by: string; source: DriveSource; baseVersion?: number; upload?: boolean }): Promise<DriveItem> {
+  async save(scope: DriveScope, path: string, data: Buffer, opts: { by: string; source: DriveSource; baseVersion?: number; upload?: boolean; itemId?: string; shareId?: string }): Promise<DriveItem> {
     if (opts.upload && data.length > this.limits.uploadBytes) throw new DriveFailure(CARDS.upload_too_large(path));
     if (data.length > this.limits.fileBytes) throw new DriveFailure(CARDS.file_too_large(path));
     await this.q('SELECT 1');
@@ -90,7 +90,11 @@ export class DriveStore {
     try {
       await client.query('BEGIN');
       await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`drive:${scope.kind}:${scopeId(scope)}`]);
-      const [prior] = (await client.query(`SELECT * FROM drive_items WHERE scope_kind=$1 AND scope_id=$2 AND path=$3`, [scope.kind, scopeId(scope), path])).rows;
+      const [prior] = opts.itemId
+        ? (await client.query('SELECT * FROM drive_items WHERE id=$1 FOR UPDATE', [opts.itemId])).rows
+        : (await client.query(`SELECT * FROM drive_items WHERE scope_kind=$1 AND scope_id=$2 AND path=$3`, [scope.kind, scopeId(scope), path])).rows;
+      if (opts.itemId && (!prior || prior.scope_kind !== scope.kind || prior.scope_id !== scopeId(scope) || prior.path !== path)) throw new ApiFailure('NotFound', 'drive item not found');
+      if (opts.shareId && !(await client.query('SELECT 1 FROM drive_shares WHERE id=$1 AND item_id=$2 AND revoked_at IS NULL', [opts.shareId, opts.itemId])).rows[0]) throw new ApiFailure('NotFound', 'share not found');
       if (prior?.type === 'folder') throw new ApiFailure('Conflict', `${path} is a folder`);
       if (opts.baseVersion !== undefined && (prior?.version ?? 0) !== opts.baseVersion) {
         const [baseVersion] = prior ? (await client.query('SELECT sha256 FROM drive_versions WHERE item_id=$1 AND version=$2', [prior.id, opts.baseVersion])).rows : [];
@@ -134,12 +138,12 @@ export class DriveStore {
   async shared(token: string): Promise<{ share: DriveShare; item: DriveItem }> {
     const [r] = await this.q(`SELECT s.*,i.scope_kind,i.scope_id,i.parent_id,i.path,i.name,i.type,i.blob_sha256,i.size,i.version,i.mount_into_threads,i.updated_at FROM drive_shares s JOIN drive_items i ON i.id=s.item_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL`, [sha256(Buffer.from(token))]);
     if (!r) throw new ApiFailure('NotFound', 'share not found');
-    return { share: toShare(r), item: toItem(r) };
+    return { share: toShare(r), item: { ...toItem(r), id: r.item_id } };
   }
   async saveShared(token: string, data: Buffer): Promise<DriveItem> {
     const { share, item } = await this.shared(token);
     if (share.access !== 'write') throw new ApiFailure('Forbidden', 'share is read-only');
-    return this.save(item.scope, item.path, data, { by: share.createdBy, source: 'upload' });
+    return this.save(item.scope, item.path, data, { by: share.createdBy, source: 'upload', upload: true, itemId: item.id, shareId: share.id });
   }
   async versionContent(item: DriveItem, version: number): Promise<Buffer> {
     const [v] = await this.q('SELECT sha256 FROM drive_versions WHERE item_id=$1 AND version=$2', [item.id, version]);

@@ -218,6 +218,9 @@ describe('drive core', () => {
     expect((await app.request('http://local/api/v1/drive/shared/dsh_missing/content')).status).toBe(404);
     expect((await call('admin', `/drive/shares/${created.id}`, { method: 'DELETE' })).status).toBe(204);
     expect((await app.request(`http://local/api/v1/drive/shared/${created.token}/content`)).status).toBe(404);
+    await call('admin', `/drive/items/${item.id}`, { method: 'DELETE' });
+    await put('admin', 'user', 'shared.md', 'replacement');
+    expect((await app.request(`http://local/api/v1/drive/shared/${write.token}/content`, { method: 'PUT', body: 'stale' })).status).toBe(404);
   });
 
   it('CAPY-281/282: concurrent append-only edits merge, version contents can be picked, and two versions compare', async () => {
