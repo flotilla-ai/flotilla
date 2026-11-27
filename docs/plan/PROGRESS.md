@@ -1,23 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 2, waves 3-6 continuing in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-<<<<<<< HEAD
-Current `flotilla/p1` head before this PR: `962a920` (phase2-20 captain crew rules).
-||||||| 962a920
-Current `flotilla/p1` head before this PR: `51c9d61` (repair-15 progress).
-=======
-Current `flotilla/p1` head: `962a920` (phase2-20 captain crew rules).
->>>>>>> origin/flotilla/p1
+Current `flotilla/p1` head before this PR: `d297bd5` (repair-16 progress).
 
 ## Row counts
 
-<<<<<<< HEAD
 Counted in `docs/plan/PARITY.md` on this branch after GitHub integration: done 212, pending 341, needs-human-login 19, n-a 22, blocked 42.
-||||||| 962a920
-Counted in `docs/plan/PARITY.md` on this branch after Drive UX: done 208, pending 354, needs-human-login 18, n-a 22, blocked 39.
-=======
-Counted in `docs/plan/PARITY.md` at `962a920`: done 209, pending 349, needs-human-login 18, n-a 22, blocked 38.
->>>>>>> origin/flotilla/p1
 
 ## Unit table
 
