@@ -5,7 +5,7 @@ type Spec={enabled:boolean;repos:string[];tier:64|128|256;alsoSmaller:boolean};
 const needsYou='#f28c28';
 function BuildRow({projectId,b}:{projectId:string;b:Build}){const[ask,setAsk]=useState<string|null>(null);
  useEffect(()=>{if(b.state==='failed')void api(`/projects/${projectId}/snapshots/builds/${b.id}`).then(d=>setAsk(d.ask)).catch(()=>null)},[b.id]);
- return <div className='card' aria-label={`build ${b.id}`}><div><b style={{color:b.state==='failed'?needsYou:'#eee'}}>{b.state}</b> {b.id} env v{b.environmentVersion} {b.tier} GB{b.failedStep&&<> at {b.failedStep}</>}{b.usedGb!==null&&<small> {b.usedGb.toFixed(2)} GB used</small>}</div>
+ return <div className='card' aria-label={`build ${b.id}`}><div><b style={{color:b.state==='failed'?needsYou:'var(--fg,#eee)'}}>{b.state}</b> {b.id} env v{b.environmentVersion} {b.tier} GB{b.failedStep&&<> at {b.failedStep}</>}{b.usedGb!==null&&<small> {b.usedGb.toFixed(2)} GB used</small>}</div>
   {b.images.map(i=><div key={i.ref}><small>{i.tier} GB {i.ref}</small></div>)}
   {b.steps.map(s=><details key={s.step} open={s.state==='failed'}><summary>{s.step} {s.state} {s.ms} ms</summary><pre style={{whiteSpace:'pre-wrap',background:'#090909'}}>{s.output}</pre></details>)}
   {ask&&<a href={`#/compose?prompt=${encodeURIComponent(ask)}`}>Ask why it failed</a>}
