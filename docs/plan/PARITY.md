@@ -145,16 +145,16 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-139 | Review | P2 | done | phase2-24 |  | Duplicate findings are suppressed and resolved/irrelevant triage marks the mirrored thread resolved. |
 | CAPY-140 | Review | P2 | done | phase2-24 |  | Open/resolved/irrelevant triage, high-confidence readiness blocking and dashboard override are durable. |
 | CAPY-141 | Review | P2 | done | phase2-24 |  | Incremental rounds never reflag irrelevant findings and changed failed fixes return as new findings. |
-| CAPY-142 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-143 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-144 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-145 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-142 | Review | P2 | done | phase2-25 |  | AGENTS.md never-use conventions are evaluated into deterministic finding candidates. |
+| CAPY-143 | Review | P2 | done | phase2-25 |  | Review policy API and /review-policy page expose org rules, context files and path-scoped settings. |
+| CAPY-144 | Review | P2 | done | phase2-25 |  | Ignore-path filters exclude matching files before review guide construction. |
+| CAPY-145 | Review | P2 | needs-human-login | phase2-25 |  | The optional capy/review commit-status setting is durable, but live GitHub status writeback requires a real GitHub login. Verify with: connect GitHub, enable commitStatus, run a review, and inspect the PR status. |
 | CAPY-146 | Review | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-147 | Review | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-148 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-149 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-150 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-151 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-148 | Review | P2 | done | phase2-25 |  | Guide generation returns overview, ordered steps, before/after diagram and per-area chapters with their own diff. |
+| CAPY-149 | Review | P2 | done | phase2-25 |  | Guide generation skips lockfiles, generated files and deleted files, and timeout retry helper retries once. |
+| CAPY-150 | Review | P2 | done | phase2-25 |  | Finding evidence stores and returns rules, memory and production telemetry lists. |
+| CAPY-151 | Review | P2 | blocked | phase2-25 |  | Review machine read-only enforcement and the 4 GB default are not wired to machine provisioning. |
 | CAPY-152 | Automations | P2 | done | phase2-26 |  | Stored prompt/project automation with 1-20 OR triggers; runs create normal threads through the runner. |
 | CAPY-153 | Automations | P2 | blocked | phase2-26 |  | Automation API exists, but neither an Automations page nor agent-accessible full management tools are implemented. |
 | CAPY-154 | Automations | P2 | done | phase2-26 |  | 5-field cron + IANA timezone validation, 5-minute floor, timezone-correct matching and coalesced catch-up scans. |
@@ -499,7 +499,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-496 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-497 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-498 | Review | P2 | done | phase2-24 |  | Review state and finding triage are exposed through the REST API. |
-| CAPY-499 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-499 | Review | P2 | done | phase2-25 |  | Stack badge detection covers graphite, spr and manual branch chains. |
 | CAPY-500 | Automations | P2 | done | phase2-26 |  | Multiple schedule triggers per automation are stored and scanned independently. |
 | CAPY-501 | Automations | P2 | done | phase2-27 |  | Automation list API filters by state and creation date; project scoping is inherent in the project list endpoint. |
 | CAPY-502 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | Usage is summed as bigint; a Drive at >2 GiB accepts saves up to its quota (drive-core.test.ts, sizes recorded without writing 2 GiB). |
