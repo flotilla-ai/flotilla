@@ -23,3 +23,10 @@ curl -X PUT "$FLOTILLA/api/v1/devices/DEVICE_ID/tailscale" \
   -H "content-type: application/json" \
   --data '{"oauthClientRef":"vault:prod/tailscale-oauth","tags":["tag:runner"],"ephemeral":true,"acls":["tag:runner can reach tag:server"]}'
 ```
+
+Full verification before integration merge:
+
+```text
+make check exit 0
+apps/server: 45 test files passed, 255 passed, 1 skipped
+```
