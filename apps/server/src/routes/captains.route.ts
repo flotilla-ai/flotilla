@@ -13,6 +13,19 @@ async function jsonBody(c: { req: { json(): Promise<any> } }): Promise<Record<st
 }
 const zero = { usd: 0, inputTokens: 0, outputTokens: 0, cacheTokens: 0, machineSec: 0 };
 const budget = { maxUsd: null, maxTokens: null, maxWallSec: null, scope: 'captain-subtree', onHit: 'pause-and-ask', warnAt: 0.8 };
+async function limitedBody(raw: Request, maxBytes: number): Promise<Buffer> {
+  const stream = raw.body;
+  if (!stream) return Buffer.alloc(0);
+  const reader = stream.getReader(); const chunks: Uint8Array[] = []; let size = 0;
+  for (;;) {
+    const next = await reader.read();
+    if (next.done) break;
+    size += next.value.byteLength;
+    if (size > maxBytes) { await reader.cancel(); throw new ApiFailure('PayloadTooLarge', 'photo exceeds 1 MiB'); }
+    chunks.push(next.value);
+  }
+  return Buffer.concat(chunks);
+}
 type CreateThread = (input: { ownerId: string; projectId?: string | null; title: string; prompt: string; engine?: unknown }) => Promise<Record<string, any>>;
 
 /** Captain CRUD, profile/photo/placement and crew REST endpoints. */
@@ -55,7 +68,10 @@ export function createCaptainsRoute(pool = new pg.Pool({ connectionString: proce
   app.get('/:id/digest', async (c) => c.json(await api.digest(userId(c), c.req.param('id'))));
   app.get('/:id/profile', async (c) => c.json(await api.profile(userId(c), c.req.param('id'))));
   app.patch('/:id/profile', async (c) => c.json(await api.updateProfile(userId(c), c.req.param('id'), await jsonBody(c))));
-  app.put('/:id/photo', async (c) => c.json(await api.uploadPhoto(userId(c), c.req.param('id'), c.req.header('content-type')?.split(';')[0] ?? '', Buffer.from(await c.req.arrayBuffer()))));
+  app.put('/:id/photo', async (c) => {
+    await api.owned(userId(c), c.req.param('id'));
+    return c.json(await api.uploadPhoto(userId(c), c.req.param('id'), c.req.header('content-type')?.split(';')[0] ?? '', await limitedBody(c.req.raw, 1024 * 1024)));
+  });
   app.get('/:id/photo', async (c) => {
     const photo = await api.photo(userId(c), c.req.param('id'));
     if (!photo) throw new ApiFailure('NotFound', 'photo not found');

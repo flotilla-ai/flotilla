@@ -49,6 +49,7 @@ it('CAPY-094/492/493/555..561: Captain profile, photo, placement metadata and cr
   const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
   const upload = await call('PUT', `/${captain.id}/photo`, undefined, png);
   expect(upload.status).toBe(200); expect(upload.json.photo).toEqual({ kind: 'upload' });
+  expect((await call('PUT', `/${captain.id}/photo`, undefined, Buffer.alloc(1024 * 1024 + 1, 1))).status).toBe(413);
   const photo = await call('GET', `/${captain.id}/photo`);
   expect(photo.status).toBe(200); expect(photo.contentType).toContain('image/png'); expect(photo.buffer.subarray(0, 4)).toEqual(png.subarray(0, 4));
 
