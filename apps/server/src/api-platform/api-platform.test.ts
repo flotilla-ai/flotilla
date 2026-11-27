@@ -166,6 +166,8 @@ describe('api platform', () => {
     const { deliveryId } = await res.json() as { deliveryId: string };
     expect((await pool.query('SELECT automation_id, payload FROM automation_webhook_deliveries WHERE id=$1', [deliveryId])).rows[0]).toEqual({ automation_id: 'aut_fixture', payload: { hello: 'world' } });
     expect((await call('/api/v1/webhooks/automations/wrong', { method: 'POST', json: {} })).status).toBe(404);
+    const chunked = new ReadableStream({ start(ctl) { for (let i = 0; i < 5; i++) ctl.enqueue(new Uint8Array(64 * 1024)); ctl.close(); } });
+    expect((await app.request(`/api/v1/webhooks/automations/${secret}`, { method: 'POST', body: chunked, duplex: 'half' } as RequestInit)).status).toBe(413);
   });
 
   it('CAPY-462: uploads via a presigned URL, then attaches by fileId', async () => {

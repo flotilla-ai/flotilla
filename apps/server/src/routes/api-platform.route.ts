@@ -1,10 +1,23 @@
 import { Hono, type Context } from 'hono';
 import { requireSession } from '../auth/requireSession.js';
 import { apiPlatformStore } from '../api-platform/store.js';
-import { apiError, type ApiPrincipal } from '../api-platform/types.js';
+import { ApiFailure, apiError, type ApiPrincipal } from '../api-platform/types.js';
 
 const principal = (c: Context) => c.get('principal') as ApiPrincipal;
 const json = (c: Context) => c.req.json().catch(() => ({}));
+/** Reads the body, stopping as soon as it exceeds max bytes (null), so oversized bodies are never buffered whole. */
+async function readLimited(c: Context, max: number): Promise<Buffer | null> {
+  if (Number(c.req.header('content-length') ?? 0) > max) return null;
+  const reader = c.req.raw.body?.getReader();
+  const chunks: Uint8Array[] = []; let size = 0;
+  for (;;) {
+    const next = await reader?.read();
+    if (!next || next.done) return Buffer.concat(chunks);
+    size += next.value.length;
+    if (size > max) { await reader!.cancel(); return null; }
+    chunks.push(next.value);
+  }
+}
 
 export function createApiPlatformRoute(store = () => apiPlatformStore()) {
   const app = new Hono();
@@ -26,12 +39,13 @@ export function createApiPlatformRoute(store = () => apiPlatformStore()) {
     return file ? c.json(file) : apiError(c, 'NotFound', 'file not found');
   });
   app.put('/uploads/:id', async (c) => {
-    if (Number(c.req.header('content-length') ?? 0) > store().maxUploadBytes) return apiError(c, 'PayloadTooLarge', 'upload too large');
-    return c.json(await store().completeUpload(c.req.param('id'), c.req.query('token') ?? '', async () => Buffer.from(await c.req.arrayBuffer())));
+    const read = async () => (await readLimited(c, store().maxUploadBytes)) ?? Promise.reject(new ApiFailure('PayloadTooLarge', 'upload too large'));
+    return c.json(await store().completeUpload(c.req.param('id'), c.req.query('token') ?? '', read));
   });
   app.post('/webhooks/automations/:secret', async (c) => {
-    const text = await c.req.text();
-    if (Buffer.byteLength(text) > 256 * 1024) return apiError(c, 'PayloadTooLarge', 'webhook body exceeds 256 KiB');
+    const raw = await readLimited(c, 256 * 1024);
+    if (!raw) return apiError(c, 'PayloadTooLarge', 'webhook body exceeds 256 KiB');
+    const text = raw.toString('utf8');
     let payload: unknown;
     try { payload = text ? JSON.parse(text) : {}; } catch { return apiError(c, 'ValidationFailed', 'webhook body must be JSON'); }
     const deliveryId = await store().deliverWebhook(c.req.param('secret'), payload);
