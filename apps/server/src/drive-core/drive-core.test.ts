@@ -198,4 +198,54 @@ describe('drive core', () => {
       expect(row.by).toBe(t.id);
     } finally { await runner.drain(); await stop(); }
   }, 30_000);
+
+  it('CAPY-280: share links have read/write access settings, can be revoked, and appear in the shared view', async () => {
+    const item = await json(await put('admin', 'user', 'shared.md', 'share v1'));
+    const created = await json(await call('admin', `/drive/items/${item.id}/shares`, { method: 'POST', json: { access: 'read' } }));
+    expect(created).toMatchObject({ access: 'read', itemId: item.id });
+    expect(created.token).toMatch(/^dsh_/);
+    expect(created.url).toContain(created.token);
+    const shared = await json(await call('admin', '/drive/shares'));
+    expect(shared.items.some((s: any) => s.id === created.id && s.path === 'shared.md')).toBe(true);
+    const pub = await app.request(`http://local/api/v1/drive/shared/${created.token}/content`);
+    expect(pub.status).toBe(200); expect(await pub.text()).toBe('share v1');
+    expect((await app.request(`http://local/api/v1/drive/shared/${created.token}/content`, { method: 'PUT', body: 'no' })).status).toBe(403);
+    const write = await json(await call('admin', `/drive/items/${item.id}/shares`, { method: 'POST', json: { access: 'write' } }));
+    const wr = await app.request(`http://local/api/v1/drive/shared/${write.token}/content`, { method: 'PUT', body: 'share v2' });
+    expect(wr.status).toBe(200); expect(await (await call('admin', `/drive/items/${item.id}/content`)).text()).toBe('share v2');
+    const tooBig = await app.request(`http://local/api/v1/drive/shared/${write.token}/content`, { method: 'PUT', body: new Uint8Array(DEFAULT_LIMITS.uploadBytes + 1) });
+    expect(tooBig.status).toBe(413);
+    expect((await app.request('http://local/api/v1/drive/shared/dsh_missing/content')).status).toBe(404);
+    expect((await call('admin', `/drive/shares/${created.id}`, { method: 'DELETE' })).status).toBe(204);
+    expect((await app.request(`http://local/api/v1/drive/shared/${created.token}/content`)).status).toBe(404);
+    await call('admin', `/drive/items/${item.id}`, { method: 'DELETE' });
+    await put('admin', 'user', 'shared.md', 'replacement');
+    expect((await app.request(`http://local/api/v1/drive/shared/${write.token}/content`, { method: 'PUT', body: 'stale' })).status).toBe(404);
+  });
+
+  it('CAPY-281/282: concurrent append-only edits merge, version contents can be picked, and two versions compare', async () => {
+    const item = await json(await put('admin', 'user', 'merge.md', 'base\n'));
+    const current = await json(await put('admin', 'user', 'merge.md', 'base\nfirst\n', '&baseVersion=1'));
+    expect(current.version).toBe(2);
+    const merged = await json(await put('admin', 'user', 'merge.md', 'base\nsecond\n', '&baseVersion=1'));
+    expect(merged.version).toBe(3);
+    const latest=await call('admin', `/drive/items/${item.id}/content`);expect(latest.headers.get('x-flotilla-drive-version')).toBe('3');expect(await latest.text()).toBe('base\nfirst\nsecond\n');
+    expect((await put('admin', 'user', 'merge.md', 'replacement', '&baseVersion=1')).status).toBe(409);
+    for (const [v, text] of [[1, 'base\n'], [2, 'base\nfirst\n'], [3, 'base\nfirst\nsecond\n']] as const) {
+      const r = await call('admin', `/drive/items/${item.id}/versions/${v}/content`);
+      expect(r.status).toBe(200); expect(await r.text()).toBe(text);
+    }
+    const cmp = await json(await call('admin', `/drive/items/${item.id}/compare?a=1&b=3`));
+    expect(cmp).toMatchObject({ a: 1, b: 3 }); expect(cmp.diff).toContain('+first'); expect(cmp.diff).toContain('+second');
+  });
+
+  it('CAPY-283: Drive mount copy for a new machine is built in under one second', async () => {
+    for (let i = 0; i < 50; i++) await put('admin', 'user', `fast/f${i}.md`, `file ${i}`);
+    const t = await thread(users.admin.id); const d = fakeDriver(); const start = performance.now();
+    const note = await store.mount({ thread: t, containerId: 'c-fast', driver: d });
+    const ms = performance.now() - start;
+    expect(note).toContain('Drive files are in');
+    expect(d.copied.flatMap((c) => untar(c)).length).toBeGreaterThanOrEqual(50);
+    expect(ms).toBeLessThan(1000);
+  });
 });

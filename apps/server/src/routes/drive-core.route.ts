@@ -22,10 +22,26 @@ export function createDriveRoute(store = () => driveStore()) {
   app.get('/drive/items/:id', async (c) => c.json(await store().item(userId(c), c.req.param('id')!)));
   app.get('/drive/items/:id/content', async (c) => {
     const item = await store().item(userId(c), c.req.param('id')!);
-    return c.body(new Uint8Array(await store().content(item)), 200, { 'content-type': 'application/octet-stream', 'x-content-type-options': 'nosniff', 'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(item.name)}` });
+    return c.body(new Uint8Array(await store().content(item)), 200, { 'content-type': 'application/octet-stream', 'x-content-type-options': 'nosniff', 'x-flotilla-drive-version': String(item.version), 'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(item.name)}` });
   });
   app.delete('/drive/items/:id', async (c) => { await store().remove(await store().item(userId(c), c.req.param('id')!, true)); return c.body(null, 204); });
   app.get('/drive/items/:id/versions', async (c) => c.json({ items: await store().versions(await store().item(userId(c), c.req.param('id')!)) }));
+  app.get('/drive/items/:id/versions/:version/content', async (c) => {
+    const item = await store().item(userId(c), c.req.param('id')!); const version = Number(c.req.param('version'));
+    if (!Number.isInteger(version)) throw new ApiFailure('ValidationFailed', 'version must be a number');
+    return c.body(new Uint8Array(await store().versionContent(item, version)), 200, { 'content-type': 'text/plain; charset=utf-8', 'x-content-type-options': 'nosniff' });
+  });
+  app.get('/drive/items/:id/compare', async (c) => {
+    const item = await store().item(userId(c), c.req.param('id')!); const a = Number(c.req.query('a')); const b = Number(c.req.query('b'));
+    if (!Number.isInteger(a) || !Number.isInteger(b)) throw new ApiFailure('ValidationFailed', 'a and b version numbers are required');
+    return c.json(await store().compare(item, a, b));
+  });
+  app.post('/drive/items/:id/shares', async (c) => {
+    const item = await store().item(userId(c), c.req.param('id')!, true); const b = (await c.req.json().catch(() => null)) as { access?: unknown } | null;
+    return c.json(await store().createShare(userId(c), item, b?.access), 201);
+  });
+  app.get('/drive/shares', async (c) => c.json({ items: await store().shares(userId(c)) }));
+  app.delete('/drive/shares/:id', async (c) => { await store().revokeShare(userId(c), c.req.param('id')!); return c.body(null, 204); });
   app.post('/drive/items/:id/restore', carded(async (c) => {
     const item = await store().item(userId(c), c.req.param('id')!, true); const b = (await c.req.json().catch(() => null)) as { version?: unknown } | null;
     if (!Number.isInteger(b?.version)) throw new ApiFailure('ValidationFailed', 'version required');
