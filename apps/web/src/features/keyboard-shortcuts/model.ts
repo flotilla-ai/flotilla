@@ -7,7 +7,7 @@ const comboRe=/^(?:(?:mod|ctrl|alt|shift)\+)*(?:[a-z0-9,`]|up|down|1\.\.9)(?:\/(
 export function normalizeCombo(combo:string,mac=false):string {
  const c=combo.trim().toLowerCase().replace('cmd','mod').replace('ctrl','ctrl').replace('option','alt');
  if(!comboRe.test(c)) throw new Error('invalid shortcut combination');
- return c.replace('mod',mac?'cmd':'ctrl');
+ return c;
 }
 export function remapShortcut(map:ShortcutMap,action:ShortcutAction,combo:string,mac=false):ShortcutMap {
  const normalized=normalizeCombo(combo,mac);
