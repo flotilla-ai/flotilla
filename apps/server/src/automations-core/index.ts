@@ -1,10 +1,7 @@
 import { createHash, createHmac, randomUUID } from 'node:crypto';
 import pg from 'pg';
-import { fakeAdapter } from '@flotilla/adapter-fake';
-import { claudeCodeAdapter } from '@flotilla/adapter-claude-code';
-import { codexAdapter } from '@flotilla/adapter-codex';
 import { ApiFailure } from '../api-platform/types.js';
-import { loadCatalog } from '../models-catalog/catalog.js';
+import { modelsCatalogStore } from '../models-catalog/store.js';
 
 export type TriggerType = 'schedule' | 'github' | 'webhook' | 'manual';
 export interface AutomationTrigger { type: TriggerType; cron?: string; timezone?: string; event?: string; batch?: boolean; hmac?: boolean }
@@ -141,11 +138,13 @@ export class AutomationStore {
     const resolved = await (this.deps.resolveModel ?? (async (x) => x ?? 'free-default'))(model.name, model.pinned);
     if (!resolved) throw new ApiFailure('Conflict', 'pinned model is unavailable; no substitution was made');
     model.name = resolved;
-    let adapter = 'fake';
+    let adapter = 'fake'; let connectionId: string | null = null;
     if (model.pinned) {
-      const entries = loadCatalog([fakeAdapter.manifest, claudeCodeAdapter.manifest, codexAdapter.manifest]).models.filter((m) => m.model === model.name);
-      if (!entries.length) throw new ApiFailure('Conflict', 'pinned model is unavailable; no substitution was made');
-      adapter = entries[0].adapter;
+      const catalog = modelsCatalogStore(this.databaseUrl);
+      const offers = (await catalog.list(userId)).filter((c) => c.enabled && c.status !== 'failed' && c.models.includes(String(model.name)));
+      if (!offers.length) throw new ApiFailure('Conflict', 'pinned model is unavailable; no substitution was made');
+      adapter = offers[0].adapter;
+      connectionId = (await catalog.resolve(userId, { adapter, model: model.name })).connectionId;
       if (mode === 'existing') {
         const [t] = await this.q('SELECT engine FROM threads WHERE id=$1', [String(input.existingThreadId)]);
         const engine = (t?.engine ?? {}) as Record<string, unknown>;
@@ -153,6 +152,7 @@ export class AutomationStore {
       }
     }
     (model as Record<string, unknown>).adapter = adapter;
+    if (connectionId) (model as Record<string, unknown>).connectionId = connectionId;
     const token = triggers.some((t) => t.type === 'webhook') ? randomUUID() + randomUUID() : null;
     const aid = id('aut');
     const [r] = await this.q(`INSERT INTO automations (id,project_id,owner_id,name,prompt,triggers,conditions,run_when,gate_model,model,thread_mode,existing_thread_id,webhook_hash,machine_size)
@@ -175,7 +175,7 @@ export class AutomationStore {
     const [project] = await this.q('SELECT visibility FROM projects WHERE id=$1', [a.projectId]);
     const visibility = a.threadMode === 'private' ? 'private' : String(project?.visibility ?? 'private');
     await this.q(`INSERT INTO threads (id,code,project_id,role,owner_id,title,status,engine,budget,spent,visibility) VALUES ($1,'',$2,'thread',$3,$4,'idle',$5,$6,$7,$8)`,
-      [tid, a.projectId, a.ownerId, `Automation: ${a.name}`, JSON.stringify({ adapter: (a.model as Record<string, unknown>).adapter ?? 'fake', model: a.model.name, effort: null, connectionId: null }), JSON.stringify({ maxUsd: null, maxTokens: null, maxWallSec: null, scope: 'thread', onHit: 'pause-and-ask', warnAt: 0.8 }), JSON.stringify({ usd: 0, inputTokens: 0, outputTokens: 0, cacheTokens: 0, machineSec: 0 }), visibility]);
+      [tid, a.projectId, a.ownerId, `Automation: ${a.name}`, JSON.stringify({ adapter: (a.model as Record<string, unknown>).adapter ?? 'fake', model: a.model.name, effort: null, connectionId: (a.model as Record<string, unknown>).connectionId ?? null }), JSON.stringify({ maxUsd: null, maxTokens: null, maxWallSec: null, scope: 'thread', onHit: 'pause-and-ask', warnAt: 0.8 }), JSON.stringify({ usd: 0, inputTokens: 0, outputTokens: 0, cacheTokens: 0, machineSec: 0 }), visibility]);
     if (a.threadMode === 'standing') await this.q('UPDATE automations SET standing_thread_id=$1,updated_at=now() WHERE id=$2', [tid, a.id]);
     return tid;
   }
@@ -196,7 +196,15 @@ export class AutomationStore {
     const rid = id('arun');
     try {
       const [r] = await this.q('INSERT INTO automation_runs (id,automation_id,trigger_type,trigger_key,idempotency_key,status,thread_id,payload) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *', [rid, a.id, type, key, idem, 'queued', threadId, JSON.stringify(payload)]);
-      if (this.deps.startRun) await this.deps.startRun({ threadId, prompt: a.prompt, automationId: a.id, runId: rid });
+      if (this.deps.startRun) {
+        try {
+          await this.deps.startRun({ threadId, prompt: a.prompt, automationId: a.id, runId: rid });
+          await this.q('UPDATE automation_runs SET dispatched_at=now(),dispatch_attempts=dispatch_attempts+1 WHERE id=$1', [rid]);
+        } catch (err) {
+          await this.q('UPDATE automation_runs SET dispatch_attempts=dispatch_attempts+1 WHERE id=$1', [rid]).catch(() => undefined);
+          throw err;
+        }
+      }
       return toRun(r);
     } catch (e) {
       if (idem && String((e as { code?: string }).code) === '23505') {

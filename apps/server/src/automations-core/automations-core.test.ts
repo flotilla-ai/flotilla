@@ -89,6 +89,10 @@ it('CAPY-152/154/155/159/160/161/162/163/164/165/166/500: automation triggers, c
   const pinnedRun = await store.trigger('usr_a', pinned.id, {});
   expect((await pool.query('SELECT engine FROM threads WHERE id=$1', [pinnedRun.threadId])).rows[0].engine).toMatchObject({ adapter: 'fake', model: 'fake-large' });
 
+  await pool.query(`INSERT INTO model_connections (id,scope,owner_id,provider,kind,adapter,label,position,status,available_models) VALUES ('mcn_custom','user','usr_a','custom-openai','custom','fake','Custom local',1,'connected','["custom-local"]')`);
+  const customPinned = await store.create('usr_a', 'prj_auto', { name: 'Custom pinned', prompt: 'x', triggers: [manual], model: { name: 'custom-local', pinned: true } });
+  expect((customPinned.model as any)).toMatchObject({ adapter: 'fake', connectionId: 'mcn_custom' });
+
   const batchedAutomation = await store.create('usr_a', 'prj_auto', { name: 'Batch', prompt: 'summarize batch', triggers: [{ type: 'webhook', batch: true }], model: { pinned: false } });
   const btoken = batchedAutomation.webhookToken!;
   expect((await store.webhook(btoken, { n: 1 }, null)).result).toBe('batched'); expect((await store.webhook(btoken, { n: 2 }, null)).result).toBe('batched');
