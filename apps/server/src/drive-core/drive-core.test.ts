@@ -213,6 +213,8 @@ describe('drive core', () => {
     const write = await json(await call('admin', `/drive/items/${item.id}/shares`, { method: 'POST', json: { access: 'write' } }));
     const wr = await app.request(`http://local/api/v1/drive/shared/${write.token}/content`, { method: 'PUT', body: 'share v2' });
     expect(wr.status).toBe(200); expect(await (await call('admin', `/drive/items/${item.id}/content`)).text()).toBe('share v2');
+    const tooBig = await app.request(`http://local/api/v1/drive/shared/${write.token}/content`, { method: 'PUT', body: new Uint8Array(DEFAULT_LIMITS.uploadBytes + 1) });
+    expect(tooBig.status).toBe(413);
     expect((await app.request('http://local/api/v1/drive/shared/dsh_missing/content')).status).toBe(404);
     expect((await call('admin', `/drive/shares/${created.id}`, { method: 'DELETE' })).status).toBe(204);
     expect((await app.request(`http://local/api/v1/drive/shared/${created.token}/content`)).status).toBe(404);
