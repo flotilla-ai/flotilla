@@ -11,11 +11,21 @@ export type MonitorDeps = {
   now?: () => number;
 };
 export class CheckMonitor {
+  readonly greenRecorded = new Set<string>();
+  readonly greenWaking = new Set<string>();
   readonly greenSent = new Set<string>();
   readonly attempts = new Map<string, AutofixAttempt[]>();
   readonly terminalSent = new Set<string>();
   constructor(readonly deps: MonitorDeps) {}
   key(repo: string, number: number): string { return `${repo}#${number}`; }
+  private async archived(threadId: string): Promise<boolean> {
+    return Boolean((await this.deps.pool.query('SELECT archived_at FROM threads WHERE id=$1', [threadId])).rows[0]?.archived_at);
+  }
+  private async wakeIfActive(threadId: string, text: string): Promise<boolean> {
+    if (await this.archived(threadId)) return false;
+    await this.deps.wake(threadId, text);
+    return true;
+  }
   async process(repo: string, number: number, threadId: string, sha: string): Promise<'pending' | 'green' | 'failed'> {
     const client = this.deps.clientFor(repo);
     const checks = await client.checkRuns(repo, sha);
@@ -23,10 +33,17 @@ export class CheckMonitor {
     const key = this.key(repo, number);
     if (state === 'pending') return state;
     if (state === 'green') {
-      if (!this.greenSent.has(key)) {
-        this.greenSent.add(key);
+      if (!this.greenRecorded.has(key)) {
+        this.greenRecorded.add(key);
         await this.deps.store.appendEvents(threadId as Event['threadId'], [{ threadId: threadId as Event['threadId'], runId: null, kind: 'ci.passed', source: 'github', trust: 'trusted', payload: { repo, number, sha } }]);
-        await this.deps.wake(threadId, `CI passed for ${repo}#${number}`);
+      }
+      if (!this.greenSent.has(key) && !this.greenWaking.has(key)) {
+        this.greenWaking.add(key);
+        try {
+          if (await this.wakeIfActive(threadId, `CI passed for ${repo}#${number}`)) this.greenSent.add(key);
+        } finally {
+          this.greenWaking.delete(key);
+        }
       }
       return state;
     }
@@ -38,8 +55,7 @@ export class CheckMonitor {
     const decision = autofixDecision([...prior, current]);
     await this.deps.store.appendEvents(threadId as Event['threadId'], [{ threadId: threadId as Event['threadId'], runId: null, kind: 'ci.failed', source: 'github', trust: 'untrusted', payload: { repo, number, sha, log: log.split('\n').slice(-200).join('\n'), signature } }]);
     if (decision === 'retry') {
-      this.attempts.set(key, [...prior, current]);
-      await this.deps.wake(threadId, `CI failed for ${repo}#${number}. Autofix attempt ${current.attempt}. Log tail:\n${log}`);
+      if (await this.wakeIfActive(threadId, `CI failed for ${repo}#${number}. Autofix attempt ${current.attempt}. Log tail:\n${log}`)) this.attempts.set(key, [...prior, current]);
     } else if (!this.terminalSent.has(key)) {
       this.terminalSent.add(key);
       const id = `apr_${Math.random().toString(16).slice(2)}`;

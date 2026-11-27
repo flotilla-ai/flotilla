@@ -149,8 +149,9 @@ export class SubagentStore {
       const summary = ((await this.pool.query(`SELECT string_agg(payload->>'text', '' ORDER BY seq) t FROM events WHERE thread_id=$1 AND run_id=$2 AND kind='agent.delta'`, [threadId, runId])).rows[0].t ?? '').slice(-4000);
       await this.pool.query('UPDATE subagents SET summary=$2, question=NULL WHERE thread_id=$1', [threadId, summary]);
       await this.deps.runner.message(s.parent_id, `${name} finished. Summary:\n${summary}`, 'queue');
-    } else if (state === 'paused_budget') {
-      const question = (await this.pool.query(`SELECT a.question FROM approvals a JOIN threads t ON t.id=a.thread_id WHERE a.thread_id=$1 AND a.state='open' ORDER BY (t.needs_you ? a.id) DESC LIMIT 1`, [threadId])).rows[0]?.question ?? 'needs a decision';
+    } else if (state === 'paused_budget' || state === 'run_out') {
+      const question = (await this.pool.query(`SELECT a.question FROM approvals a JOIN threads t ON t.id=a.thread_id WHERE a.thread_id=$1 AND a.state='open' ORDER BY (t.needs_you ? a.id) DESC LIMIT 1`, [threadId])).rows[0]?.question as string | undefined;
+      if (!question) return;
       await this.pool.query('UPDATE subagents SET question=$2 WHERE thread_id=$1', [threadId, question]);
       await this.deps.runner.message(s.parent_id, `${name} is blocked and asks: ${question}`, 'queue');
     } else if (state === 'failed') await this.deps.runner.message(s.parent_id, `${name} failed.`, 'queue');
@@ -162,7 +163,7 @@ export class SubagentStore {
     const same = !want.adapter || want.adapter === from.adapter;
     const next = { adapter: want.adapter ?? from.adapter, model: want.model ?? (same ? from.model : null), effort: want.effort ?? (same ? from.effort : null), connectionId: want.connectionId ?? (same ? from.connectionId : null) };
     const resolved = this.deps.runner.deps.resolveEngine ? await this.deps.runner.deps.resolveEngine(userId, next) : next;
-    return { adapter: resolved.adapter as Thread['engine']['adapter'], model: resolved.model, effort: (resolved.effort as string | null) ?? null, connectionId: resolved.connectionId };
+    return { adapter: resolved.adapter as Thread['engine']['adapter'], model: resolved.model, effort: (resolved.effort as string | null) ?? null, connectionId: resolved.connectionId, ...('contextWindow' in resolved && resolved.contextWindow ? { contextWindow: resolved.contextWindow } : {}) } as Thread['engine'];
   }
   private async branched(id: string, userId: string): Promise<{ s: Row; project: Row }> {
     const s = await this.row(id, userId);
