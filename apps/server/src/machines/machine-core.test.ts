@@ -148,6 +148,19 @@ describe('machine core', () => {
     expect(calls).not.toContain(`delete-workspace ${t}`);
     await call(`/threads/${t}/machine/keep-awake`, { method: 'DELETE' }); clock += 3 * MIN; await core.tick();
   }, 30_000);
+  it('review: a stale sweep cannot sleep a re-held machine; competing wakes share one start; an egress change restarts an idle machine', async () => {
+    const t = await thread(null); const boot = (policy = '') => core.boot(t, null, () => driver.startThreadContainer({}), driver as never, undefined, policy);
+    await boot(); await core.release(t); clock += 3 * MIN;
+    const stale = await lease(t); const held = await boot();
+    expect(await (core as any).sleep(stale, clock)).toBe(false);
+    expect(await lease(t)).toMatchObject({ state: 'awake', container_id: held.containerId, holds: 1 }); expect(calls).not.toContain(`remove ${held.containerId}`);
+    await core.release(t); clock += 3 * MIN; await core.tick(); expect((await lease(t)).state).toBe('sleeping');
+    calls.length = 0; const [a, b] = await Promise.all([boot(), boot()]);
+    expect(a.containerId).toBe(b.containerId); expect(calls.filter((c) => c.startsWith('start')).length).toBe(1); expect((await lease(t)).holds).toBe(2);
+    await core.release(t); await core.release(t); calls.length = 0;
+    expect((await boot('["example.org"]')).containerId).not.toBe(a.containerId); expect(calls).toContain(`remove ${a.containerId}`);
+    await core.release(t); clock += 3 * MIN; await core.tick();
+  });
   it('CAPY-212: warns a day ahead, runs the pre-delete (WIP) hook, deletes after 14 sleeping days, rebuilds from the environment; failed resume rebuilds', async () => {
     const t = await thread(null);
     await core.boot(t, null, () => driver.startThreadContainer({}), driver as never); await core.release(t);

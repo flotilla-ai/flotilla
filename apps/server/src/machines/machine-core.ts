@@ -59,7 +59,7 @@ async function probe(t: ProcessTransport): Promise<{ head: string | null; files:
 export class MachineCore {
   readonly pool: pg.Pool; readonly cap: MachineCap;
   private readonly now: () => number; private readonly secondMs: number; private hooks: Hooks = {};
-  private readonly envs = new Map<string, { ex: EnvironmentExecutor; off(): void }>();
+  private readonly envs = new Map<string, { ex: EnvironmentExecutor; off(): void; containerId: string }>();
   constructor(readonly databaseUrl: string, opts: { cap?: MachineCap; now?: () => number; secondMs?: number } = {}) {
     this.pool = new pg.Pool({ connectionString: databaseUrl }); this.cap = opts.cap ?? machineCapFromEnv(process.env);
     this.now = opts.now ?? Date.now; this.secondMs = opts.secondMs ?? 1000;
@@ -97,15 +97,18 @@ export class MachineCore {
     return r ? { state: r.state, size: r.size, memMb: r.mem_mb, awakeSince: iso(r.awake_since), keepAwakeUntil: iso(r.keep_awake_until), sleptAt: iso(r.slept_at), deleteAt: r.slept_at ? iso(new Date(r.slept_at.getTime() + this.cap.deleteAfterMs)) : null } : { state: 'none', size: null, memMb: null, awakeSince: null, keepAwakeUntil: null, sleptAt: null, deleteAt: null };
   }
 
-  private async admit(threadId: string, size: MachineSize, service: boolean): Promise<boolean> {
+  /** Under the global lock: 'busy' when another caller already starts/holds this thread's machine, else reserve its RAM. */
+  private async admit(threadId: string, size: MachineSize, service: boolean, policy: string): Promise<{ ok: boolean; busy?: boolean; prev?: string }> {
     const c = await this.pool.connect();
     try {
       await c.query('BEGIN'); await c.query('SELECT pg_advisory_xact_lock(170117)');
+      const prev = (await c.query('SELECT state FROM machine_leases WHERE thread_id=$1', [threadId])).rows[0]?.state as string | undefined;
+      if (prev === 'starting' || prev === 'awake') { await c.query('COMMIT'); return { ok: false, busy: true }; }
       const { rows: [u] } = await c.query(`SELECT coalesce(sum(mem_mb),0)::int total, coalesce(sum(mem_mb) FILTER (WHERE service),0)::int svc FROM machine_leases WHERE state IN ('starting','awake') AND thread_id<>$1`, [threadId]);
       const mem = MACHINE_SIZES[size].memMb;
       const ok = u.total + mem <= this.cap.ramMb && (!service || u.svc + mem <= Math.floor(this.cap.ramMb / 2));
-      if (ok) await c.query(`INSERT INTO machine_leases (thread_id,size,mem_mb,service,state,holds,updated_at) VALUES ($1,$2,$3,$4,'starting',1,$5) ON CONFLICT (thread_id) DO UPDATE SET size=$2,mem_mb=$3,service=$4,state='starting',holds=1,updated_at=$5`, [threadId, size, mem, service, this.at()]);
-      await c.query('COMMIT'); return ok;
+      if (ok) await c.query(`INSERT INTO machine_leases (thread_id,size,mem_mb,service,state,holds,policy,updated_at) VALUES ($1,$2,$3,$4,'starting',1,$6,$5) ON CONFLICT (thread_id) DO UPDATE SET size=$2,mem_mb=$3,service=$4,state='starting',holds=1,policy=$6,updated_at=$5`, [threadId, size, mem, service, this.at(), policy]);
+      await c.query('COMMIT'); return { ok, prev };
     } catch (err) { await c.query('ROLLBACK').catch(() => undefined); throw err; } finally { c.release(); }
   }
   private async restore(threadId: string, state: string | undefined): Promise<void> {
@@ -114,26 +117,30 @@ export class MachineCore {
   }
 
   /** Holds the thread's machine awake, booting/waking it (RAM-capped, waits up to 1 min) when it is not. Pair with release(). */
-  async boot(threadId: string, projectId: string | null, start: (memMb: number, cpus: number) => Promise<{ containerId: string }>, driver: MachineDriver, seed?: (containerId: string, fresh: boolean) => Promise<void>): Promise<{ containerId: string; fresh: boolean; woke: boolean }> {
-    let [cur] = await this.q('SELECT * FROM machine_leases WHERE thread_id=$1', [threadId]);
-    for (let i = 0; cur?.state === 'starting' && i < this.cap.startWaitSec * 4; i++) { await new Promise((r) => setTimeout(r, this.secondMs / 4)); [cur] = await this.q('SELECT * FROM machine_leases WHERE thread_id=$1', [threadId]); }
-    if (cur?.state === 'awake' && cur.container_id) {
-      await this.q('UPDATE machine_leases SET holds=holds+1,idle_since=NULL WHERE thread_id=$1', [threadId]);
-      return { containerId: cur.container_id, fresh: false, woke: false };
-    }
+  async boot(threadId: string, projectId: string | null, start: (memMb: number, cpus: number) => Promise<{ containerId: string }>, driver: MachineDriver, seed?: (containerId: string, fresh: boolean) => Promise<void>, policy = ''): Promise<{ containerId: string; fresh: boolean; woke: boolean }> {
     const size = await this.size(projectId);
     const [o] = await this.q('SELECT u.role FROM threads t JOIN users u ON u.id=t.owner_id WHERE t.id=$1', [threadId]);
     const service = o?.role === 'service';
     const deadline = Date.now() + this.cap.startWaitSec * this.secondMs;
-    while (!(await this.admit(threadId, size, service))) {
+    let prev: string | undefined;
+    for (;;) {
+      let [cur] = await this.q('SELECT * FROM machine_leases WHERE thread_id=$1', [threadId]);
+      for (let i = 0; cur?.state === 'starting' && i < this.cap.startWaitSec * 4; i++) { await new Promise((r) => setTimeout(r, this.secondMs / 4)); [cur] = await this.q('SELECT * FROM machine_leases WHERE thread_id=$1', [threadId]); }
+      if (cur?.state === 'awake' && cur.container_id) {
+        if ((cur.policy ?? '') !== policy && cur.holds === 0 && await this.sleep(cur, this.now())) continue;
+        const [held] = await this.q(`UPDATE machine_leases SET holds=holds+1,idle_since=NULL WHERE thread_id=$1 AND state='awake' AND container_id=$2 RETURNING container_id`, [threadId, cur.container_id]);
+        if (held) return { containerId: held.container_id, fresh: false, woke: false };
+        continue;
+      }
+      const got = await this.admit(threadId, size, service, policy);
+      if (got.ok) { prev = got.prev; break; }
       if (Date.now() >= deadline) {
-        const why = `Cloud machine couldn't start: the concurrent RAM limit (${service ? `${Math.floor(this.cap.ramMb / 2)} MB for service-user threads` : `${this.cap.ramMb} MB`}) is in use`;
+        const why = got.busy ? "Cloud machine couldn't start: another start of this machine did not finish" : `Cloud machine couldn't start: the concurrent RAM limit (${service ? `${Math.floor(this.cap.ramMb / 2)} MB for service-user threads` : `${this.cap.ramMb} MB`}) is in use`;
         await this.hooks.emit?.(threadId, { state: 'failed', error: why }).catch(() => undefined);
         throw new ApiFailure('Conflict', why);
       }
-      await new Promise((r) => setTimeout(r, Math.min(5 * this.secondMs, Math.max(1, deadline - Date.now()))));
+      if (!got.busy) await new Promise((r) => setTimeout(r, Math.min(5 * this.secondMs, Math.max(1, deadline - Date.now()))));
     }
-    const prev = cur?.state as string | undefined;
     let fresh = !prev || prev === 'deleted'; let containerId: string;
     const { memMb, cpus } = MACHINE_SIZES[size];
     try { ({ containerId } = await start(memMb, cpus)); } catch (err) {
@@ -155,14 +162,17 @@ export class MachineCore {
     const machine: EnvironmentMachine = { transport, caps: { repoDir: REPO, sudo: false }, env: node ? { FLOTILLA_NODE_VERSION: node } : {} };
     this.envs.get(threadId)?.off();
     const store = environmentStore(this.databaseUrl); const ex = store.executor(threadId, machine);
-    this.envs.set(threadId, { ex, off: registerEnvironmentMachine(threadId, machine) });
+    this.envs.set(threadId, { ex, off: registerEnvironmentMachine(threadId, machine), containerId });
     await store.prepare(threadId, machine, { freshClone: fresh, head }, {}, ex);
   }
   async release(threadId: string): Promise<void> {
     await this.q(`UPDATE machine_leases SET holds=greatest(holds-1,0),idle_since=CASE WHEN holds<=1 THEN $2::timestamptz ELSE idle_since END WHERE thread_id=$1 AND state='awake'`, [threadId, this.at()]);
   }
   /** After a server restart no run holds a machine; start every awake machine's wind-down. */
-  async reset(): Promise<void> { await this.q(`UPDATE machine_leases SET holds=0,idle_since=$1 WHERE state='awake' AND holds>0`, [this.at()]); }
+  async reset(): Promise<void> {
+    await this.q(`UPDATE machine_leases SET holds=0,idle_since=$1 WHERE state='awake' AND holds>0`, [this.at()]);
+    await this.q(`UPDATE machine_leases SET state='sleeping',holds=0,container_id=NULL,slept_at=$1 WHERE state='starting'`, [this.at()]);
+  }
   async keepAwake(threadId: string, on: boolean) {
     await this.q('UPDATE machine_leases SET keep_awake_until=$2 WHERE thread_id=$1 AND state=\'awake\'', [threadId, on ? this.at(this.now() + this.cap.keepAwakeMs) : null]);
     return this.state(threadId);
@@ -181,24 +191,28 @@ export class MachineCore {
     }
   }
   private async dispose(r: Row): Promise<void> {
-    const env = this.envs.get(r.thread_id); this.envs.delete(r.thread_id);
-    if (env) { await env.ex.stop().catch(() => undefined); env.off(); }
+    const env = this.envs.get(r.thread_id);
+    if (env && env.containerId === r.container_id) { this.envs.delete(r.thread_id); await env.ex.stop().catch(() => undefined); env.off(); }
     const d = this.hooks.driver;
     if (d && r.container_id) await (d.remove ? d.remove(r.container_id) : d.stop(r.container_id)).catch(() => undefined);
   }
-  private async sleep(r: Row, at: number): Promise<void> {
+  /** Claims the transition first, so a machine re-held (or slept by another sweep) since `r` was read is left alone. */
+  private async sleep(r: Row, at: number): Promise<boolean> {
+    const [won] = await this.q(`UPDATE machine_leases SET state='sleeping',container_id=NULL,holds=0,slept_at=$2,idle_since=NULL,keep_awake_until=NULL,warned_at=NULL,updated_at=$2 WHERE thread_id=$1 AND state='awake' AND holds=0 AND container_id=$3 AND idle_since IS NOT DISTINCT FROM $4 RETURNING thread_id`, [r.thread_id, this.at(at), r.container_id, r.idle_since]);
+    if (!won) return false;
     await this.dispose(r);
-    await this.q(`UPDATE machine_leases SET state='sleeping',container_id=NULL,holds=0,slept_at=$2,idle_since=NULL,keep_awake_until=NULL,warned_at=NULL,updated_at=$2 WHERE thread_id=$1`, [r.thread_id, this.at(at)]);
     const charge = machineCharge(r.size, Math.max(0, Math.round((at - r.awake_since.getTime()) / 1000)));
     await this.q(`UPDATE threads SET spent = spent || jsonb_build_object('usd', (spent->>'usd')::numeric + $2::numeric, 'machineSec', (spent->>'machineSec')::numeric + $3::numeric) WHERE id=$1`, [r.thread_id, charge.usd, charge.machineSec]);
     await this.q(`INSERT INTO cost_entries (thread_id,run_id,source,delta) SELECT thread_id,id,'machine-estimate',$2 FROM runs WHERE thread_id=$1 ORDER BY ordinal DESC LIMIT 1`, [r.thread_id, JSON.stringify(charge)]);
     await this.hooks.emit?.(r.thread_id, { state: 'sleeping', machineSec: charge.machineSec, usdMicro: charge.usd }).catch(() => undefined);
+    return true;
   }
   private async delete(r: Row): Promise<void> {
+    const [won] = await this.q(`UPDATE machine_leases SET state='deleted',container_id=NULL,updated_at=$2 WHERE thread_id=$1 AND state='sleeping' AND slept_at=$3 RETURNING thread_id`, [r.thread_id, this.at(), r.slept_at]);
+    if (!won) return;
     await this.hooks.beforeDelete?.(r.thread_id).catch(() => undefined);
     await this.dispose(r);
     await this.hooks.driver?.deleteWorkspace?.(r.thread_id).catch(() => undefined);
-    await this.q(`UPDATE machine_leases SET state='deleted',container_id=NULL,updated_at=$2 WHERE thread_id=$1`, [r.thread_id, this.at()]);
     await this.hooks.emit?.(r.thread_id, { state: 'deleted' }).catch(() => undefined);
   }
 }

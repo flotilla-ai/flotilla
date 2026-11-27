@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS machine_leases (
   service boolean NOT NULL DEFAULT false,
   state text NOT NULL CHECK (state IN ('starting', 'awake', 'sleeping', 'deleted')),
   container_id text,
+  policy text NOT NULL DEFAULT '',
   holds integer NOT NULL DEFAULT 0,
   awake_since timestamptz,
   idle_since timestamptz,
