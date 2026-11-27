@@ -24,14 +24,20 @@ async function serialized<T>(key: string, fn: () => Promise<T>): Promise<T> {
   locks.set(key, next.catch(() => undefined));
   return next;
 }
-function isGitHubRemote(fullName: string): boolean {
+export function isGitHubRemote(fullName: string): boolean {
   if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(fullName)) return true;
   try { const u=new URL(fullName); return u.protocol==='https:' && u.hostname.toLowerCase()==='github.com'; } catch { return false; }
 }
+function isAllowedGitHost(fullName: string): boolean {
+  const hosts = (process.env.FLOTILLA_GIT_HOSTS ?? '').split(',').map((h) => h.trim().toLowerCase()).filter(Boolean);
+  try { const u = new URL(fullName); return u.protocol === 'https:' && !u.username && !u.password && hosts.includes(u.hostname.toLowerCase()); } catch { return false; }
+}
+export function remoteAllowed(fullName: string): boolean {
+  if (isGitHubRemote(fullName) || isAllowedGitHost(fullName)) return true;
+  return process.env.FLOTILLA_ALLOW_LOCAL_GIT_REMOTES === '1' && (fullName.startsWith('/') || fullName.startsWith('file:'));
+}
 function assertRemoteAllowed(fullName: string): void {
-  if (isGitHubRemote(fullName)) return;
-  if (process.env.FLOTILLA_ALLOW_LOCAL_GIT_REMOTES === '1' && (fullName.startsWith('/') || fullName.startsWith('file:'))) return;
-  throw new KernelDenied('scope', 'project remotes must be canonical GitHub repositories');
+  if (!remoteAllowed(fullName)) throw new KernelDenied('scope', 'project remotes must be GitHub repositories or FLOTILLA_GIT_HOSTS https URLs');
 }
 function envWithToken(project: GitProject): NodeJS.ProcessEnv {
   if (!project.token || !isGitHubRemote(project.repo.fullName)) return { ...process.env, GIT_CONFIG_NOSYSTEM: '1' };
@@ -42,6 +48,7 @@ async function git(args: string[], opts: { cwd?: string; env?: NodeJS.ProcessEnv
 }
 export function mirrorPath(root: string, project: GitProject): string { return join(root, `${project.id}.git`); }
 export async function ensureMirror(project: GitProject, root = '/data/mirrors'): Promise<string> {
+  if (!project.repo) throw new KernelDenied('scope', 'project has no repository');
   const path = mirrorPath(root, project);
   const env = envWithToken(project);
   const raw = project.repo.fullName;
@@ -73,6 +80,7 @@ export async function seedWorkspace(thread: GitThread, project: GitProject, driv
     await runTransport(transport, ['git', 'clone', '--branch', project.repo.baseBranch, '/tmp/seed.bundle', '/workspace/repo'], '/workspace');
     const branch = thread.branch ?? `flotilla/${thread.code}-${slug(thread.title)}`;
     await runTransport(transport, ['git', 'switch', '-c', branch], '/workspace/repo');
+    if (project.repo.baseBranch !== branch && project.repo.baseBranch.startsWith('flotilla/')) await runTransport(transport, ['git', 'branch', '-D', project.repo.baseBranch], '/workspace/repo');
     return { branch };
   } finally { rmSync(tmp, { recursive: true, force: true }); }
 }
@@ -80,7 +88,7 @@ export async function seedWorkspace(thread: GitThread, project: GitProject, driv
 function branchOwnedByThread(branch: string, thread: GitThread): boolean {
   return branch.startsWith(`flotilla/${thread.code}-`);
 }
-async function mirrorDefaultBranch(mirror: string, fallback: string, env: NodeJS.ProcessEnv): Promise<string> {
+export async function mirrorDefaultBranch(mirror: string, fallback: string, env: NodeJS.ProcessEnv): Promise<string> {
   try {
     const head = (await git(['--git-dir', mirror, 'symbolic-ref', '--short', 'HEAD'], { env })).stdout.trim();
     return head.replace(/^refs\/heads\//, '') || fallback;

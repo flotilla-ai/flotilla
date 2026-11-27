@@ -55,26 +55,26 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-049 | Wakes & background | P2 | done | phase2-17 | https://github.com/flotilla-ai/flotilla/pull/45 | `POST /threads/:id/send` delivers as a steer and adds a `thread` watch; the target's next completed run wakes the sender once. Test `wakes.test.ts`. |
 | CAPY-050 | Wakes & background | P2 | blocked | phase2-17 | https://github.com/flotilla-ai/flotilla/pull/45 | Hold/allow proven: `PUT /threads/:id/hold`, held items in `wake_inbox`, owner-only allow/decline. Blocked: BYOM threads do not auto-enable hold and there is no held-messages UI (BYOM is a later unit). |
 | CAPY-051 | Wakes & background | P2 | blocked | phase2-17 | https://github.com/flotilla-ai/flotilla/pull/45 | Only `rsyncArgv` (rsync over ssh, BatchMode) through the background-job path is tested with a fake executor. Blocked: needs a BYOM machine with SSH (later unit). |
-| CAPY-052 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-053 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-054 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-055 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-056 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-057 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-058 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-059 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-060 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-061 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-062 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-052 | Subagents & forks | P2 | done | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | Child thread (`parent_id`) + `subagents` row; addressed `Subagent 1.3`, depth limit 3 in `SubagentStore.create` (403 beyond). Own conversation/run. Flotilla-delegate path; adapter-native `subagent` events are not mapped. |
+| CAPY-053 | Subagents & forks | P2 | done | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | Draft = thread `idle` with no inbox item; PATCH title/prompt until `POST /subagents/:id/start` (409 after). |
+| CAPY-054 | Subagents & forks | P2 | done | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | Start queues only the draft prompt; fresh session (`resumeSessionId: null`); no parent events copied. |
+| CAPY-055 | Subagents & forks | P2 | done | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | `placement` required: `shared` mounts the nearest non-shared ancestor workspace read-only (no seed), `fresh` gets its own container/volume/branch. |
+| CAPY-056 | Subagents & forks | P2 | done | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | `parallel` fresh siblings must claim disjoint `paths` (409); `stacked` uses the previous sibling branch as base (409 until it exists). |
+| CAPY-057 | Subagents & forks | P2 | done | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | States map from thread status: draft/working/waiting (budget or run-out pause)/idle (stopped)/done/failed. |
+| CAPY-058 | Subagents & forks | P2 | done | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | After-run hook queues `Subagent N "title" finished. Summary:` or `... is blocked and asks: <question>` on the parent inbox; `GET /subagents/:id/progress` reads state, tool calls and text (prose is buffered by the kernel scrubber until the run ends). |
+| CAPY-059 | Subagents & forks | P2 | done | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | `GET /subagents/:id/diff` (mirror `base...branch`, applies with `git apply`), `POST /subagents/:id/pr` (head = child branch), `POST /subagents/:id/feedback`. Applying the patch inside the parent workspace is left to the parent agent. |
+| CAPY-060 | Subagents & forks | P2 | done | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | Per-subagent engine resolved through the model catalog (`resolveEngine`); granted budget = min(request, parent cap − spent − sibling grants), 403 when nothing is left. |
+| CAPY-061 | Subagents & forks | P2 | blocked | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | No paired-device machine driver on `flotilla/p1`; needs the BYOM/device-pairing unit to add a placement target. |
+| CAPY-062 | Subagents & forks | P2 | blocked | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | Siblings are created and messaged through the user-authenticated subagent API; no agent-callable tool for non-Captain threads exists (Captain `crew.*` MCP tools are outside this unit). |
 | CAPY-063 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-064 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-065 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-066 | Captains | P1 | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-066 | Captains | P1 | done | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-067 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-068 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-069 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-070 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-071 | Captains | P1 | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-071 | Captains | P1 | done | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-072 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-073 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-074 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
@@ -82,14 +82,14 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-076 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-077 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-078 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-079 | Captains | P1 | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Restart-safe wake persistence/coalescing proved by real Postgres fake-clock test. |
+| CAPY-079 | Captains | P1 | done | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Restart-safe wake persistence/coalescing proved by real Postgres fake-clock test. |
 | CAPY-080 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-081 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-082 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-083 | Captains | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-084 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-085 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-086 | Captains | P1 | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Restart-safe wake persistence/coalescing proved by real Postgres fake-clock test. |
+| CAPY-086 | Captains | P1 | done | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Restart-safe wake persistence/coalescing proved by real Postgres fake-clock test. |
 | CAPY-087 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-088 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-089 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
@@ -100,7 +100,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-094 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-095 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-096 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-097 | Captains | P1 | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-097 | Captains | P1 | done | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-098 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-099 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-100 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
@@ -180,12 +180,12 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-174 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-175 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-176 | Projects | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-177 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-178 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-179 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-180 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-181 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-182 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-177 | Projects | P2 | done | phase2-29 | https://github.com/flotilla-ai/flotilla/pull/42 | `source:{kind:"empty"}` creates a project with `repo:null, repos:[]`; its threads still get project codes; `ensureMirror` refuses with `scope: project has no repository`. Test: `apps/server/src/projects/projects.test.ts`; UI `apps/web/e2e/projects.spec.ts`. |
+| CAPY-178 | Projects | P2 | done | phase2-29 | https://github.com/flotilla-ai/flotilla/pull/42 | `repos[]` with `role` primary|lazy; the primary is mirrored at creation (mirror id = project id, seeded by the runner); lazy repos are mirrored only on `POST /projects/:id/repos/:repoId/clone`. Test: `apps/server/src/projects/projects.test.ts`; UI `apps/web/e2e/projects.spec.ts`. |
+| CAPY-179 | Projects | P2 | done | phase2-29 | https://github.com/flotilla-ai/flotilla/pull/42 | `describeRepo` builds one sentence from package.json/Cargo.toml/pyproject.toml description, else the first README prose sentence (<=160 chars); stored on the repo when mirrored. Test: `apps/server/src/projects/projects.test.ts`; UI `apps/web/e2e/projects.spec.ts`. |
+| CAPY-180 | Projects | P2 | done | phase2-29 | https://github.com/flotilla-ai/flotilla/pull/42 | `name`, emoji `icon`, unique uppercase `code` (2-6, derived from name if absent); a `threads` BEFORE INSERT trigger numbers project threads `CODE-n`. Test: `apps/server/src/projects/projects.test.ts`; UI `apps/web/e2e/projects.spec.ts`. |
+| CAPY-181 | Projects | P2 | needs-human-login | phase2-29 | https://github.com/flotilla-ai/flotilla/pull/42 | Sources `github|git-url|folder|empty` (+ `lazy[]`) and `GET /projects/suggestions` proven with local git fixtures and a fixture GitHub list. When `GITHUB_TOKEN` is set, only admins can list suggestions or add/clone GitHub repos (403 for members, suggestions `[]`). Blocked remainder: members adding GitHub repos with their own access needs per-user GitHub identity (P3). Live `GET /user/repos?sort=pushed`, live clones and device-folder clones (phase2-15) are unproven; operator commands are in `docs/runlog/phase2-29.md`. Test: `apps/server/src/projects/projects.test.ts`; UI `apps/web/e2e/projects.spec.ts`. |
+| CAPY-182 | Projects | P2 | blocked | phase2-29 | https://github.com/flotilla-ai/flotilla/pull/42 | Proven: `visibility` is `private` by default, and private projects are hidden (404) from other users and only the owner edits or clones. Blocked: the non-private counterpart is not usable by teammates. `shared` projects are listed and readable, but `ThreadRunner.create` and Captain creation still require `projects.owner_id`, so collaborator use needs P3 org membership. Test: `apps/server/src/projects/projects.test.ts`; UI `apps/web/e2e/projects.spec.ts`. |
 | CAPY-183 | Environment & snapshots | P2 | blocked | phase2-10 |  | Versioned per-project `EnvironmentSpec` (setup phases, startup entries, commands) with shared history: `environments.test.ts`, UI `apps/web/e2e/environments.spec.ts`. Blocked remainder: container snapshot (phase2-11); phase2-12 must call `registerEnvironmentMachine` and `EnvironmentStore.prepare` at machine boot. |
 | CAPY-184 | Environment & snapshots | P2 | blocked | phase2-10 |  | `environment.verify` runs initialize on the thread machine and records the verdict on the version (local-process machine fixture). Blocked: phase2-12 must call `registerEnvironmentMachine` and `EnvironmentStore.prepare` at machine boot; no "Ask to set up" button. |
 | CAPY-185 | Environment & snapshots | P2 | blocked | phase2-10 |  | initialize 900 s / refresh 300 s defaults, 60-3600 s validation, timeout kill, fresh-clone vs moved-checkout `choosePhase`, proven with a local-process machine. Blocked: phase2-12 must call `registerEnvironmentMachine` and `EnvironmentStore.prepare` at machine boot. |
@@ -223,9 +223,9 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-217 | Cloud machines | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-218 | Cloud machines | P2 | done | phase2-09 | PR pending | Pool containers set MemorySwap=Memory and OomKillDisable=false (mocked-docker test); live docker run with the same flags: allocator OOM-killed (137), container and `sleep` survive (runlog). |
 | CAPY-219 | Cloud machines | P2 | done | phase2-09 | PR pending | DockerMachineDriver.platforms is linux only; macOS/iOS start requests are refused with a paired-device (BYOM) pointer. Device execution itself is phase2-14/15. |
-| CAPY-220 | Previews | P1 | phase1fix-03 | https://github.com/flotilla-ai/flotilla/pull/22 | Local fixture network proves authenticated preview cookie/share access, no-token and UI-cookie rejection, and gate bearer enforcement. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-220 | Previews | P1 | done | phase1fix-03 | https://github.com/flotilla-ai/flotilla/pull/22 | Local fixture network proves authenticated preview cookie/share access, no-token and UI-cookie rejection, and gate bearer enforcement. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-221 | Previews | P2 | done | phase2-09 | PR pending | GET /threads/:id/previews suggests listening ports read from /proc/net/tcp, hides reserved Flotilla ports and refuses to expose them; web `#/previews` panel lists suggestions with Open buttons, shows reserved ports and renders the preview in an in-app iframe via the one-time token (API fixture test + web render test). |
-| CAPY-222 | Previews | P1 | phase1fix-03 | https://github.com/flotilla-ai/flotilla/pull/22 | Local fixture network proves authenticated preview cookie/share access, no-token and UI-cookie rejection, and gate bearer enforcement. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-222 | Previews | P1 | done | phase1fix-03 | https://github.com/flotilla-ai/flotilla/pull/22 | Local fixture network proves authenticated preview cookie/share access, no-token and UI-cookie rejection, and gate bearer enforcement. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-223 | Previews | P2 | done | phase2-09 | PR pending | Each proxied request moves previews.awake_until to now+5 min capped at 4 h from the window start; asleep machine returns a 503 card with a Start the machine link to the UI. Machine sleep enforcement is phase2-12. |
 | CAPY-224 | Previews | P2 | done | phase2-09 | PR pending | Preview URL is derived from thread code + port only and survives sleep; when nothing listens the stored start command reruns in the machine (debounced 30 s) behind a 503 auto-refresh card. |
 | CAPY-225 | Previews | P2 | done | phase2-09 | PR pending | Per-preview hostname (e.g. `web.localhost:1355`) is sent as the upstream Host header so portless-style routers resolve the app; localUrl uses it too. |
