@@ -35,7 +35,9 @@ export function createCaptainsRoute(pool = new pg.Pool({ connectionString: proce
   const serializeCrewStart = async <T>(captainId: string, fn: () => Promise<T>): Promise<T> => {
     const prior = crewStarts.get(captainId) ?? Promise.resolve();
     const run = prior.catch(() => undefined).then(fn);
-    crewStarts.set(captainId, run.catch(() => undefined));
+    const tracked = run.catch(() => undefined);
+    crewStarts.set(captainId, tracked);
+    void tracked.then(() => { if (crewStarts.get(captainId) === tracked) crewStarts.delete(captainId); });
     return run;
   };
   app.get('/photo-library', (c) => c.json({ items: CAPTAIN_PHOTO_LIBRARY }));
