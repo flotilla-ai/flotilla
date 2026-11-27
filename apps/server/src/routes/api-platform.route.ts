@@ -45,7 +45,7 @@ export function createApiPlatformRoute(store = () => apiPlatformStore()) {
   app.post('/webhooks/automations/:secret', async (c) => {
     const raw = await readLimited(c, 256 * 1024);
     if (!raw) return apiError(c, 'PayloadTooLarge', 'webhook body exceeds 256 KiB');
-    const text = raw.toString('utf8');
+    const text = raw.toString('utf8').replace(/^\uFEFF/, '');
     let payload: unknown;
     try { payload = text ? JSON.parse(text) : {}; } catch { return apiError(c, 'ValidationFailed', 'webhook body must be JSON'); }
     const deliveryId = await store().deliverWebhook(c.req.param('secret'), payload);
