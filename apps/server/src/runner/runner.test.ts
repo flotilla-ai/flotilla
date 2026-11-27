@@ -51,6 +51,16 @@ describe('thread runner',()=>{
     expect(b.id).not.toBe(a.id);
     await runner.stop(a.id as string,'usr_test'); await runner.stop(b.id as string,'usr_other');
   },20_000);
+  it('does not close feedback drafts through the generic approval answer path',async()=>{
+    const t=await runner.createThread({ownerId:'usr_test',title:'feedback-guard',prompt:'hello',requestId:'req-feedback-guard'});
+    await waitFor(`SELECT * FROM events WHERE thread_id=$1 AND kind='run.ended'`,[t.id as string]);
+    const id='apr_feedback_guard';
+    await pool.query(`INSERT INTO approvals (id,thread_id,kind,question,options,blocking,state,detail) VALUES ($1,$2,'decision','Send feedback?','[]',false,'open','{"feedback":{"title":"t","body":"b"}}')`,[id,t.id]);
+    await expect(runner.answerApproval(id,'approve',undefined,'usr_test')).rejects.toThrow('feedback');
+    const after=(await pool.query('SELECT state,answer FROM approvals WHERE id=$1',[id])).rows[0];
+    expect(after.state).toBe('open'); expect(after.answer).toBeNull();
+    await runner.stop(t.id as string,'usr_test');
+  },20_000);
   it('does not mutate another owner approval before the ownership check',async()=>{
     const t=await runner.createThread({ownerId:'usr_test',title:'approval-owner',prompt:'hello',maxUsd:1000,requestId:'req-approval-owner'});
     const rows=await waitFor(`SELECT * FROM approvals WHERE thread_id=$1 AND kind='budget' AND state='open'`,[t.id as string]);
