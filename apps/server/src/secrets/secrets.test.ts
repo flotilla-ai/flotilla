@@ -219,4 +219,18 @@ describe('secrets vault', () => {
     expect((await pool.query('SELECT count(*)::int n FROM runs WHERE thread_id=$1', [t.id])).rows[0].n).toBe(0);
     expect(r.queued.get(t.id) ?? []).toEqual([]);
   }, 20_000);
+  it('CAPY-385: a failed secrets-file copy fails machine preparation before the agent starts', async () => {
+    const failing = { ...driver, copyIn: async () => { throw new Error('putArchive failed'); }, stop: async () => undefined };
+    const r = new ThreadRunner({ store: new EventStore(process.env.DATABASE_URL!), driver: failing as never, adapters: new Map([['fake', spyAdapter]]), vault: { mutate: store.mutate.bind(store), prepare: async () => ({ env: { A: VALUE.thread }, grants: [] }) } });
+    starts.length = 0;
+    const t = (await r.createThread({ ownerId: owner, title: 'c', prompt: 'hello', maxUsd: 5 })) as { id: string };
+    const status = async () => (await pool.query('SELECT status FROM threads WHERE id=$1', [t.id])).rows[0].status;
+    for (let i = 0; i < 50 && (await status()) !== 'failed'; i++) await new Promise((res) => setTimeout(res, 100));
+    await new Promise((res) => setTimeout(res, 300));
+    expect(await status()).toBe('failed');
+    expect(starts).toHaveLength(0);
+    expect((await pool.query('SELECT state FROM runs WHERE thread_id=$1', [t.id])).rows).toEqual([{ state: 'failed' }]);
+    expect((await pool.query('SELECT count(*)::int n FROM budget_holds WHERE scope_id=$1', [t.id])).rows[0].n).toBe(0);
+    expect(r.queued.get(t.id) ?? []).toEqual([]);
+  }, 20_000);
 });

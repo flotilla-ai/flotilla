@@ -112,7 +112,18 @@ export class ThreadRunner {
         thread.branch = seeded.branch ?? thread.branch;
       }
     }
-    if (Object.keys(prepared.env).length && 'copyIn' in this.deps.driver) await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', secretsTar(prepared.env)).catch(() => undefined);
+    if (Object.keys(prepared.env).length) {
+      try {
+        if (!('copyIn' in this.deps.driver)) throw new Error('machine driver cannot receive the secrets file');
+        await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', secretsTar(prepared.env));
+      } catch (err) {
+        tokenService?.endRun(runId); this.queued.delete(threadId);
+        await this.pool.query('DELETE FROM budget_holds WHERE run_id=$1', [runId]);
+        await this.pool.query(`UPDATE runs SET state='failed',ended_at=now() WHERE id=$1`, [runId]);
+        await ((this.deps.driver as Driver & {remove?(id:string):Promise<void>}).remove?.(machine.containerId) ?? this.deps.driver.stop(machine.containerId)).catch(() => undefined);
+        throw new Error('secrets file could not be written to the machine', { cause: err });
+      }
+    }
     if (runToken && 'copyIn' in this.deps.driver) await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', captainMcpTar(runToken.token)).catch(() => undefined);
     const adapter = this.deps.adapters.get((thread.engine as Row).adapter as string) ?? [...this.deps.adapters.values()][0];
     if (!adapter) { tokenService?.endRun(runId); throw new Error('adapter missing'); }
