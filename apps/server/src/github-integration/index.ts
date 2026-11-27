@@ -54,13 +54,12 @@ export class GitHubIntegrationStore {
     if (!installationId || !subject) throw new ApiFailure('ValidationFailed', 'installationId and subject are required');
     const permissions = (input.permissions ?? {}) as Record<string, string>;
     const missing = permissionsSufficient(permissions); if (missing.length) throw new ApiFailure('ValidationFailed', `installation is missing required permissions: ${missing.join(', ')}`);
-    const existing = (await this.pool.query('SELECT repositories,dependency_reader FROM github_installations WHERE account_id=$1 AND installation_id=$2', [accountId, installationId])).rows[0];
     const has = (key: string) => Object.prototype.hasOwnProperty.call(input, key);
-    const repositories = has('repositories') ? (Array.isArray(input.repositories) ? input.repositories.map(String) : []) : existing?.repositories ?? [];
-    const dependencyReader = has('dependencyReader') ? input.dependencyReader === true : existing?.dependency_reader ?? false;
+    const repositories = Array.isArray(input.repositories) ? input.repositories.map(String) : [];
+    const dependencyReader = input.dependencyReader === true;
     const iid = id('ghi');
     await this.pool.query(`INSERT INTO github_installations (id,account_id,installation_id,subject,repositories,permissions,dependency_reader) VALUES ($1,$2,$3,$4,$5,$6,$7)
-      ON CONFLICT (account_id,installation_id) DO UPDATE SET revoked_at=NULL,subject=$4,repositories=$5,permissions=$6,dependency_reader=$7`, [iid, accountId, installationId, subject, JSON.stringify(repositories), JSON.stringify(permissions), dependencyReader]);
+      ON CONFLICT (account_id,installation_id) DO UPDATE SET revoked_at=NULL,subject=EXCLUDED.subject,permissions=EXCLUDED.permissions${has('repositories') ? ',repositories=EXCLUDED.repositories' : ''}${has('dependencyReader') ? ',dependency_reader=EXCLUDED.dependency_reader' : ''}`, [iid, accountId, installationId, subject, JSON.stringify(repositories), JSON.stringify(permissions), dependencyReader]);
     return camel((await this.pool.query('SELECT * FROM github_installations WHERE account_id=$1 AND installation_id=$2', [accountId, installationId])).rows[0]) as GitHubInstallation;
   }
   async installations(userId: string, accountId: string): Promise<GitHubInstallation[]> { await this.account(accountId, userId); return (await this.pool.query('SELECT * FROM github_installations WHERE account_id=$1 AND revoked_at IS NULL ORDER BY subject', [accountId])).rows.map(camel) as GitHubInstallation[]; }
