@@ -72,7 +72,7 @@ export class GitHubIntegrationStore {
   async setPrIdentity(userId: string, repo: string, number: number, identity: unknown): Promise<{ repo: string; number: number; identity: CommitIdentity }> {
     if (!/^\S+\/\S+$/.test(repo) || !Number.isInteger(number) || number < 1) throw new ApiFailure('ValidationFailed', 'invalid pull request');
     if (!IDENTITIES.includes(identity as CommitIdentity)) throw new ApiFailure('ValidationFailed', 'invalid commit identity');
-    const installations = (await this.pool.query(`SELECT i.repositories FROM github_installations i JOIN github_accounts a ON a.id=i.account_id WHERE a.user_id=$1 AND a.revoked_at IS NULL AND i.revoked_at IS NULL`, [userId])).rows;
+    const installations = (await this.pool.query(`SELECT i.repositories FROM github_installations i JOIN github_accounts a ON a.id=i.account_id WHERE a.user_id=$1 AND a.revoked_at IS NULL AND i.revoked_at IS NULL AND i.verified_at IS NOT NULL`, [userId])).rows;
     const wanted = repo.toLowerCase();
     const allowed = installations.some((r) => Array.isArray(r.repositories) && r.repositories.some((x: unknown) => String(x).toLowerCase() === wanted));
     if (!allowed) throw new ApiFailure('NotFound', 'pull request repository not found in an active installation');
