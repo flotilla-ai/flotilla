@@ -209,7 +209,9 @@ export class ThreadRunner {
     const start = (memMb = 512, cpus = 1) => this.deps.driver.startThreadContainer({ threadId, code: thread.code, image, cpus, memMb, env, roMounts: [], egressAllow: project?.egress_allow as string[] ?? [], ...(place.workspaceFrom ? { workspaceFrom: place.workspaceFrom } : {}) });
     const seed = async (containerId: string, fresh: boolean) => {
       if (!project?.repo || place.workspaceFrom || (thread.branch && !fresh)) return;
-      const seeded = await seedWorkspace({ id: threadId as never, code: thread.code as string, title: thread.title as string, branch: thread.branch as string | null, containerId }, { id: project.id as never, repo: project.repo as never, trust: project.trust as never, token: process.env.GITHUB_TOKEN }, this.deps.driver).catch(() => ({ branch: null }));
+      const settings = await this.pool.query('SELECT branch_prefix FROM pull_request_settings WHERE user_id=$1', [thread.owner_id]).then((r) => r.rows[0]).catch(() => null);
+      const branchPrefix = typeof settings?.branch_prefix === 'string' ? settings.branch_prefix : 'flotilla';
+      const seeded = await seedWorkspace({ id: threadId as never, code: thread.code as string, title: thread.title as string, branch: thread.branch as string | null, containerId }, { id: project.id as never, repo: project.repo as never, trust: project.trust as never, token: process.env.GITHUB_TOKEN }, this.deps.driver, '/data/mirrors', branchPrefix).catch(() => ({ branch: null }));
       if (seeded.branch && seeded.branch !== thread.branch) await this.pool.query('UPDATE threads SET branch=$2 WHERE id=$1', [threadId, seeded.branch]);
       thread.branch = seeded.branch ?? thread.branch;
     };

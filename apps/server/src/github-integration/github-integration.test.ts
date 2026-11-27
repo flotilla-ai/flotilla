@@ -46,6 +46,8 @@ it('CAPY-399/400/401/402/405/518: multiple accounts, managed installations, comm
     const r = await call('PUT', `/github/accounts/${personal.json.id}/commit-identity`, { identity }); expect(r.status).toBe(200); expect(r.json.commitIdentity).toBe(identity);
   }
   expect((await call('PUT', `/github/accounts/${personal.json.id}/commit-identity`, { identity: 'robot' })).status).toBe(400);
+  expect((await call('PUT', '/github/pulls/acme/app/12/commit-identity', { identity: 'you' })).status).toBe(404);
+  await pool.query(`UPDATE github_installations SET verified_at=now() WHERE installation_id='inst-1'`);
   expect((await call('PUT', '/github/pulls/acme/app/12/commit-identity', { identity: 'you' })).json).toEqual({ repo: 'acme/app', number: 12, identity: 'you' });
   expect((await call('PUT', '/github/pulls/acme/app/12/commit-identity', { identity: 'bad' })).status).toBe(400);
   expect((await call('PUT', '/github/pulls/acme/other/12/commit-identity', { identity: 'you' })).status).toBe(404);
