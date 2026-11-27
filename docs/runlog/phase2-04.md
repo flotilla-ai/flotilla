@@ -106,3 +106,19 @@ apps/server test:  Test Files  17 passed (17)
 apps/server test:       Tests  90 passed | 1 skipped (91)
 exit=0
 ```
+
+## Devin Review round 1 (commit `afc5956`)
+
+- Claude runs ignore the selected model — fixed: Claude Code argv adds `--model <model>`.
+- Default threads ignore never-free policy — fixed: a thread without `engine` resolves `{adapter:'fake'}` through the policy, so never-free rejects it.
+- Missing vendor CLIs in thread containers — escalated: `deploy/thread.Dockerfile` ships neither `claude` nor `codex`; such runs now fail visibly (before this PR they silently ran the fake adapter). Installing the CLIs is a parent deploy repair outside this unit's scope.
+- Pending subscriptions outrank connected keys — escalated: phase2-03 gives every subscription `needs-login` (the login happens inside the CLI), so demoting them would make CAPY-484 unreachable; a server-side login probe is needed (CAPY-484 stays needs-human-login).
+
+```text
+$ pnpm --filter @flotilla/server test
+ Test Files  17 passed (17)
+      Tests  90 passed | 1 skipped (91)
+exit=0
+$ pnpm --filter @flotilla/adapter-claude-code test
+      Tests  7 passed (7)
+```
