@@ -3,7 +3,7 @@ import { crewLimitCheck } from '@flotilla/core/kernel/crewLimits';
 import type pg from 'pg';
 import type { RunTokenService } from './tokens.js';
 
-type RunnerLike = { createThread(input: Record<string, unknown>): Promise<Record<string, unknown>>; message(threadId: string, text: string, mode?: 'queue' | 'interrupt'): Promise<void> };
+type RunnerLike = { createThread(input: Record<string, unknown>): Promise<Record<string, unknown>>; message(threadId: string, text: string, mode?: 'queue' | 'interrupt'): Promise<unknown> };
 export type CaptainToolDeps = { pool: pg.Pool; tokens: RunTokenService; runner: RunnerLike };
 const zero = { usd: 0, inputTokens: 0, outputTokens: 0, cacheTokens: 0, machineSec: 0 };
 function json(value: unknown) { return { content: [{ type: 'text', text: JSON.stringify(value) }] }; }
