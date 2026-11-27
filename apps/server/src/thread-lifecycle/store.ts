@@ -22,12 +22,13 @@ export function clipTitle(raw: string): string {
 /** Offline default: titles from the latest user message. A model-backed generator receives the same instructions. */
 export const heuristicTitle: TitleGenerator = async ({ messages }) => clipTitle(messages.at(-1) ?? 'Untitled thread');
 
-// Unread = agent replies, approvals, and other people's messages after the viewer's read mark.
-const UNREAD = `e.thread_id=t.id AND e.seq>COALESCE(m.last_read_seq,0) AND (e.kind IN ('agent.message','approval.requested') OR (e.kind='user.message' AND e.payload->>'by'<>$1))`;
-const VIEW = `SELECT t.*, m.user_id AS m_user, m.joined, m.subscribed, m.last_read_seq, m.marked_unread,
-  (SELECT count(*) FROM events e WHERE ${UNREAD})::int AS unread_count,
-  (SELECT count(*) FROM events e WHERE ${UNREAD} AND e.kind<>'approval.requested' AND position(lower('@'||split_part(u.email,'@',1)) IN lower(COALESCE(e.payload->>'text','')))>0)::int AS mentions
-  FROM threads t JOIN users u ON u.id=$1 LEFT JOIN thread_members m ON m.thread_id=t.id AND m.user_id=$1`;
+// Unread = agent replies (streamed deltas of one run count once), approvals, and other people's messages after the viewer's read mark.
+const UNREAD = `e.thread_id=t.id AND e.seq>COALESCE(m.last_read_seq,0) AND (e.kind IN ('agent.delta','agent.message','approval.requested') OR (e.kind='user.message' AND e.payload->>'by'<>$1))`;
+const VIEW = `SELECT t.*, m.user_id AS m_user, m.joined, m.subscribed, m.last_read_seq, m.marked_unread, COALESCE(x.unread_count,0)::int AS unread_count, COALESCE(x.mentions,0)::int AS mentions
+  FROM threads t JOIN users u ON u.id=$1 LEFT JOIN thread_members m ON m.thread_id=t.id AND m.user_id=$1
+  LEFT JOIN LATERAL (SELECT count(*) AS unread_count, count(*) FILTER (WHERE g.mention) AS mentions FROM (
+    SELECT bool_and(e.kind<>'approval.requested') AND position(lower('@'||split_part(u.email,'@',1)) IN lower(string_agg(COALESCE(e.payload->>'text',''), '' ORDER BY e.seq)))>0 AS mention
+    FROM events e WHERE ${UNREAD} GROUP BY CASE WHEN e.kind='agent.delta' AND e.run_id IS NOT NULL THEN 'run:'||e.run_id ELSE e.id END) g) x ON true`;
 const toView = (r: Row): ThreadLifecycle => ({
   id: r.id, code: r.code, title: r.title, titleSource: r.title_source, status: r.status, ownerId: r.owner_id, visibility: r.visibility,
   archivedAt: r.archived_at?.toISOString() ?? null, pinned: r.pinned, tags: r.tags, folder: r.folder,
@@ -56,7 +57,7 @@ export class ThreadLifecycleStore {
 
   async view(threadId: string, userId: string): Promise<ThreadLifecycle> {
     const r = (await this.q(`${VIEW} WHERE t.id=$2`, [userId, threadId]))[0];
-    if (!r || (r.owner_id !== userId && r.visibility !== 'shared' && !r.m_user)) throw new ApiFailure('NotFound', 'thread not found');
+    if (!r || (r.owner_id !== userId && r.visibility !== 'shared' && !r.joined)) throw new ApiFailure('NotFound', 'thread not found');
     return toView(r);
   }
   async list(userId: string, archived: 'exclude' | 'only' | 'all' = 'exclude'): Promise<ThreadLifecycle[]> {
@@ -85,7 +86,8 @@ export class ThreadLifecycleStore {
         if (owner) throw new ApiFailure('Conflict', 'transfer ownership before leaving');
         if (v.member?.joined) await this.emit(threadId, { action: 'left', ...by }, (tx) => this.member(threadId, userId, 'joined=false, subscribed=false', [], tx));
         break;
-      case 'takeover': if (!owner) await this.transfer({ threadId: v.id, from: v.ownerId, to: userId as never, via: 'takeover' }); break;
+      case 'takeover': if (!owner && v.visibility !== 'shared') throw new ApiFailure('Forbidden', 'only shared threads can be taken over');
+        if (!owner) await this.transfer({ threadId: v.id, from: v.ownerId, to: userId as never, via: 'takeover' }); break;
       case 'transfer': {
         ownerOnly();
         const to = str(a.toUserId, 200, 'toUserId');
@@ -148,6 +150,8 @@ export class ThreadLifecycleStore {
   }
   /** Ownership moves; connections reset so the new owner's own logins apply. Vendor logins and personal secrets never move. */
   private async transfer(t: OwnershipTransfer) {
+    const ok = await this.q('SELECT 1 FROM threads t LEFT JOIN projects p ON p.id=t.project_id WHERE t.id=$1 AND (t.project_id IS NULL OR p.owner_id=$2)', [t.threadId, t.to]);
+    if (!ok[0]) throw new ApiFailure('Conflict', 'the new owner must own the thread project');
     await this.emit(t.threadId, { action: t.via, from: t.from, to: t.to, by: t.via === 'takeover' ? t.to : t.from }, async (tx) => {
       await tx.query(`UPDATE threads SET owner_id=$2, engine=engine || '{"connectionId":null}'::jsonb, updated_at=now() WHERE id=$1`, [t.threadId, t.to]);
       for (const u of [t.from, t.to]) await this.member(t.threadId, u, 'joined=true, subscribed=true', [], tx);

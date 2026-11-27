@@ -33,7 +33,7 @@ async function thread(opts: { owner?: string; status?: string; visibility?: stri
   await es.appendEvents(id as never, [{ runId: null, kind: 'thread.created', source: 'kernel', trust: 'trusted', payload: { title: 'Initial title' } }, { runId: null, kind: 'user.message', source: 'user', trust: 'trusted', payload: { text: 'Fix the flaky login test in the auth package please' } }] as never);
   return id;
 }
-const agentSays = (id: string, text: string) => es.appendEvents(id as never, [{ runId: null, kind: 'agent.message', source: 'adapter', trust: 'untrusted', payload: { text } }] as never);
+const agentSays = (id: string, text: string) => es.appendEvents(id as never, [{ runId: null, kind: 'agent.delta', source: 'adapter', trust: 'untrusted', payload: { text } }] as never);
 const row = async (id: string) => (await pool.query('SELECT * FROM threads WHERE id=$1', [id])).rows[0];
 async function until(check: () => Promise<boolean>): Promise<void> { for (let i = 0; i < 100; i++) { if (await check()) return; await new Promise((r) => setTimeout(r, 100)); } throw new Error('timed out'); }
 
@@ -173,6 +173,14 @@ describe('thread lifecycle', () => {
     expect((await call('owner', `/threads/${id}/lifecycle`)).body.member).toMatchObject({ joined: true });
     const ev = (await pool.query(`SELECT payload FROM events WHERE thread_id=$1 AND kind='thread.status' ORDER BY seq DESC LIMIT 1`, [id])).rows[0].payload;
     expect(ev).toMatchObject({ action: 'takeover', from: users.owner.id, to: users.bob.id });
+    const left = await thread({ visibility: 'shared' });
+    await act('carol', left, { action: 'join' }); await act('carol', left, { action: 'leave' });
+    await act('owner', left, { action: 'visibility', visibility: 'private' });
+    expect((await act('carol', left, { action: 'takeover' })).status).toBe(404);
+    await act('owner', left, { action: 'visibility', visibility: 'shared' });
+    await pool.query(`INSERT INTO projects (id,owner_id,name,repo,trust,budget) VALUES ('prj_own',$1,'p','{}','trusted','{}')`, [users.owner.id]);
+    await pool.query(`UPDATE threads SET project_id='prj_own' WHERE id=$1`, [left]);
+    expect((await act('carol', left, { action: 'takeover' })).status).toBe(409);
   });
 
   it('CAPY-024: share dialog transfers ownership; connections reset, vendor logins never move', async () => {
