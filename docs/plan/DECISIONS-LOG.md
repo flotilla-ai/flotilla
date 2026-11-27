@@ -13,3 +13,6 @@
 - 2026-11-27: unit 09 stages thread refs in the mirror before validation and validates every staged ref before pushing any ref, preventing partial pushes when a protected ref is present. Undo: use a transaction-like refspec push if upstream supports it safely.
 - 2026-11-27: unit 11 uses injected driver/adapter dependencies in tests and a Docker-backed default route singleton; live container behavior remains unverified. Undo: replace with a fully wired supervisor after integration hardening.
 - 2026-11-27: unit 14 treats the current failing signature as part of autofix history so the third distinct failure stops at the cap and a repeated second failure stops for no-progress. Undo: clarify cap semantics and adjust kernel tests.
+
+- 2026-11-27: phases 2-4 run overrides the prior direct-push exception: `flotilla/p1` may move only by squash-merging gated PRs; any post-merge repair uses a `flotilla/repair-N` PR. Undo: none during this run; mehdi can change merge policy after the run.
+- 2026-11-27: initial parity ledger treats merged phase-1 implementation rows as done except rows whose proof explicitly requires live vendor/GitHub services; the three phase1fix units provide stronger local end-to-end proof before phase 2. Undo: reclassify rows as blocked if a fix proves the implementation wrong.
