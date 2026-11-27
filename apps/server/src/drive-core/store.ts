@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path';
 import pg from 'pg';
 import { migrate } from '../db/migrate.js';
 import { ApiFailure } from '../api-platform/types.js';
-import { CARDS, DEFAULT_LIMITS, DriveFailure, MOUNT_MAX_BYTES, MOUNT_ROOT, parsePath, scopeDir, scopeId, skillName, tar, untar, type DriveFailureCard, type DriveItem, type DriveLimits, type DriveMount, type DriveScope, type DriveSource, type DriveUsage, type DriveVersion } from './types.js';
+import { CARDS, DEFAULT_LIMITS, DriveFailure, MOUNT_MAX_BYTES, MOUNT_ROOT, parsePath, scopeDir, scopeId, skillName, tar, untar, type DriveFailureCard, type DriveItem, type DriveLimits, type DriveMount, type DriveScope, type DriveShare, type DriveShareView, type DriveSource, type DriveUsage, type DriveVersion } from './types.js';
 
 type Row = Record<string, any>;
 type MountDriver = { copyIn?(id: string, dir: string, tar: Buffer): Promise<void>; copyOut?(id: string, path: string, maxBytes?: number): Promise<Buffer> };
@@ -14,6 +14,17 @@ export interface DriveThreadView { mounts: DriveMount[]; instructions: { scope: 
 const toScope = (kind: string, id: string): DriveScope => kind === 'org' ? { kind } : kind === 'project-user' ? { kind, id: id.split(':')[0], userId: id.split(':')[1] } : { kind: kind as 'user', id };
 const toItem = (r: Row): DriveItem => ({ id: r.id, parentId: r.parent_id, scope: toScope(r.scope_kind, r.scope_id), path: r.path, name: r.name, type: r.type, blobSha256: r.blob_sha256, size: Number(r.size), version: r.version, mountIntoThreads: r.mount_into_threads, updatedAt: r.updated_at.toISOString() });
 const toVersion = (r: Row): DriveVersion => ({ version: r.version, sha256: r.sha256, size: Number(r.size), at: r.at.toISOString(), by: r.by, source: r.source });
+const toShare = (r: Row): DriveShare => ({ id: r.id, itemId: r.item_id, access: r.access, createdBy: r.created_by, createdAt: r.created_at.toISOString(), revokedAt: r.revoked_at?.toISOString() ?? null });
+const toShareView = (r: Row): DriveShareView => ({ ...toShare(r), path: r.path, name: r.name });
+const appendMerge = (base: Buffer, current: Buffer, incoming: Buffer): Buffer | null => {
+  const starts = (x: Buffer) => x.subarray(0, base.length).equals(base);
+  return starts(current) && starts(incoming) ? Buffer.concat([current, incoming.subarray(base.length)]) : null;
+};
+const lineDiff = (a: string, b: string): string => {
+  const x = a.split(/(?<=\n)/); const y = b.split(/(?<=\n)/); let n = 0;
+  while (n < x.length && n < y.length && x[n] === y[n]) n++;
+  return [...x.slice(n).filter(Boolean).map((l) => `-${l.replace(/\n$/, '')}`), ...y.slice(n).filter(Boolean).map((l) => `+${l.replace(/\n$/, '')}`)].join('\n');
+};
 const sha256 = (data: Buffer) => createHash('sha256').update(data).digest('hex');
 const gib = (n: number) => `${(n / 1024 ** 3).toFixed(2)} GiB`;
 const rel = (dir: string) => dir.slice('/run/'.length);
@@ -81,7 +92,12 @@ export class DriveStore {
       await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`drive:${scope.kind}:${scopeId(scope)}`]);
       const [prior] = (await client.query(`SELECT * FROM drive_items WHERE scope_kind=$1 AND scope_id=$2 AND path=$3`, [scope.kind, scopeId(scope), path])).rows;
       if (prior?.type === 'folder') throw new ApiFailure('Conflict', `${path} is a folder`);
-      if (opts.baseVersion !== undefined && (prior?.version ?? 0) !== opts.baseVersion) throw new ApiFailure('Conflict', `${path} changed since version ${opts.baseVersion}`);
+      if (opts.baseVersion !== undefined && (prior?.version ?? 0) !== opts.baseVersion) {
+        const [baseVersion] = prior ? (await client.query('SELECT sha256 FROM drive_versions WHERE item_id=$1 AND version=$2', [prior.id, opts.baseVersion])).rows : [];
+        const merged = baseVersion && prior?.blob_sha256 ? appendMerge(await readFile(this.blob(baseVersion.sha256)), await readFile(this.blob(prior.blob_sha256)), data) : null;
+        if (!merged) throw new ApiFailure('Conflict', `${path} changed since version ${opts.baseVersion}`);
+        data = merged;
+      }
       const { usedBytes } = await this.usage(scope, client);
       if (usedBytes + data.length > this.limits.quotaBytes) throw new DriveFailure(CARDS.drive_full(`${gib(usedBytes)} of ${gib(this.limits.quotaBytes)} used`));
       let parentId: string | null = null; const parts = path.split('/');
@@ -100,6 +116,39 @@ export class DriveStore {
       await client.query('COMMIT');
       return toItem(row);
     } catch (err) { await client.query('ROLLBACK'); throw err; } finally { client.release(); }
+  }
+  async createShare(userId: string, item: DriveItem, access: unknown): Promise<DriveShare & { token: string; url: string }> {
+    if (item.type !== 'file') throw new ApiFailure('ValidationFailed', 'only files can be shared');
+    if (access !== 'read' && access !== 'write') throw new ApiFailure('ValidationFailed', "access must be 'read' or 'write'");
+    await this.access(userId, item.scope, true);
+    const token = `dsh_${randomBytes(24).toString('base64url')}`; const id = `dshl_${randomBytes(10).toString('base64url')}`;
+    const [r] = await this.q('INSERT INTO drive_shares (id,item_id,token_hash,access,created_by) VALUES ($1,$2,$3,$4,$5) RETURNING *', [id, item.id, sha256(Buffer.from(token)), access, userId]);
+    return { ...toShare(r), token, url: `/api/v1/drive/shared/${token}/content` };
+  }
+  async shares(userId: string): Promise<DriveShareView[]> {
+    return (await this.q(`SELECT s.*,i.path,i.name FROM drive_shares s JOIN drive_items i ON i.id=s.item_id WHERE s.created_by=$1 AND s.revoked_at IS NULL ORDER BY s.created_at DESC`, [userId])).map(toShareView);
+  }
+  async revokeShare(userId: string, id: string): Promise<void> {
+    if (!(await this.q('UPDATE drive_shares SET revoked_at=now() WHERE id=$1 AND created_by=$2 AND revoked_at IS NULL RETURNING 1', [id, userId]))[0]) throw new ApiFailure('NotFound', 'share not found');
+  }
+  async shared(token: string): Promise<{ share: DriveShare; item: DriveItem }> {
+    const [r] = await this.q(`SELECT s.*,i.scope_kind,i.scope_id,i.parent_id,i.path,i.name,i.type,i.blob_sha256,i.size,i.version,i.mount_into_threads,i.updated_at FROM drive_shares s JOIN drive_items i ON i.id=s.item_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL`, [sha256(Buffer.from(token))]);
+    if (!r) throw new ApiFailure('NotFound', 'share not found');
+    return { share: toShare(r), item: toItem(r) };
+  }
+  async saveShared(token: string, data: Buffer): Promise<DriveItem> {
+    const { share, item } = await this.shared(token);
+    if (share.access !== 'write') throw new ApiFailure('Forbidden', 'share is read-only');
+    return this.save(item.scope, item.path, data, { by: share.createdBy, source: 'upload' });
+  }
+  async versionContent(item: DriveItem, version: number): Promise<Buffer> {
+    const [v] = await this.q('SELECT sha256 FROM drive_versions WHERE item_id=$1 AND version=$2', [item.id, version]);
+    if (!v) throw new ApiFailure('NotFound', 'version not found');
+    return readFile(this.blob(v.sha256));
+  }
+  async compare(item: DriveItem, a: number, b: number): Promise<{ a: number; b: number; diff: string }> {
+    const [x, y] = await Promise.all([this.versionContent(item, a), this.versionContent(item, b)]);
+    return { a, b, diff: lineDiff(x.toString('utf8'), y.toString('utf8')) };
   }
   async remove(item: DriveItem): Promise<void> { await this.q('DELETE FROM drive_items WHERE id=$1', [item.id]); }
   async versions(item: DriveItem): Promise<DriveVersion[]> { return (await this.q('SELECT * FROM drive_versions WHERE item_id=$1 ORDER BY version DESC', [item.id])).map(toVersion); }

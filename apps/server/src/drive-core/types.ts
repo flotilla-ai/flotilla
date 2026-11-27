@@ -15,6 +15,9 @@ export interface DriveItem {
 export interface DriveMount { scope: DriveScope; dir: string; writable: boolean; files: { path: string; sha256: string; version: number }[] }
 export type DriveSource = 'upload' | 'agent' | 'restore';
 export interface DriveUsage { scope: DriveScope; usedBytes: number; limitBytes: number; full: boolean }
+export type DriveShareAccess = 'read' | 'write';
+export interface DriveShare { id: string; itemId: DriveItemId; access: DriveShareAccess; createdBy: string; createdAt: string; revokedAt: string | null }
+export interface DriveShareView extends DriveShare { path: string; name: string }
 export type DriveFailureCode = 'drive_full' | 'file_too_large' | 'upload_too_large' | 'mount_failed' | 'save_failed';
 /** A failure the user can act on: what happened and the next step. */
 export interface DriveFailureCard { code: DriveFailureCode; title: string; nextStep: string }

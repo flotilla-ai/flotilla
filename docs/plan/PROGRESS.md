@@ -1,11 +1,11 @@
 # Flotilla progress
 
-Current phase: phase 2, waves 3-6 continuing in the parent session after child sessions were stopped.
-Current `flotilla/p1` head before this PR: `ff759a5` (phase2-12 machine core).
+Current phase: phase 2, waves 3-6 continuing in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
+Current `flotilla/p1` head before this PR: `36b34fd` (phase2-11 snapshots).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` on this branch after wiring snapshots into machine boot: done 193, pending 372, needs-human-login 18, n-a 22, blocked 31.
+Counted in `docs/plan/PARITY.md` on this branch after Drive UX: done 197, pending 368, needs-human-login 18, n-a 22, blocked 31.
 
 ## Unit table
 
@@ -36,16 +36,17 @@ Counted in `docs/plan/PARITY.md` on this branch after wiring snapshots into mach
 | phase2-18-subagent-core | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/44 | subagent drafts, placement, modes, budget slice, parent wake; 9 rows done (052-060), 2 blocked (061 no paired-device driver, 062 no agent-callable tool for non-Captain threads); see `docs/runlog/phase2-18.md` |
 | phase2-33-skills | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/52 | skills discovery (built-in, repo `.agents`/`.claude`, Drive, plugin), mount into agent-native folders, `$`/`/`/`@`/words invocation + records, Not loaded / Replaced-by markers and web `#/skills`, copy-import; 7 rows done; see `docs/runlog/phase2-33.md` |
 | phase2-12-machine-core | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/48 | machine leases/sleep/wake/RAM cap/billing; CAPY-206/207/212 blocked as recorded |
-| phase2-11-snapshots | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/50 | snapshot build/scrub/history plus runner bootPlan wiring; all 6 rows done in this branch |
+| phase2-11-snapshots | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/50 | snapshot build/scrub/history plus runner bootPlan wiring; all 6 rows done |
 | phase2-30-drive-core | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/51 | Drive store, versions, quota, thread mount/write-back, failure cards, `/drive` page; 9 rows done, 1 blocked (CAPY-277 BYOM); see `docs/runlog/phase2-30.md` |
+| phase2-31-drive-ux | in review | 1 |  | share links/access/shared view, thread side-pane editing, Markdown outline, append merge, version compare, sub-second mount proof; 4 rows done; see `docs/runlog/phase2-31.md` |
 | phase2-36-usage-billing-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/54 | usage report/series/balance API, monthly org/project budget windows, machine-minute pricing, run-out free ask/forbid, `/usage` page; 9 rows done; see `docs/runlog/phase2-36.md` |
 | phase2-32-rules | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/53 | layered rules loader, shared context budget, kernel rules, context breakdown, Memory/Captain experiments; 11 rows done; see `docs/runlog/phase2-32.md` |
 | phase2-34-mcp | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/55 | MCP registry/plugins; rows/statuses in `docs/runlog/phase2-34.md` |
 
 ## Next action
 
-1. Merge phase2-11 snapshots when CI/review pass.
-2. Continue machine UX/devices/dock and Captain/work-surface units directly in the parent session (or only free/SWE-2.1 child sessions if parallelism is restarted). CAPY-061/062 need a paired-device target and an agent-callable subagent tool.
+1. Merge phase2-31 Drive UX when CI/review pass.
+2. Continue machine UX/devices/dock and Captain/work-surface units directly in the parent session. CAPY-061/062 need a paired-device target and an agent-callable subagent tool.
 3. Repair runner queue so failed starts requeue undelivered inbox items instead of dropping them.
 
 ## Phase 1 summary (preserved)
