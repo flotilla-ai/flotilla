@@ -46,3 +46,13 @@ exit 0
 Repair scope: the scanner now persists the raw Postgres timestamp text as its high-water cursor, preserving microsecond precision, and wake acknowledgement only succeeds for the exact reasons snapshot delivered.
 
 Unverified/known limit: if a Captain is already busy, `runner.message()` still stores the wake prompt only in process memory after appending the `user.message` event. A restart in that narrow state can lose the in-memory queued turn even though the wake row itself is durable. A durable thread inbox/runner redesign is out of this unit's scope and is escalated for a later runner-durability unit.
+
+## Review repair 2
+
+```text
+$ pnpm vitest run apps/server/src/events/store.test.ts apps/server/src/captain/scheduler/scheduler.test.ts apps/server/src/projects/projects-read.test.ts apps/server/src/captain/tools/captain-tools.test.ts
+Test Files  4 passed (4)
+Tests  12 passed (12)
+```
+
+The scanner cursor is now `events.pos`, not a timestamp. Positions are allocated inside the same transaction as the event insert while holding the single-row `event_order` lock, preventing a late-committing event from becoming visible behind an already advanced cursor.

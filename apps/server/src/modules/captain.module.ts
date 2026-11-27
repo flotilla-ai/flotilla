@@ -25,17 +25,17 @@ export default {
       // Events are durable. Restart recovery scans from the persisted high-water mark,
       // not merely from the few seconds before this process happened to start.
       const rows = (await pool.query(
-        `SELECT e.kind,e.payload,e.at,e.at::text AS at_raw,t.crew_of
+        `SELECT e.pos,e.kind,e.payload,e.at,t.crew_of
          FROM events e
          JOIN threads t ON t.id=e.thread_id
          LEFT JOIN captain_scheduler_state st ON st.captain_id=t.crew_of
-         WHERE t.crew_of IS NOT NULL AND e.at > COALESCE(st.last_event_at, 'epoch'::timestamptz)
-         ORDER BY e.at,e.seq
+         WHERE t.crew_of IS NOT NULL AND e.pos > COALESCE(st.last_event_pos, 0)
+         ORDER BY e.pos
          LIMIT 200`
       )).rows;
       for (const row of rows) {
         await scheduler.handleCrewEvent(row.crew_of, { kind: row.kind, payload: row.payload });
-        await pool.query('UPDATE captain_scheduler_state SET last_event_at=$2 WHERE captain_id=$1', [row.crew_of, row.at_raw]);
+        await pool.query('UPDATE captain_scheduler_state SET last_event_pos=$2,last_event_at=$3 WHERE captain_id=$1', [row.crew_of, row.pos, row.at]);
       }
       await scheduler.pollDue();
     };

@@ -73,6 +73,9 @@ export class EventStore {
       }
 
       const max = await client.query<{ max: number | null }>('SELECT max(seq) FROM events WHERE thread_id = $1', [threadId]);
+      await client.query('INSERT INTO event_order (id,next_pos) VALUES (true,1) ON CONFLICT (id) DO NOTHING');
+      const ordered = await client.query<{ start: string | number }>('UPDATE event_order SET next_pos=next_pos+$1::bigint WHERE id=true RETURNING next_pos-$1::bigint AS start', [events.length]);
+      let pos = Number(ordered.rows[0]?.start ?? 1);
       let seq = (max.rows[0]?.max ?? 0) + 1;
       const inserted: Event[] = [];
       for (const event of events) {
@@ -81,12 +84,13 @@ export class EventStore {
           source: event.source, trust: event.trust, payload: event.payload ?? null
         };
         const result = await client.query(
-          `INSERT INTO events (id, thread_id, seq, run_id, kind, source, trust, payload, request_id)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING ${eventColumns}`,
-          [row.id, threadId, seq, row.runId, row.kind, row.source, row.trust, row.payload, opts.requestId ?? null]
+          `INSERT INTO events (id, thread_id, seq, run_id, kind, source, trust, payload, request_id, pos)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING ${eventColumns}`,
+          [row.id, threadId, seq, row.runId, row.kind, row.source, row.trust, row.payload, opts.requestId ?? null, pos]
         );
         inserted.push(toEvent(result.rows[0]));
         seq += 1;
+        pos += 1;
       }
       if (opts.apply) await opts.apply({ query: client.query.bind(client) });
       for (const event of inserted) {

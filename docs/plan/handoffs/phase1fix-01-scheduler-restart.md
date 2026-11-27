@@ -9,6 +9,9 @@ DEPENDS ON: phase1-17-captain-scheduler, plan-p234
 SCOPE:
 - `apps/server/src/captain/scheduler/`
 - `apps/server/src/modules/captain.module.ts`
+- `apps/server/src/db/migrations/0003_event_ordering.sql`
+- `apps/server/src/events/store.ts`
+- `apps/server/src/captain/tools/service.ts`
 - `docs/plan/handoffs/phase1fix-01-scheduler-restart.md`
 - `docs/runlog/phase1fix-01.md`
 - `docs/plan/PROGRESS.md`
@@ -17,7 +20,7 @@ SCOPE:
 
 OUT OF SCOPE: Captain tool implementation, Docker/gate relay, UI, vendor adapters, broad runner redesign.
 
-SHAPES: use the existing `captain_wakes` and `captain_scheduler_state` tables. Event wakes are durable rows with `processed_at NULL` until delivered; heartbeat rows carry `idle_cycles`; wake delivery is at-least-once across a crash.
+SHAPES: use the existing `captain_wakes` and `captain_scheduler_state` tables. Crew-event scanning uses a globally ordered event position allocated while the event transaction holds the single-row `event_order` lock, so an event that commits late cannot appear behind the persisted scan cursor. Event wakes are durable rows with `processed_at NULL` until delivered; heartbeat rows carry `idle_cycles`; wake delivery is at-least-once across a crash.
 
 DONE SIGNAL:
 ```sh

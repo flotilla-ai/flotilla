@@ -41,7 +41,7 @@ describe('projects and read APIs', () => {
   it('returns seeded rows in order and hides other users ids', async () => {
     await pool.query("INSERT INTO projects (id,owner_id,name,repo,trust,budget) VALUES ('prj_a','usr_a','a','{}','untrusted','{}')");
     await pool.query("INSERT INTO threads (id,code,project_id,role,owner_id,title,status,engine,budget,spent) VALUES ('thr_1','c1','prj_a','thread','usr_a','one','idle','{}','{}','{}'),('thr_2','c2','prj_a','thread','usr_a','two','idle','{}','{}','{}'),('thr_b','cb','prj_a','thread','usr_b','other','idle','{}','{}','{}')");
-    await pool.query("INSERT INTO events (id,thread_id,seq,kind,source,trust,payload) VALUES ('evt_2','thr_1',2,'agent.message','adapter','trusted','{}'),('evt_1','thr_1',1,'agent.message','adapter','trusted','{}')");
+    await pool.query("INSERT INTO events (id,thread_id,seq,kind,source,trust,payload,pos) VALUES ('evt_2','thr_1',2,'agent.message','adapter','trusted','{}',-2),('evt_1','thr_1',1,'agent.message','adapter','trusted','{}',-1)");
     await pool.query("INSERT INTO approvals (id,thread_id,kind,question,options,blocking,state) VALUES ('apr_1','thr_1','decision','q','[]',true,'open')");
     const threads = await (await app.request('http://local/api/v1/threads')).json() as { id: string }[];
     expect(threads.map((x) => x.id)).toEqual(['thr_1', 'thr_2']);
