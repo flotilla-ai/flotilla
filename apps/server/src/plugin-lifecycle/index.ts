@@ -42,7 +42,7 @@ export class PluginLifecycleStore {
     const scope = input.scope === 'organization' ? 'organization' : 'user';
     if (scope === 'organization' && !(await this.admin(userId))) throw new ApiFailure('Forbidden', 'organization admin required');
     const projectId = input.projectId == null ? null : str(input.projectId, 'projectId', 128);
-    if (projectId && !(await this.q('SELECT 1 FROM projects WHERE id=$1', [projectId]))[0]) throw new ApiFailure('NotFound', 'project not found');
+    if (projectId && !(await this.q(`SELECT 1 FROM projects WHERE id=$1 AND (owner_id=$2 OR visibility='shared')`, [projectId, userId]))[0]) throw new ApiFailure('NotFound', 'project not found');
     const m = input.manifest ? manifest(input.manifest) : await fetchManifest({ repo: repo(input.repo), path: String(input.path ?? ''), ref: str(input.ref ?? 'main', 'ref', 128) }, this.fetchImpl);
     const pid = id('mpl'); const keys = secrets(input.keys); const cm = input.connectionMode === 'each-member' ? 'each-member' : 'shared';
     const vals = [pid, userId, scope, projectId, m.key, m.name, repo(input.repo), String(input.path ?? ''), str(input.ref ?? 'main', 'ref', 128), m.version, JSON.stringify(m), this.seal(pid, keys), this.kms.keyId, cm, input.privateThreadsOnly === true, input.autoUpdate === true];
@@ -69,15 +69,16 @@ export class PluginLifecycleStore {
   }
   async approveUpdate(userId: string, idv: string): Promise<PluginView> { const r = await this.mutableRow(userId, idv); if (!r.pending_spec) throw new ApiFailure('ValidationFailed', 'no pending update'); await this.apply(userId, idv, manifest(r.pending_spec), true); return this.view((await this.q('SELECT * FROM mcp_plugins WHERE id=$1', [idv]))[0]) }
   async rollback(userId: string, idv: string): Promise<PluginView> {
-    const r = await this.mutableRow(userId, idv); const revs = await this.q('SELECT * FROM mcp_plugin_revisions WHERE plugin_id=$1 ORDER BY created_at DESC,id DESC', [r.id]);
-    const prior = revs.find((x) => x.version !== r.version) ?? revs[1]; if (!prior) throw new ApiFailure('ValidationFailed', 'no earlier revision');
+    const r = await this.mutableRow(userId, idv); const revs = await this.q('SELECT * FROM mcp_plugin_revisions WHERE plugin_id=$1 ORDER BY created_at ASC,id ASC', [r.id]);
+    const active = revs.map((x) => x.version).lastIndexOf(r.version); if (active <= 0) throw new ApiFailure('ValidationFailed', 'no earlier revision');
+    const prior = revs[active - 1];
     await this.q(`UPDATE mcp_plugins SET version=$2,spec=$3,sealed=$4,key_id=$5,pending_spec=NULL,update_state='current',updated_at=now() WHERE id=$1`, [r.id, prior.version, JSON.stringify(prior.spec), prior.sealed, prior.key_id]);
     return this.view((await this.q('SELECT * FROM mcp_plugins WHERE id=$1', [r.id]))[0]);
   }
   async connect(userId: string, idv: string, serverKey: string, keysInput: unknown): Promise<{ connected: true }> {
     const r = await this.row(userId, idv); const spec = r.spec as PluginManifest; if (!spec.mcpServers.some((s) => s.key === serverKey)) throw new ApiFailure('ValidationFailed', 'unknown plugin server');
-    const keys = secrets(keysInput); const cid = id('mpc');
-    await this.q(`INSERT INTO mcp_plugin_connections (id,plugin_id,user_id,server_key,sealed,key_id) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (plugin_id,user_id,server_key) DO UPDATE SET sealed=$5,key_id=$6`, [cid, r.id, userId, serverKey, this.seal(cid, keys), this.kms.keyId]);
+    const keys = secrets(keysInput); const cid = id('mpc'); const aad = `mcp-plugin-connection:${r.id}:${userId}:${serverKey}`;
+    await this.q(`INSERT INTO mcp_plugin_connections (id,plugin_id,user_id,server_key,sealed,key_id) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (plugin_id,user_id,server_key) DO UPDATE SET sealed=$5,key_id=$6`, [cid, r.id, userId, serverKey, this.kms.seal(Buffer.from(JSON.stringify(keys)), aad), this.kms.keyId]);
     return { connected: true };
   }
   async autoSyncDue(): Promise<{ checked: number; needsYou: number }> {
