@@ -11,6 +11,7 @@ import { fakeAdapter } from '@flotilla/adapter-fake';
 import type { AdapterEvent, AgentAdapter, StartInput } from '@flotilla/core/types';
 import { migrate } from '../db/migrate.js';
 import { collectAndPush, seedWorkspace } from '../git/mirror.js';
+import { WakeRouter } from '../wakes/router.js';
 import { EventStore } from '../events/store.js';
 import { DockerMachineDriver } from '../machines/dockerDriver.js';
 import { onAfterRun, ThreadRunner } from '../runner/runner.js';
@@ -39,7 +40,7 @@ const adapters = new Map<string, AgentAdapter>([
 const engine = (adapter: string, extra: Record<string, unknown> = {}) => ({ adapter, model: null, effort: null, connectionId: null, ...extra });
 const prs: unknown[][] = [];
 
-let container = ''; let pool: pg.Pool; let runner: ThreadRunner; let store: SubagentStore; let api: Hono; let mirrors = ''; let uninstall = () => {};
+let container = ''; let pool: pg.Pool; let runner: ThreadRunner; let store: SubagentStore; let api: Hono; let mirrors = ''; let uninstall = () => {}; let unlisten = async () => {};
 const call = async (method: string, path: string, body?: unknown, user = 'usr_s') => { const r = await api.request(`/api/v1${path}`, { method, headers: { 'content-type': 'application/json', 'x-user': user }, body: body === undefined ? undefined : JSON.stringify(body) }); return { status: r.status, json: await r.json() as any }; };
 async function until<T>(fn: () => Promise<T>, ok: (v: T) => boolean): Promise<T> { let v = await fn(); for (let i = 0; i < 80 && !ok(v); i++) { await sleep(100); v = await fn(); } return v; }
 const state = (id: string) => until(() => store.get(id, 'usr_s').then((s) => s.state), () => true);
@@ -52,6 +53,7 @@ async function parent(adapter = 'plain', maxUsd: number | null = null, projectId
 }
 const draft = (over: Record<string, unknown> = {}) => ({ title: 'scan', prompt: 'list the TODOs', placement: 'fresh', engine: { adapter: 'plain' }, ...over });
 
+const code = async (id: string) => (await pool.query('SELECT code FROM threads WHERE id=$1', [id])).rows[0].code as string;
 beforeAll(async () => {
   container = (await exec('docker', ['run', '-d', '--rm', '-p', '127.0.0.1::5432', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', 'postgres:16'])).stdout.trim();
   const port = (await exec('docker', ['port', container, '5432/tcp'])).stdout.trim().split(':').pop(); const url = `postgres://postgres@127.0.0.1:${port}/postgres`;
@@ -59,14 +61,15 @@ beforeAll(async () => {
   await migrate(url); const events = new EventStore(url); pool = events.pool;
   runner = new ThreadRunner({ store: events, driver: driver as never, adapters, resolveEngine: async (_u, e) => { if (e.connectionId === 'con_other') throw new ApiFailure('NotFound', 'connection not found'); return { adapter: e.adapter as string, model: (e.model as string | null) ?? null, effort: e.effort ?? null, connectionId: (e.connectionId as string | null) ?? null }; } });
   mirrors = mkdtempSync(join(tmpdir(), 'flt-sub-'));
-  store = new SubagentStore({ runner, mirrorRoot: mirrors, github: () => ({ openOrFindPr: async (...a: unknown[]) => { prs.push(a); return { number: 7, html_url: 'https://github.com/acme/app/pull/7', head: { ref: String(a[1]), sha: 'x' }, base: { ref: String(a[2]) } }; } }) });
+  const wakes = new WakeRouter({ runner }); unlisten = await wakes.listen(url);
+  store = new SubagentStore({ runner, mirrorRoot: mirrors, wakes: () => wakes, github: () => ({ openOrFindPr: async (...a: unknown[]) => { prs.push(a); return { number: 7, html_url: 'https://github.com/acme/app/pull/7', head: { ref: String(a[1]), sha: 'x' }, base: { ref: String(a[2]) } }; } }) });
   uninstall = store.install();
   await pool.query(`INSERT INTO users (id,email,role) VALUES ('usr_s','s@x','admin'),('usr_o','o@x','member')`);
   await pool.query(`INSERT INTO projects (id,owner_id,name,repo,trust,budget) VALUES ('prj_s','usr_s','app','{"provider":"github","fullName":"/nonexistent/app","baseBranch":"main"}','untrusted','{}')`);
   api = new Hono(); api.use('*', async (c, next) => { c.set('userId' as never, c.req.header('x-user') as never); await next(); });
   api.onError((err, c) => (err instanceof ApiFailure ? apiError(c, err.kind, err.message) : apiError(c, 'Internal', String(err)))); api.route('/api/v1', createSubagentCoreRoute(() => store).app);
 }, 30_000);
-afterAll(async () => { uninstall(); releaseHold(); await runner.drain(); await pool.end(); if (container) await exec('docker', ['rm', '-f', container]).catch(() => undefined); });
+afterAll(async () => { uninstall(); releaseHold(); await runner.drain(); await unlisten(); await pool.end(); if (container) await exec('docker', ['rm', '-f', container]).catch(() => undefined); });
 
 describe('subagent core', () => {
   it('CAPY-052: child threads nest 3 levels, are addressed "Subagent 1.3"-style, and run their own conversation; level 4 is refused', async () => {
@@ -135,6 +138,15 @@ describe('subagent core', () => {
     expect(runs[0].state).toBe('failed'); expect(starts.some((i) => i.threadId === s.id)).toBe(false);
   }, 20_000);
 
+  it('CAPY-058: a subagent wake for a parent now owned by someone else is held for that owner', async () => {
+    const root = await parent(); const s = (await call('POST', `/threads/${root}/subagents`, draft())).json;
+    await pool.query(`UPDATE threads SET owner_id='usr_o', hold_incoming=true WHERE id=$1`, [root]);
+    await call('POST', `/subagents/${s.id}/start`); await settled(s.id, 'done');
+    const held = await until(async () => (await pool.query(`SELECT state FROM wake_inbox WHERE thread_id=$1`, [root])).rows, (r) => r.length > 0);
+    expect(held.map((r) => r.state)).toEqual(['held']);
+    expect((await pool.query(`SELECT count(*)::int n FROM thread_inbox WHERE thread_id=$1 AND text LIKE 'Subagent%'`, [root])).rows[0].n).toBe(0);
+  }, 20_000);
+
   it('CAPY-056: parallel subagents must claim disjoint paths; a stacked subagent branches from the previous sibling branch', async () => {
     process.env.FLOTILLA_ALLOW_LOCAL_GIT_REMOTES = '1'; onTestFinished(() => { delete process.env.FLOTILLA_ALLOW_LOCAL_GIT_REMOTES; });
     const work = join(mkdtempSync(join(tmpdir(), 'flt-stack-')), 'src');
@@ -189,7 +201,8 @@ describe('subagent core', () => {
     expect((await store.get(s.id, 'usr_s')).summary).toBe('step 1 of 3');
     expect((await call('GET', `/subagents/${s.id}/progress`)).json.text).toBe('step 1 of 3');
     const woke = await until(async () => inputs.filter((i) => i.threadId === root).map((i) => i.prompt), (p) => p.length > 1);
-    expect(woke[1]).toContain('Subagent 1 "scan" finished'); expect(woke[1]).toContain('step 1 of 3');
+    expect(woke[1]).toContain(`Subagent ${await code(s.id)} finished`); expect(woke[1]).toContain('step 1 of 3');
+    expect((await pool.query(`SELECT count(*)::int n FROM thread_inbox WHERE thread_id=$1 AND text LIKE '%finished%'`, [root])).rows[0].n).toBe(1);
 
     const bad = (await call('POST', `/threads/${root}/subagents`, draft({ engine: { adapter: 'broke' } }))).json;
     await call('POST', `/subagents/${bad.id}/start`); await settled(bad.id, 'failed');
@@ -199,7 +212,8 @@ describe('subagent core', () => {
     await call('POST', `/subagents/${blocked.id}/start`); await settled(blocked.id, 'waiting');
     expect((await store.get(blocked.id, 'usr_s')).question).toMatch(/Budget cap reached/);
     const asked = await until(async () => (await pool.query(`SELECT text FROM thread_inbox WHERE thread_id=$1 AND text LIKE '%is blocked%'`, [root])).rows, (r) => r.length > 0);
-    expect(asked[0].text).toContain(`Subagent 4 "scan" is blocked and asks: Budget cap reached`);
+    expect(asked.map((r) => r.text)).toEqual([expect.stringContaining(`Subagent ${await code(blocked.id)} is blocked: Budget cap reached`)]);
+    expect((await pool.query(`SELECT count(*)::int n FROM thread_inbox WHERE thread_id=$1 AND text LIKE '%failed.'`, [root])).rows[0].n).toBe(1);
   }, 30_000);
 
   it('CAPY-059: the parent reviews the diff, applies it as a patch, opens a PR from the subagent branch, or sends feedback', async () => {

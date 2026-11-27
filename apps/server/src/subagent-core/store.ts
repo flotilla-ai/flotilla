@@ -5,11 +5,13 @@ import { ApiFailure } from '../api-platform/types.js';
 import { GitHubClient } from '../github/client.js';
 import { ensureMirror, mirrorPath } from '../git/mirror.js';
 import { defaultRunner } from '../routes/threads.route.js';
+import { defaultWakeRouter } from '../routes/wakes.route.js';
+import type { WakeRouter } from '../wakes/router.js';
 import { onAfterRun, onPlacement, type RunPlacement, type ThreadRunner } from '../runner/runner.js';
 import { SUBAGENT_MAX_DEPTH, type Subagent, type SubagentDiff, type SubagentDraft, type SubagentProgress, type SubagentState } from './types.js';
 
 type Row = Record<string, any>;
-type Deps = { runner: ThreadRunner; mirrorRoot?: string; github?: () => Pick<GitHubClient, 'openOrFindPr'> | null };
+type Deps = { runner: ThreadRunner; mirrorRoot?: string; github?: () => Pick<GitHubClient, 'openOrFindPr'> | null; wakes?: () => Pick<WakeRouter, 'deliver'> };
 const exec = promisify(execFile);
 const STATE: Record<string, SubagentState> = { queued: 'working', working: 'working', paused: 'waiting', waiting: 'done', idle: 'idle', failed: 'failed', archived: 'done' };
 const norm = (p: string) => p.replace(/^\.\//, '').replace(/\/+$/, '');
@@ -145,21 +147,23 @@ export class SubagentStore {
     return { workspaceFrom: owner };
   }
 
-  /** A finished run wakes the parent with the summary; a budget pause surfaces the open question; failures are reported. */
+  /** Records the summary or open question. Wakes go through the WakeRouter (owner hold/approval rules); it already wakes non-Captain parents on completion and approvals. */
   async finished(threadId: string, runId: string, state: string): Promise<void> {
     const s = (await this.pool.query(`${SELECT} WHERE s.thread_id=$1`, [threadId])).rows[0] as Row | undefined;
     if (!s) return;
     const name = `Subagent ${s.address} "${s.title}"`;
+    const captain = (await this.pool.query('SELECT role FROM threads WHERE id=$1', [s.parent_id])).rows[0]?.role === 'captain';
+    const wake = (body: string) => (this.deps.wakes ?? defaultWakeRouter)().deliver(s.parent_id, 'agent', body, { userId: s.owner_id, threadId });
     if (state === 'completed') {
       const summary = ((await this.pool.query(`SELECT string_agg(payload->>'text', '' ORDER BY seq) t FROM events WHERE thread_id=$1 AND run_id=$2 AND kind='agent.delta'`, [threadId, runId])).rows[0].t ?? '').slice(-4000);
       await this.pool.query('UPDATE subagents SET summary=$2, question=NULL WHERE thread_id=$1', [threadId, summary]);
-      await this.deps.runner.message(s.parent_id, `${name} finished. Summary:\n${summary}`, 'queue');
+      if (captain) await wake(`${name} finished. Summary:\n${summary}`);
     } else if (state === 'paused_budget' || state === 'run_out') {
       const question = (await this.pool.query(`SELECT a.question FROM approvals a JOIN threads t ON t.id=a.thread_id WHERE a.thread_id=$1 AND a.state='open' ORDER BY (t.needs_you ? a.id) DESC LIMIT 1`, [threadId])).rows[0]?.question as string | undefined;
       if (!question) return;
       await this.pool.query('UPDATE subagents SET question=$2 WHERE thread_id=$1', [threadId, question]);
-      await this.deps.runner.message(s.parent_id, `${name} is blocked and asks: ${question}`, 'queue');
-    } else if (state === 'failed') await this.deps.runner.message(s.parent_id, `${name} failed.`, 'queue');
+      if (captain) await wake(`${name} is blocked and asks: ${question}`);
+    } else if (state === 'failed') await wake(`${name} failed.`);
   }
 
   private async engine(parent: Row, userId: string, want: SubagentDraft['engine']): Promise<Thread['engine']> {
