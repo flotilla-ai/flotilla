@@ -153,8 +153,11 @@ describe('usage, budgets and API models', () => {
     expect(card.options.map((o: any) => o.label)).toEqual(['Wait', 'Use Flotilla free models']);
     expect((await pool.query('SELECT engine FROM threads WHERE id=$1', [a.id])).rows[0].engine.adapter).toBe('claude-code');
     expect((await put('/api/v1/usage/settings', { runOutFree: 'never' })).body.runOutFree).toBe('never');
+    const before = (await pool.query('SELECT status FROM threads WHERE id=$1', [a.id])).rows[0].status;
     await runner.answerApproval(card.id, 'use', undefined, admin); // an offer made before the ban no longer moves the thread to free
     expect((await pool.query('SELECT engine FROM threads WHERE id=$1', [a.id])).rows[0].engine.adapter).toBe('claude-code');
+    expect((await pool.query('SELECT status FROM threads WHERE id=$1', [a.id])).rows[0].status).toBe(before); // not restarted on the exhausted connection
+    expect((await pool.query('SELECT count(*)::int n FROM runs WHERE thread_id=$1', [a.id])).rows[0].n).toBe(1);
     const b = (await call('/api/v1/threads', { method: 'POST', json: { title: 'sub2', prompt: 'go', engine: { adapter: 'claude-code' } } }, threadsApp)).body;
     const card2 = await until(async () => (await pool.query(`SELECT * FROM approvals WHERE thread_id=$1 AND kind='run-out' AND state='open'`, [b.id])).rows[0]);
     expect(card2.options.map((o: any) => o.label)).toEqual(['Wait']);

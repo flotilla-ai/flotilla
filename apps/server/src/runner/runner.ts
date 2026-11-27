@@ -22,7 +22,7 @@ const id = (p: string) => `${p}_${randomBytes(10).toString('base64url')}`;
 const budget = (maxUsd: number | null = null) => ({ maxUsd, maxTokens: null, maxWallSec: null, scope: 'thread' as const, onHit: 'pause-and-ask' as const, warnAt: 0.8 });
 /** Pre-run budget checks beyond the thread's own cap (e.g. monthly org/project windows); the first reason found pauses the run. */
 export const runGates: ((thread: Row) => Promise<{ why: string; shared: boolean } | null>)[] = [];
-export type RunnerDeps = { store: EventStore; driver: Driver; adapters: Map<string, AgentAdapter>; secrets?: Record<string,string>; projectFor?(row: Row): Row; vault?: Pick<SecretsStore, 'mutate' | 'prepare'>; resolveEngine?(userId: string, engine: Row): Promise<{ adapter: string; model: string | null; effort: unknown; connectionId: string | null; contextWindow?: number }>; runOut?: { onRunOut(threadId: string): Promise<{ switchedTo: string } | { approvalId: string }>; answer(approval: Row, optionId: string): Promise<void> } };
+export type RunnerDeps = { store: EventStore; driver: Driver; adapters: Map<string, AgentAdapter>; secrets?: Record<string,string>; projectFor?(row: Row): Row; vault?: Pick<SecretsStore, 'mutate' | 'prepare'>; resolveEngine?(userId: string, engine: Row): Promise<{ adapter: string; model: string | null; effort: unknown; connectionId: string | null; contextWindow?: number }>; runOut?: { onRunOut(threadId: string): Promise<{ switchedTo: string } | { approvalId: string }>; answer(approval: Row, optionId: string): Promise<boolean | void> } };
 type AfterRun=(input:{thread:Row;project:Row|null;runId:string;state:string;containerId:string;driver:Driver})=>Promise<void>;
 const afterRunHooks:AfterRun[]=[];
 export function onAfterRun(fn:AfterRun):()=>void{afterRunHooks.push(fn);return()=>{const i=afterRunHooks.indexOf(fn);if(i>=0)afterRunHooks.splice(i,1)}}
@@ -149,9 +149,11 @@ export class ThreadRunner {
     const approval = rows.rows[0]; if (!approval) return null;
     if (approval.kind === 'budget' && optionId === 'raise' && value && !(approval.detail as Row | null)?.shared) await this.pool.query(`UPDATE threads SET budget=jsonb_set(budget,'{maxUsd}',to_jsonb($2::int)),status='queued' WHERE id=$1`, [approval.thread_id, value]);
     if (approval.kind === 'budget' && optionId === 'stop') await this.stop(approval.thread_id);
-    if (approval.kind === 'run-out') { await this.deps.runOut?.answer(approval, optionId); if (optionId === 'use') await this.pool.query(`UPDATE threads SET status='queued' WHERE id=$1`, [approval.thread_id]); }
+    let resume = approval.kind === 'run-out' && optionId === 'use';
+    if (approval.kind === 'run-out' && (await this.deps.runOut?.answer(approval, optionId)) === false) resume = false;
+    if (resume) await this.pool.query(`UPDATE threads SET status='queued' WHERE id=$1`, [approval.thread_id]);
     await this.deps.store.appendEvents(approval.thread_id, [{ runId: null, kind: 'approval.resolved', source: 'kernel', trust: 'trusted', payload: { approvalId, optionId, value } }] as never);
-    if (approval.kind === 'run-out' && optionId === 'use') this.kick(approval.thread_id);
+    if (resume) this.kick(approval.thread_id);
     if (approval.gate === 'plan') {
       const owner = (await this.thread(approval.thread_id))!.owner_id as string;
       if (optionId === 'approve') { await this.pool.query(`UPDATE threads SET plan_mode=false,status='queued',needs_you='[]' WHERE id=$1`, [approval.thread_id]); await this.inbox.add({ threadId: approval.thread_id, ...(await this.approvedPlan(approval.thread_id)), mode: 'queue', by: null, ownerId: owner, priority: 1 }); }

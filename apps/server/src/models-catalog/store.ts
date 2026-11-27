@@ -322,15 +322,16 @@ export class ModelPolicyApi {
   }
 
   /** Answering `use` re-pins the thread to the offered connection (re-resolved, so a since-disabled connection fails). */
-  async answer(approval: PolicyRow, optionId: string): Promise<void> {
+  async answer(approval: PolicyRow, optionId: string): Promise<boolean> {
     await this.store.q(`UPDATE threads SET needs_you=needs_you - $2::text WHERE id=$1`, [approval.thread_id, approval.id]);
-    if (optionId !== 'use') return;
+    if (optionId !== 'use') return true;
     const opt = (approval.options as PolicyRow[]).find((o) => o.id === 'use');
     if (!opt) throw new ApiFailure('ValidationFailed', 'no connection to continue on');
-    if (opt.engine?.connectionId === 'free' && (await this.store.q(`SELECT run_out_free FROM usage_settings WHERE id='org'`).catch(() => []))[0]?.run_out_free === 'never') return;
+    if (opt.engine?.connectionId === 'free' && (await this.store.q(`SELECT run_out_free FROM usage_settings WHERE id='org'`).catch(() => []))[0]?.run_out_free === 'never') return false;
     const [t] = await this.store.q('SELECT owner_id FROM threads WHERE id=$1', [approval.thread_id]);
     const r = await this.store.resolve(t.owner_id, opt.engine);
     await this.store.q('UPDATE threads SET engine=$2 WHERE id=$1', [approval.thread_id, JSON.stringify({ adapter: r.adapter, model: r.model, effort: r.effort, connectionId: r.connectionId, ...(r.contextWindow ? { contextWindow: r.contextWindow } : {}) })]);
+    return true;
   }
 
   /** `/wait` and `/continue` typed into the thread answer its open run-out card. */
