@@ -1,11 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 2, wave 2 (core threads and runner).
-Current `flotilla/p1` head: `26f6713` (phase2-05 and repair-6 merged; merged into phase2-08).
+Current `flotilla/p1` head: `ea9ec15` (phase2-08 and phase2-09 merged; phase2-06 branched from it).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` on this branch: done 85, pending 501, needs-human-login 13, n-a 22, blocked 11 (phase2-05 adds 4 done rows and 10 blocked web-UI rows; phase2-08 adds 11 done rows; the remaining P2/P3/P4 rows are pending); phase 1 rows are done except live vendor/GitHub rows marked `needs-human-login`; n/a rows carry Appendix A's reason.
+Counted in `docs/plan/PARITY.md` on this branch: done 102, pending 484, needs-human-login 13, n-a 22, blocked 11 (phase2-06 adds 10 done rows; phase2-05 adds 4 done rows and 10 blocked web-UI rows; phase2-08 adds 11 done rows; the remaining P2/P3/P4 rows are pending); phase 1 rows are done except live vendor/GitHub rows marked `needs-human-login`; n/a rows carry Appendix A's reason.
 
 ## Unit table
 
@@ -26,12 +26,13 @@ Counted in `docs/plan/PARITY.md` on this branch: done 85, pending 501, needs-hum
 | repair-5-runner-supervise | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/33 | runner background continuations drained before pool end |
 | phase2-05-runner-queue | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/34 | durable inbox, steer/queue, versions, retry, /plan gate; 4 rows done, 10 web-UI rows blocked |
 | repair-6-git-hook-test | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/35 | isolate git hook test from external scans |
-| phase2-08-thread-api | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/37 | public REST verbs + status frames for 11 lifecycle rows; collaborator read access; see `docs/runlog/phase2-08.md` |
-| phase2-09-previews | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/32 | preview lifecycle and sharing; 7 rows done |
+| phase2-08-thread-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/37 | public REST verbs + status frames for 11 lifecycle rows; collaborator read access; see `docs/runlog/phase2-08.md` |
+| phase2-09-previews | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/32 | preview lifecycle and sharing; 7 rows done |
+| phase2-06-thread-composer | in review | 1 | PR pending | composer keymap/attachments, request cards + Undo, thread codes, sections/ticks/reading place, deep link, owner-approved feedback; 10 rows done; see `docs/runlog/phase2-06.md` |
 
 ## Next action
 
-1. Finish phase2-08 review (current `flotilla/p1` `26f6713` merged in).
+1. Finish phase2-06 review (branched from `flotilla/p1` `ea9ec15`).
 2. Continue wave 1 serialized foundations in order with phase2-04 after phase2-03.
 3. Wave 2 units may start after wave 1 dependencies merge.
 
