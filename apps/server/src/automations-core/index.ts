@@ -210,7 +210,7 @@ export class AutomationStore {
       const ok = await (this.deps.gate ?? (async () => false))({ runWhen: a.runWhen, prompt: a.prompt, payload, model: a.gateModel });
       if (!ok) return this.recordSkipped(a, type, key, payload, idem, 'run_when gate rejected');
     }
-    const threadId = await this.ensureThread(a);
+    let threadId: string | null = null;
     const rid = id('arun');
     const client = await this.pool.connect();
     let r: Row | undefined;
@@ -228,6 +228,7 @@ export class AutomationStore {
           return this.recordSkipped(a, type, key, payload, idem, 'max_runs_per_day reached');
         }
       }
+      threadId = await this.ensureThread(a);
       r = (await client.query('INSERT INTO automation_runs (id,automation_id,trigger_type,trigger_key,idempotency_key,status,thread_id,payload) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *', [rid, a.id, type, key, idem, 'queued', threadId, JSON.stringify(payload)])).rows[0] as Row | undefined;
       await client.query('COMMIT');
     } catch (e) {
@@ -242,7 +243,7 @@ export class AutomationStore {
     try {
       if (this.deps.startRun) {
         try {
-          const inboxItemId = await this.deps.startRun({ threadId, prompt: a.prompt, automationId: a.id, runId: rid });
+          const inboxItemId = await this.deps.startRun({ threadId: threadId!, prompt: a.prompt, automationId: a.id, runId: rid });
           await this.q('UPDATE automation_runs SET dispatched_at=now(),dispatch_attempts=dispatch_attempts+1 WHERE id=$1', [rid]); if (inboxItemId) await this.q(`UPDATE automation_runs SET output=output||jsonb_build_object('inboxItemId',$2::text) WHERE id=$1`, [rid, inboxItemId]);
         } catch (err) {
           await this.q('UPDATE automation_runs SET dispatch_attempts=dispatch_attempts+1 WHERE id=$1', [rid]).catch(() => undefined);
