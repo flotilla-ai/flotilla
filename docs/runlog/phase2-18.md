@@ -117,4 +117,48 @@ EXIT=0
 
 ## Review findings
 
-None yet.
+Devin Review on `855dadf` (6 findings):
+
+| Finding | Verdict | Fix |
+|---|---|---|
+| Parent takeover exposes private subagents | resolved `302e154` | `list` returns only subagents owned by the caller |
+| Shared subagents keep revoked workspace access | resolved `302e154` | `placement` refuses a host thread with another owner; the runner fails the start (`failStart`) |
+| Subagent drafts run before Start | resolved `5a417bb` | `start` is 409 while the parent subagent is an unstarted draft |
+| Stacked starts accept unpublished bases | resolved `b5b9ccd` | `start` requires the predecessor branch in the project mirror |
+| Stacked subagent changes never publish | resolved `9e321c6` | reproduced `protected-branch: refusing push to flotilla/FLO-PREV-web`; `seedWorkspace` deletes a `flotilla/*` base branch after switching |
+| Parent and child double-spend budget | escalated | grants are capped at creation, but the parent's own runs are not reduced by child grants; a cross-thread reservation changes runner budget accounting (follow-up unit) |
+
+Failing first for the publish fix (before the `mirror.ts` change):
+
+```text
+× subagent core > CAPY-056: a stacked subagent seeded from a sibling branch publishes only its own branch
+Error: protected-branch: refusing push to flotilla/FLO-PREV-web
+```
+
+After the review fixes (measured):
+
+```text
+$ make check
+packages/core test:  Test Files  6 passed (6)
+packages/core test:       Tests  15 passed (15)
+apps/gate test:  Test Files  2 passed (2)
+apps/gate test:       Tests  5 passed (5)
+apps/web test$ vitest run --passWithNoTests src
+packages/adapters/host test:  Test Files  1 passed (1)
+packages/adapters/host test:       Tests  3 passed (3)
+apps/web test:  Test Files  4 passed (4)
+apps/web test:       Tests  14 passed (14)
+packages/adapters/codex test:  Test Files  1 passed (1)
+packages/adapters/codex test:       Tests  5 passed (5)
+packages/adapters/claude-code test:  Test Files  1 passed (1)
+packages/adapters/claude-code test:       Tests  7 passed (7)
+packages/adapters/generic-cli test:  Test Files  1 passed (1)
+packages/adapters/generic-cli test:       Tests  4 passed (4)
+packages/adapters/fake test:  Test Files  1 passed (1)
+packages/adapters/fake test:       Tests  3 passed (3)
+apps/server test:  Test Files  23 passed (23)
+apps/server test:       Tests  143 passed | 1 skipped (144)
+EXIT=0
+```
+
+CI run 1 on `855dadf` failed in the pre-existing `runner-queue.test.ts` CAPY-465 (`holder.starts.at(-1)` still held the previous test's `a2`; no subagent hooks are installed in that file). It passed 5/5 locally and on rerun.
