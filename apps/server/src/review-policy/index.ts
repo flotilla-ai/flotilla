@@ -9,7 +9,22 @@ export interface ReviewEvidence { rules: string[]; memory: string[]; telemetry: 
 type Row = Record<string, any>;
 const id=(p:string)=>`${p}_${randomBytes(8).toString('hex')}`;
 const strings=(v:unknown,name:string)=>{if(!Array.isArray(v)||v.some(x=>typeof x!=='string'))throw new ApiFailure('ValidationFailed',`${name} must be a string array`);return v as string[]};
-export function pathMatch(pattern:string,path:string):boolean{const esc=pattern.split('**').map(part=>part.replace(/[.+^${}()|[\]\\]/g,'\\$&').replace(/\*/g,'[^/]*')).join('.*');return new RegExp(`^${esc}$`).test(path)}
+export function pathMatch(pattern:string,path:string):boolean{
+ const memo=new Map<string,boolean>();
+ const match=(pi:number,si:number):boolean=>{
+  const key=`${pi}:${si}`;const cached=memo.get(key);if(cached!==undefined)return cached;
+  let out=false;
+  if(pi===pattern.length)out=si===path.length;
+  else if(pattern.startsWith('**',pi)){
+   let next=pi+2;while(pattern.startsWith('**',next))next+=2;
+   out=match(next,si)||(si<path.length&&match(pi,si+1));
+  }else if(pattern[pi]==='*')out=match(pi+1,si)||(si<path.length&&path[si]!=='/'&&match(pi,si+1));
+  else out=si<path.length&&pattern[pi]===path[si]&&match(pi+1,si+1);
+  memo.set(key,out);return out;
+ };
+ return match(0,0);
+}
+
 export const generatedPath=(p:string)=>/(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|Cargo\.lock|poetry\.lock)$|\.(min\.js|pb\.go|generated\.ts)$/.test(p);
 export function filterReviewFiles(files:ReviewFile[],ignorePaths:string[]){const skipped=new Set<string>();const included=files.filter(f=>{const skip=f.deleted===true||f.generated===true||generatedPath(f.path)||ignorePaths.some(p=>pathMatch(p,f.path));if(skip)skipped.add(f.path);return!skip});return{included,skipped:[...skipped]}}
 export function agentsRuleFindings(agentsMd:string,files:ReviewFile[]){const rules=agentsMd.split('\n').map(x=>x.trim()).flatMap(x=>{const m=x.match(/^[-*]\s+(?:never|do not)\s+use\s+(.+?)(?:\s*[.;])?$/i);return m?[{rule:x,needle:m[1].trim()}]:[]});const out:{rule:string;file:string;body:string}[]=[];for(const f of files)for(const r of rules)if(r.needle&&f.diff.toLowerCase().includes(r.needle.toLowerCase()))out.push({rule:r.rule,file:f.path,body:`${f.path} appears to violate AGENTS.md: ${r.rule}`});return out}
