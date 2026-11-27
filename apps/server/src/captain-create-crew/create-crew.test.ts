@@ -36,7 +36,8 @@ it('CAPY-068/073/074/075/088/090: promote preserves the thread and crew membersh
   await thread('thr_captain2', { role: 'captain' }); expect((await call('POST', '/thr_cap/crew/thr_captain2')).status).toBe(409);
   expect((await call('POST', '/thr_cap/crew/thr_crew', undefined, 'usr_o')).status).toBe(404);
   expect((await call('POST', '/thr_cap/crew/thr_crew/archive')).status).toBe(200);
-  expect((await pool.query(`SELECT status FROM threads WHERE id='thr_crew'`)).rows[0].status).toBe('archived');
+  expect((await pool.query(`SELECT status,archived_at,archived_from FROM threads WHERE id='thr_crew'`)).rows[0]).toMatchObject({ status: 'archived', archived_from: 'idle' });
+  expect((await pool.query(`SELECT archived_at FROM threads WHERE id='thr_crew'`)).rows[0].archived_at).toBeTruthy();
   expect((await call('DELETE', '/thr_cap/crew/thr_crew')).status).toBe(204);
   expect((await pool.query(`SELECT crew_of FROM threads WHERE id='thr_crew'`)).rows[0].crew_of).toBeNull();
 });

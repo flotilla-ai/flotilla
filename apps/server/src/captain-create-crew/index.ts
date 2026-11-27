@@ -42,6 +42,6 @@ export async function addCrew(pool: pg.Pool, userId: string, captainId: string, 
 }
 
 export async function archiveCrew(pool: pg.Pool, userId: string, captainId: string, threadId: string): Promise<void> {
-  const r = await pool.query(`UPDATE threads SET status='archived',updated_at=now() WHERE id=$1 AND crew_of=$2 AND status IN ('idle','failed','waiting') AND EXISTS (SELECT 1 FROM threads c WHERE c.id=$2 AND c.owner_id=$3)`, [threadId, captainId, userId]);
+  const r = await pool.query(`UPDATE threads SET archived_from=status,status='archived',archived_at=now(),updated_at=now() WHERE id=$1 AND crew_of=$2 AND status IN ('idle','failed','waiting') AND EXISTS (SELECT 1 FROM threads c WHERE c.id=$2 AND c.owner_id=$3)`, [threadId, captainId, userId]);
   if (!r.rowCount) throw new ApiFailure('Conflict', 'only a finished crew thread can be archived by its Captain');
 }
