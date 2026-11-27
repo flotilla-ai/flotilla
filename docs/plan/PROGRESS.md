@@ -1,11 +1,11 @@
 # Flotilla progress
 
-Current phase: phase 2, wave 1 (serialized foundations).
-Current `flotilla/p1` head at this branch start: `914854c` (phase2-03 merged).
+Current phase: phase 2, wave 1 (serialized foundations) and wave 2.
+Current `flotilla/p1` head: `26f6713` (phase2-03, phase2-05 and phase2-07 merged; merged into phase2-04).
 
 ## Row counts
 
-Initialized in `docs/plan/PARITY.md`: P2/P3/P4 rows are pending; phase 1 rows are done except live vendor/GitHub rows marked `needs-human-login`; n/a rows carry Appendix A's reason.
+Counted in `docs/plan/PARITY.md` on this branch: done 74, pending 512, needs-human-login 13, n-a 22, blocked 11 (phase2-05 adds 4 done rows and 10 blocked web-UI rows; the remaining P2/P3/P4 rows are pending); phase 1 rows are done except live vendor/GitHub rows marked `needs-human-login`; n/a rows carry Appendix A's reason.
 
 ## Unit table
 
@@ -22,14 +22,15 @@ Initialized in `docs/plan/PARITY.md`: P2/P3/P4 rows are pending; phase 1 rows ar
 | phase2-02-secrets | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/28 | secrets vault + env API; 12 rows done |
 | repair-4-secrets-hardening | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/29 | persist vault key; keyed idempotency fingerprints |
 | phase2-03-models-catalog | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/30 | model catalog + connections; 2 rows done, 5 needs-human-login, 1 blocked (CAPY-332 web picker) |
-| repair-5 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/33 | runner continuation supervision |
-| phase2-07-thread-lifecycle | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/31 | thread lifecycle and collaboration; see `docs/runlog/phase2-07.md` |
+| phase2-07-thread-lifecycle | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/31 | thread lifecycle and collaboration; 11 rows done; see `docs/runlog/phase2-07.md` |
+| repair-5-runner-supervise | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/33 | runner background continuations drained before pool end |
 | repair-6 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/35 | git hook test isolated from external scans |
-| phase2-04-model-policy-api | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/36 | model policy + model API; 2 rows done (335, 336), 3 needs-human-login (333, 337, 484), 2 blocked (338 no title/summary generator, 485 no web connections editor) |
+| phase2-05-runner-queue | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/34 | durable inbox, steer/queue, versions, retry, /plan gate; 4 rows done, 10 web-UI rows blocked |
+| phase2-04-model-policy-api | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/36 | model policy + model API; 2 rows done (335, 336), 3 needs-human-login (333, 337, 484), 2 blocked (338 no model-backed title/summary generator, 485 no web connections editor) |
 
 ## Next action
 
-1. Review and merge phase2-04-model-policy-api (branched from `flotilla/p1` `914854c`, merged with `e07a117`).
+1. Review and merge phase2-04-model-policy-api (branched from `flotilla/p1` `914854c`, merged with `26f6713`).
 2. Wave 1 serialized foundations are complete after phase2-04 merges.
 3. Wave 2 units may start after wave 1 dependencies merge.
 
@@ -43,4 +44,4 @@ None.
 
 ## Unverified items
 
-See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. phase2-01 through phase2-04 and phase2-07 unverified items are listed in `docs/runlog/phase2-0{1,2,3,4,7}.md`; phase2-04 live commands (`claude auth login`, `codex login`, GPT-6 context window, Base URL gateways) are in `docs/runlog/phase2-04.md`.
+See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. Unverified items for phase2-01 through phase2-05 and phase2-07 are listed in `docs/runlog/phase2-0{1,2,3,4,5,7}.md` (phase2-05 web UI display is not built); phase2-04 live commands (`claude auth login`, `codex login`, GPT-6 context window, Base URL gateways) are in `docs/runlog/phase2-04.md`.

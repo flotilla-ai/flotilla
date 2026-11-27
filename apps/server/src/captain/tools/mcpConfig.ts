@@ -6,7 +6,7 @@ function header(name: string, size: number): Buffer {
   h.write(sum.toString(8).padStart(6, '0') + '\0 ', 148);
   return h;
 }
-export function tarFile(name: string, content: string): Buffer {
+export function tarFile(name: string, content: string | Buffer): Buffer {
   const body = Buffer.from(content); const pad = Buffer.alloc((512 - body.length % 512) % 512);
   return Buffer.concat([header(name, body.length), body, pad, Buffer.alloc(1024)]);
 }
