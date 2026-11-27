@@ -1,7 +1,7 @@
 # Flotilla progress
 
 Current phase: phase 2, wave 2 (core threads and runner) in parallel with later waves.
-Current `flotilla/p1` head: `4c8a0ed` (phase2-04 and phase2-09 merged; merged into phase2-29).
+Current `flotilla/p1` head: `0662ec8` (phase2-06, phase2-10, repair-7, repair-8 and repair-9 merged; merged into phase2-29).
 
 ## Row counts
 
@@ -29,11 +29,13 @@ Counted in `docs/plan/PARITY.md` on this branch: done 99, pending 481, needs-hum
 | phase2-08-thread-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/37 | public REST verbs + status frames for 11 lifecycle rows; collaborator read access; see `docs/runlog/phase2-08.md` |
 | phase2-09-previews | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/32 | preview lifecycle and sharing; 7 rows done |
 | phase2-04-model-policy-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/36 | model policy + model API; 2 rows done (335, 336), 3 needs-human-login (333, 337, 484), 2 blocked (338 no model-backed title/summary generator, 485 no web connections editor) |
-| phase2-29-projects | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/42 | repoless/lazy/multi-repo projects, descriptions, codes, sources, private; 5 rows done, CAPY-181 needs-human-login; see `docs/runlog/phase2-29.md` |
+| phase2-10-environments | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/39 | environments model/store/executor seams; 2 rows done, 7 blocked on phase2-11/phase2-12 wiring; see `docs/runlog/phase2-10.md` |
+| phase2-06-thread-composer | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/40 | composer keymap/attachments, request cards + Undo, thread codes, sections/ticks/reading place, deep link, owner-approved feedback; 10 rows done; see `docs/runlog/phase2-06.md` |
+| phase2-29-projects | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/42 | repoless/lazy/multi-repo projects, descriptions, codes, sources, private; see `docs/runlog/phase2-29.md` |
 
 ## Next action
 
-1. Finish phase2-29 review (current `flotilla/p1` `4c8a0ed` merged in).
+1. Finish phase2-29 review (current `flotilla/p1` `0662ec8` merged in).
 2. Wave 1 serialized foundations are complete.
 3. Wave 2 units may start after wave 1 dependencies merge.
 
@@ -47,4 +49,4 @@ None.
 
 ## Unverified items
 
-See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. Unverified items for phase2-01 through phase2-05 and phase2-07 through phase2-09 and phase2-29 are listed in `docs/runlog/phase2-0{1,2,3,4,5,7,8,9}.md` and `docs/runlog/phase2-29.md` (phase2-05 web UI display is not built); phase2-04 live commands (`claude auth login`, `codex login`, GPT-6 context window, Base URL gateways) are in `docs/runlog/phase2-04.md`.
+See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. Unverified items for phase2-01 through phase2-05 and phase2-07 through phase2-10 are listed in `docs/runlog/phase2-0{1,2,3,4,5,7,8,9}.md` and `docs/runlog/phase2-10.md` (phase2-05 web UI display is not built); phase2-04 live commands (`claude auth login`, `codex login`, GPT-6 context window, Base URL gateways) are in `docs/runlog/phase2-04.md`. Unverified items for phase2-29 are in `docs/runlog/phase2-29.md`.
