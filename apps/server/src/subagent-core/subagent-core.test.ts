@@ -1,15 +1,16 @@
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import pg from 'pg';
 import Docker from 'dockerode';
 import { Hono } from 'hono';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, onTestFinished } from 'vitest';
 import { fakeAdapter } from '@flotilla/adapter-fake';
 import type { AdapterEvent, AgentAdapter, StartInput } from '@flotilla/core/types';
 import { migrate } from '../db/migrate.js';
+import { collectAndPush, seedWorkspace } from '../git/mirror.js';
 import { EventStore } from '../events/store.js';
 import { DockerMachineDriver } from '../machines/dockerDriver.js';
 import { onAfterRun, ThreadRunner } from '../runner/runner.js';
@@ -152,6 +153,24 @@ describe('subagent core', () => {
     expect((await call('POST', `/subagents/${stacked.id}/start`)).json.baseBranch).toBe('flotilla/FLO-PREV-web');
     await until(async () => bases.length, Boolean); off();
     expect(bases).toEqual(['flotilla/FLO-PREV-web']); expect(one.mode).toBe('parallel');
+  }, 20_000);
+
+  it('CAPY-056: a stacked subagent seeded from a sibling branch publishes only its own branch', async () => {
+    process.env.FLOTILLA_ALLOW_LOCAL_GIT_REMOTES = '1'; onTestFinished(() => { delete process.env.FLOTILLA_ALLOW_LOCAL_GIT_REMOTES; });
+    const base = mkdtempSync(join(tmpdir(), 'flt-stack-push-')); const src = join(base, 'src'); const remote = join(base, 'remote.git'); const box = join(base, 'box');
+    await exec('mkdir', ['-p', src, join(box, 'tmp')]);
+    await exec('sh', ['-c', 'git init -q -b main && git -c user.email=t@x -c user.name=t commit -q --allow-empty -m base && git branch flotilla/FLO-PREV-web'], { cwd: src });
+    await exec('git', ['clone', '-q', '--bare', src, remote]);
+    const at = (p: string) => p.replace(/^\/tmp/, join(box, 'tmp')).replace(/^\/workspace/, box);
+    const machine = { copyIn: async (_c: string, dir: string, tar: Buffer) => { const x = execFile('tar', ['-xf', '-', '-C', at(dir)]); x.stdin!.end(tar); await new Promise((r) => x.once('exit', r)); },
+      copyOut: async (_c: string, path: string) => (await exec('tar', ['-C', dirname(at(path)), '-cf', '-', basename(path)], { encoding: 'buffer' } as never)).stdout as unknown as Buffer,
+      transport: () => ({ spawn: (argv: string[], o: { cwd: string }) => { const c = spawn(argv[0], argv.slice(1).map(at), { cwd: at(o.cwd) }); return { stdout: c.stdout, stderr: c.stderr, exit: new Promise((r) => c.once('exit', (code) => r({ code }))) }; } }) };
+    const project = { id: 'prj_push', repo: { provider: 'github' as const, fullName: remote, baseBranch: 'flotilla/FLO-PREV-web' }, trust: 'untrusted' as const };
+    const thread = { id: 'thr_next', code: 'FLO-NEXT', title: 'api', branch: null, containerId: 'c' };
+    const { branch } = await seedWorkspace(thread as never, project as never, machine as never, join(base, 'mirrors'));
+    await exec('git', ['-c', 'user.email=t@x', '-c', 'user.name=t', 'commit', '-q', '--allow-empty', '-m', 'next'], { cwd: join(box, 'repo') });
+    expect((await collectAndPush(thread as never, project as never, machine as never, join(base, 'mirrors'))).pushedSha).toBeTruthy();
+    expect((await exec('git', ['--git-dir', remote, 'branch', '--list', branch])).stdout).toContain(branch);
   }, 20_000);
 
   it('CAPY-057/058: lifecycle draft→working→done wakes the parent with the summary; progress reads on demand; failed, idle and waiting', async () => {
