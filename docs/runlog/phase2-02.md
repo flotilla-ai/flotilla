@@ -82,3 +82,6 @@ GitHub CI `check` on b6926e2: passed.
 
 ## Parent review fix (3eae32f)
 Secrets copyIn failure (or a driver without copyIn) is no longer swallowed: the run is marked failed, the budget hold released, the queue cleared, and the machine removed before the agent starts. Focused: `npx vitest run src/secrets src/runner` -> Tests 13 passed (13).
+
+## Review round 2 (Devin Review on 79a8a0b)
+Fixed in ddaa646: secrets are decrypted after the spending-cap check, so a thread at its cap pauses for budget approval even when the vault is unreadable. Vault and secrets-copy start failures now go through `failStart`, which marks the run failed, releases the hold, clears the queue, and emits `run.ended {state:'failed'}`. Focused: `npx vitest run src/secrets src/runner` -> Tests 14 passed (14).
