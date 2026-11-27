@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { migrate } from '../db/migrate.js';
 
 const exec = promisify(execFile);
+const canonical = (v: unknown): string => Array.isArray(v) ? `[${v.map(canonical).join(',')}]` : v && typeof v === 'object' ? `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canonical((v as Record<string, unknown>)[k])}`).join(',')}}` : JSON.stringify(v ?? null);
 let container = ''; let url = ''; let pool: pg.Pool; let app: Hono;
 let cookie = ''; let csrf = ''; let humanId = '';
 let platform: typeof import('./store.js');
@@ -91,6 +92,12 @@ describe('api platform', () => {
     expect(second.headers.get('idempotent-replayed')).toBe('true');
     expect((await second.json() as { id: string }).id).toBe((await first.json() as { id: string }).id);
     expect((await pool.query(`SELECT count(*)::int n FROM projects WHERE name='idem'`)).rows[0].n).toBe(1);
+    const stored = (await pool.query(`SELECT fingerprint FROM api_idempotency WHERE request_id='req-idem-1'`)).rows[0];
+    expect(stored.fingerprint).toMatch(/^[0-9a-f]{64}$/);
+    expect(stored.fingerprint).not.toBe(createHash('sha256').update(canonical(body)).digest('hex'));
+    const { idempotencyFingerprint } = await import('./http.js');
+    expect(idempotencyFingerprint(humanId, body)).toBe(stored.fingerprint);
+    expect(idempotencyFingerprint('usr_other', body)).not.toBe(stored.fingerprint);
     const reordered = await call('/api/v1/projects', { method: 'POST', bearer: token, json: { requestId: body.requestId, repo: { name: 'r', owner: 'o' }, name: body.name } });
     expect(reordered.headers.get('idempotent-replayed')).toBe('true');
     const changed = await call('/api/v1/projects', { method: 'POST', bearer: token, json: { ...body, name: 'idem-other' } });
@@ -99,6 +106,12 @@ describe('api platform', () => {
     const reused = await call('/api/v1/files', { method: 'POST', bearer: token, json: { name: 'a', contentType: 'text/plain', size: 1, requestId: 'req-idem-1' } });
     expect(reused.status).toBe(409);
     expect(await reused.json()).toMatchObject({ code: 'flotilla/Conflict' });
+    const legacyBody = { name: 'legacy', repo: { owner: 'o', name: 'r' }, requestId: 'legacy-replay' };
+    await pool.query('INSERT INTO api_idempotency (principal_id,request_id,method,path,fingerprint,status,body,content_type) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)', [humanId, 'legacy-replay', 'POST', '/api/v1/projects', createHash('sha256').update(canonical(legacyBody)).digest('hex'), 201, '{"id":"legacy"}', 'application/json']);
+    const legacy = await call('/api/v1/projects', { method: 'POST', bearer: token, json: legacyBody });
+    expect(legacy.status).toBe(201);
+    expect(legacy.headers.get('idempotent-replayed')).toBe('true');
+    expect(await legacy.json()).toEqual({ id: 'legacy' });
   });
 
   it('CAPY-456: cursor-paginates unbounded lists as {items, cursor}; bounded lists return {items}', async () => {

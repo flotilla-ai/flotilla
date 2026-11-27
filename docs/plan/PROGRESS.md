@@ -1,7 +1,7 @@
 # Flotilla progress
 
 Current phase: phase 2, wave 1 (serialized foundations).
-Current `flotilla/p1` head at this branch start: `daad0c8f1b76dd3424552802b69d837813658662`.
+Current `flotilla/p1` head at this branch start: `366c7bb46bf783fdb685c0e7e110d650eeb04df3`.
 
 ## Row counts
 
@@ -20,12 +20,13 @@ Initialized in `docs/plan/PARITY.md`: P2/P3/P4 rows are pending; phase 1 rows ar
 | phase2-01-api-platform | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/25 | API platform foundation; 10 rows done |
 | repair-2-runner-authz | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/26 | runner ownership/idempotency security repair |
 | phase2-02-secrets | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/28 | secrets vault + env API; 12 rows done |
+| repair-4-secrets-hardening | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/29 | persist vault key; keyed idempotency fingerprints |
 | phase2-03-models-catalog | in review | 1 | PR_URL | model catalog + connections; 3 rows done, 5 needs-human-login |
 
 ## Next action
 
-1. Review and merge phase2-03-models-catalog (branched from `flotilla/p1` head `366c7bb`).
-2. Continue wave 1 serialized foundations in order.
+1. Review and merge phase2-03-models-catalog (branched from `flotilla/p1` `366c7bb`, merged with `8ada8c0`).
+2. Continue wave 1 serialized foundations in order with phase2-04 after phase2-03.
 3. Wave 2 units may start after wave 1 dependencies merge.
 
 ## Phase 1 summary (preserved)
