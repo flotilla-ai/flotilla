@@ -43,7 +43,7 @@ export function nextStep(l: LeaseView, cap: MachineCap, now: number, held: boole
 }
 
 type Row = Record<string, any>;
-export type MachineDriver = { transport(id: string): ProcessTransport; stop(id: string): Promise<void>; remove?(id: string): Promise<void>; deleteWorkspace?(threadId: string): Promise<void>; findContainer?(threadId: string): Promise<string | null> };
+export type MachineDriver = { transport(id: string): ProcessTransport; stop(id: string): Promise<void>; remove?(id: string): Promise<void>; deleteWorkspace?(threadId: string): Promise<void>; findContainer?(threadId: string): Promise<string | null>; removeThreadNetwork?(threadId: string): Promise<void> };
 type Hooks = { driver?: MachineDriver; emit?(threadId: string, payload: Record<string, unknown>): Promise<void>; beforeDelete?(threadId: string): Promise<void> };
 const ms = (d: Date | null) => (d ? d.getTime() : null);
 const view = (r: Row): LeaseView => ({ state: r.state, busy: r.holds > 0, idleSince: ms(r.idle_since), keepAwakeUntil: ms(r.keep_awake_until), sleptAt: ms(r.slept_at), warnedAt: ms(r.warned_at) });
@@ -182,6 +182,34 @@ export class MachineCore {
     await this.q('UPDATE machine_leases SET keep_awake_until=$2 WHERE thread_id=$1 AND state=\'awake\'', [threadId, on ? this.at(this.now() + this.cap.keepAwakeMs) : null]);
     return this.state(threadId);
   }
+  /** Captures machine state before a thread row is deleted; the returned cleanup runs only after the delete commits. */
+  async prepareDestroy(threadId: string): Promise<() => Promise<void>> {
+    const [r] = await this.q('SELECT * FROM machine_leases WHERE thread_id=$1', [threadId]);
+    const strayContainer = r ? null : await this.hooks.driver?.findContainer?.(threadId).catch(() => null) ?? null;
+    return async () => {
+      let ok = true;
+      if (r) ok = await this.dispose(r);
+      else if (strayContainer) await (this.hooks.driver?.remove?.(strayContainer) ?? this.hooks.driver?.stop(strayContainer))?.catch(() => { ok = false; });
+      const env = this.envs.get(threadId); if (env) { this.envs.delete(threadId); await env.ex.stop().catch(() => { ok = false; }); env.off(); }
+      await this.q('DELETE FROM machine_leases WHERE thread_id=$1', [threadId]);
+      await this.hooks.driver?.removeThreadNetwork?.(threadId).catch(() => { ok = false; });
+      await this.hooks.driver?.deleteWorkspace?.(threadId).catch(() => { ok = false; });
+      if (ok) await this.q('DELETE FROM machine_cleanups WHERE thread_id=$1', [threadId]);
+    };
+  }
+  /** Reconciles deletion cleanup that was committed but interrupted before Docker/workspace disposal finished. */
+  async recoverCleanups(): Promise<void> {
+    for (const r of await this.q('SELECT * FROM machine_cleanups ORDER BY created_at')) {
+      const containerId = r.container_id ?? await this.hooks.driver?.findContainer?.(r.thread_id).catch(() => null) ?? null;
+      let ok = true;
+      if (containerId) await (this.hooks.driver?.remove?.(containerId) ?? this.hooks.driver?.stop(containerId))?.catch(() => { ok = false; });
+      await this.hooks.driver?.removeThreadNetwork?.(r.thread_id).catch(() => { ok = false; });
+      await this.hooks.driver?.deleteWorkspace?.(r.thread_id).catch(() => { ok = false; });
+      if (ok) await this.q('DELETE FROM machine_cleanups WHERE thread_id=$1', [r.thread_id]);
+    }
+  }
+  /** User-initiated thread deletion: dispose any live container immediately instead of letting the FK cascade orphan it. */
+  async destroyThread(threadId: string): Promise<void> { await (await this.prepareDestroy(threadId))(); }
 
   async tick(): Promise<void> {
     const now = this.now();
@@ -195,11 +223,13 @@ export class MachineCore {
       } else if (step === 'delete') await this.delete(r);
     }
   }
-  private async dispose(r: Row): Promise<void> {
+  private async dispose(r: Row): Promise<boolean> {
+    let ok = true;
     const env = this.envs.get(r.thread_id);
-    if (env && env.containerId === r.container_id) { this.envs.delete(r.thread_id); await env.ex.stop().catch(() => undefined); env.off(); }
+    if (env && env.containerId === r.container_id) { this.envs.delete(r.thread_id); await env.ex.stop().catch(() => { ok = false; }); env.off(); }
     const d = this.hooks.driver;
-    if (d && r.container_id) await (d.remove ? d.remove(r.container_id) : d.stop(r.container_id)).catch(() => undefined);
+    if (d && r.container_id) await (d.remove ? d.remove(r.container_id) : d.stop(r.container_id)).catch(() => { ok = false; });
+    return ok;
   }
   /** Claims the transition first, so a machine re-held (or slept by another sweep) since `r` was read is left alone. */
   private async sleep(r: Row, at: number): Promise<boolean> {

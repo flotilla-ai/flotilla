@@ -70,15 +70,15 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-064 | Subagents & forks | P2 | blocked | phase2-19 |  | Fork/summary-fork requires adapter session copy for full forks plus fresh-machine workspace copy; summary-fork can use any adapter but still needs the fork lifecycle. Blocked: no fork API/workspace clone primitive yet. |
 | CAPY-065 | Subagents & forks | P2 | blocked | phase2-19 |  | Passage fork/side-chat depends on the blocked fork/side-chat primitives plus composer passage selection UI; no such selection/fork workflow exists yet. |
 | CAPY-066 | Captains | P1 | done | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-067 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-068 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-069 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-070 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-067 | Captains | P2 | blocked | phase2-20 |  | New-Captain backend exists, but the required dialog with name/face/project/machine/model/access is not implemented in the web UI; blocked on that UI slice. |
+| CAPY-068 | Captains | P2 | done | phase2-20 |  | `POST /captains/promote` promotes the same thread row to Captain, preserving history, PRs, machine id, engine/model and member references by identity; regression in `create-crew.test.ts`. |
+| CAPY-069 | Captains | P2 | blocked | phase2-20 |  | Flotilla has no folder entity/folder removal workflow, so folder promotion cannot currently move folder threads into a crew. |
+| CAPY-070 | Captains | P2 | blocked | phase2-20 |  | Natural-language “Make a Captain…” creation through an existing thread is not implemented; only direct Captain create/promote APIs exist. |
 | CAPY-071 | Captains | P1 | done | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-072 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-073 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-074 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-075 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-072 | Captains | P2 | blocked | phase2-20 |  | Crew archive/release API exists, but Captain archive does not yet put crew machines to sleep and delete/demote lifecycle is incomplete. |
+| CAPY-073 | Captains | P2 | done | phase2-20 |  | Existing threads can be added to a crew with the owner-validated move action `POST /captains/:id/crew/:threadId`; regression in `create-crew.test.ts`. |
+| CAPY-074 | Captains | P2 | done | phase2-20 |  | Crew rules enforce same owner/project, root non-Captain threads only, not itself, and one crew at a time with enumerated refusal reasons; regression in `create-crew.test.ts`. |
+| CAPY-075 | Captains | P2 | done | phase2-20 |  | Finished crew threads can be archived by their Captain and any crew thread can be released with the existing delete action; regression in `create-crew.test.ts`. |
 | CAPY-076 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-077 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-078 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
@@ -91,9 +91,9 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-085 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-086 | Captains | P1 | done | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Restart-safe wake persistence/coalescing proved by real Postgres fake-clock test. |
 | CAPY-087 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-088 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-088 | Captains | P2 | done | phase2-20 |  | Promotion preserves `owner_id` and crew membership requires matching owner, so Captain actions run as the owner identity; regression in `create-crew.test.ts`. |
 | CAPY-089 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-090 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-090 | Captains | P2 | done | phase2-20 |  | Crew admission requires exactly the same `project_id` as the Captain, including null/non-null separation; regression in `create-crew.test.ts`. |
 | CAPY-091 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-092 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-093 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |

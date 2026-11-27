@@ -196,9 +196,9 @@ export class ThreadRunner {
   private async thread(threadId: string): Promise<Row | null> { return (await this.pool.query('SELECT * FROM threads WHERE id=$1', [threadId])).rows[0] ?? null; }
   private async project(thread: Row): Promise<Row | null> { return thread.project_id ? (await this.pool.query('SELECT * FROM projects WHERE id=$1', [thread.project_id])).rows[0] ?? null : null; }
 
-  private pooled(thread: Row, place: RunPlacement = {}): boolean { return !!this.deps.machines && thread.role !== 'captain' && !place.workspaceFrom; }
+  private pooled(thread: Row, place: RunPlacement = {}): boolean { return !!this.deps.machines && !place.workspaceFrom; }
   private async free(containerId: string): Promise<void> { await ((this.deps.driver as Driver & {remove?(id:string):Promise<void>}).remove?.(containerId) ?? this.deps.driver.stop(containerId)); }
-  /** Starts the run's container: per-run for captains / without machine core, else the thread's pool machine (held until release). */
+  /** Starts the run's container: per-run without machine core, else the thread's pool machine (held until release). */
   private async machineFor(thread: Row, project: Row | null, env: Record<string, string>, place: RunPlacement = {}): Promise<{ containerId: string; repairPrompt?: string | null }> {
     const threadId = thread.id as string;
     let image = process.env.FLOTILLA_THREAD_IMAGE ?? 'flotilla-thread:dev'; let repairPrompt: string | null = null;
@@ -314,11 +314,14 @@ export class ThreadRunner {
       if (state === 'run_out') { if (item) await this.inbox.add({ threadId, text: item.text, mode: 'queue', plan: item.plan, by: null, ownerId: thread.owner_id as string, attachments: item.attachments, priority: 1 }); ranOut = await this.deps.runOut?.onRunOut(threadId).catch(() => null) ?? null; }
       await this.pool.query(`UPDATE threads SET status=$2,updated_at=now() WHERE id=$1`, [threadId, state === 'run_out' ? (ranOut && 'switchedTo' in ranOut ? 'queued' : 'paused') : state === 'paused_budget' ? 'paused' : state === 'completed' ? 'waiting' : state === 'cancelled' ? 'idle' : 'failed']);
       await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'run.ended', source: 'kernel', trust: 'trusted', payload: { state, usage, ...(error ? { error } : {}) } }, ...(ranOut ? [{ runId: null, kind: 'switchedTo' in ranOut ? 'thread.status' : 'approval.requested', source: 'kernel', trust: 'trusted', payload: 'switchedTo' in ranOut ? { status: 'queued', runOut: true, connectionId: ranOut.switchedTo } : { approvalId: ranOut.approvalId, kind: 'run-out' } }] : [])] as never);
-      if (planRun && state === 'completed') await this.openPlanGate(thread, runId);
-      for (const hook of planRun ? [] : afterRunHooks) await hook({ thread, project, runId, state, containerId: machine.containerId, driver: this.deps.driver }).catch(() => undefined);
-      await (pooled ? this.deps.machines!.release(threadId) : this.free(machine.containerId)).catch(() => undefined);
-      this.containers.delete(threadId);
-      this.cancelled.delete(threadId);
+      try {
+        if (planRun && state === 'completed') await this.openPlanGate(thread, runId);
+        for (const hook of planRun ? [] : afterRunHooks) await hook({ thread, project, runId, state, containerId: machine.containerId, driver: this.deps.driver }).catch(() => undefined);
+      } finally {
+        await (pooled ? this.deps.machines!.release(threadId) : this.free(machine.containerId)).catch(() => undefined);
+        this.containers.delete(threadId);
+        this.cancelled.delete(threadId);
+      }
     }
   }
   private async adapterEvent(threadId: string, runId: string, event: AdapterEvent, scrubber: ReturnType<typeof createDeltaScrubber>, eventSecrets: Record<string,string> = this.deps.secrets ?? {}): Promise<void> {
@@ -337,7 +340,7 @@ export class ThreadRunner {
   private async openPlanGate(thread: Row, runId: string): Promise<void> {
     const approvalId = id('apr');
     await this.pool.query(`UPDATE threads SET status='paused',needs_you=$2 WHERE id=$1`, [thread.id, JSON.stringify([approvalId])]);
-    await this.pool.query(`INSERT INTO approvals (id,thread_id,captain_id,kind,question,options,blocking,state,gate) VALUES ($1,$2,$3,'decision','Approve the plan?',$4,true,'open','plan')`, [approvalId, thread.id, thread.crew_of ?? null, JSON.stringify([{ id: 'approve', label: 'Approve plan' }, { id: 'revise', label: 'Keep planning' }])]);
+    await this.pool.query(`INSERT INTO approvals (id,thread_id,captain_id,kind,question,options,blocking,state,gate) SELECT $1,$2,c.id,'decision','Approve the plan?',$4,true,'open','plan' FROM (SELECT 1) x LEFT JOIN threads c ON c.id=$3`, [approvalId, thread.id, thread.crew_of ?? null, JSON.stringify([{ id: 'approve', label: 'Approve plan' }, { id: 'revise', label: 'Keep planning' }])]);
     await this.deps.store.appendEvents(thread.id as Thread['id'], [{ runId: runId as never, kind: 'approval.requested', source: 'kernel', trust: 'trusted', payload: { approvalId, kind: 'decision', gate: 'plan' } }] as never);
   }
   private async copyAttachments(containerId: string, ids: string[]): Promise<string[]> {

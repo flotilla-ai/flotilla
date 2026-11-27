@@ -40,8 +40,10 @@ export class ThreadLifecycleStore {
   readonly pool: pg.Pool;
   private readonly events: EventStore;
   private ready?: Promise<unknown>;
+  private readonly deleteHooks: ((threadId: string) => Promise<undefined | (() => Promise<void>)>)[] = [];
   titles: TitleGenerator = heuristicTitle;
   constructor(private readonly databaseUrl: string) { this.pool = new pg.Pool({ connectionString: databaseUrl, max: 3 }); this.events = new EventStore(databaseUrl, this.pool); }
+  onDelete(hook: (threadId: string) => Promise<undefined | (() => Promise<void>)>): void { this.deleteHooks.push(hook); }
   private async q(sql: string, params: unknown[] = []): Promise<Row[]> {
     this.ready ??= migrate(this.databaseUrl).catch((err) => { this.ready = undefined; throw err; });
     await this.ready;
@@ -139,22 +141,28 @@ export class ThreadLifecycleStore {
   private async remove(threadId: string, v: ThreadLifecycle, owner: boolean) {
     if (!owner && (v.visibility === 'private' || !v.member?.joined)) throw new ApiFailure('Forbidden', v.visibility === 'private' ? 'only the owner can delete a private thread' : 'join the thread first');
     if (ACTIVE.includes(v.status)) throw new ApiFailure('Conflict', 'stop the thread before deleting it');
+    const cleanups: (() => Promise<void>)[] = [];
+    for (const hook of this.deleteHooks) { const cleanup = await hook(threadId); if (cleanup) cleanups.push(cleanup); }
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
       await client.query('UPDATE threads SET parent_id=NULL WHERE parent_id=$1', [threadId]);
       await client.query('UPDATE threads SET crew_of=NULL WHERE crew_of=$1', [threadId]);
+      await client.query('UPDATE approvals SET captain_id=NULL WHERE captain_id=$1', [threadId]);
+      await client.query('INSERT INTO machine_cleanups (thread_id,container_id) VALUES ($1,(SELECT container_id FROM machine_leases WHERE thread_id=$1)) ON CONFLICT (thread_id) DO NOTHING', [threadId]);
       await client.query(`DELETE FROM secrets WHERE scope='thread' AND scope_id=$1`, [threadId]);
       await client.query('DELETE FROM threads WHERE id=$1', [threadId]);
       await client.query('COMMIT');
     } catch (err) { await client.query('ROLLBACK'); throw err; } finally { client.release(); }
+    for (const cleanup of cleanups) await cleanup();
   }
   /** Ownership moves; connections reset so the new owner's own logins apply. Vendor logins and personal secrets never move. */
   private async transfer(t: OwnershipTransfer) {
     const ok = await this.q('SELECT 1 FROM threads t LEFT JOIN projects p ON p.id=t.project_id WHERE t.id=$1 AND (t.project_id IS NULL OR p.owner_id=$2)', [t.threadId, t.to]);
     if (!ok[0]) throw new ApiFailure('Conflict', 'the new owner must own the thread project');
     await this.emit(t.threadId, { action: t.via, from: t.from, to: t.to, by: t.via === 'takeover' ? t.to : t.from }, async (tx) => {
-      await tx.query(`UPDATE threads SET owner_id=$2, engine=engine || '{"connectionId":null}'::jsonb, updated_at=now() WHERE id=$1`, [t.threadId, t.to]);
+      await tx.query(`UPDATE threads SET owner_id=$2, engine=engine || '{"connectionId":null}'::jsonb, crew_of=NULL, updated_at=now() WHERE id=$1`, [t.threadId, t.to]);
+      await tx.query('UPDATE threads SET crew_of=NULL, updated_at=now() WHERE crew_of=$1', [t.threadId]);
       for (const u of [t.from, t.to]) await this.member(t.threadId, u, 'joined=true, subscribed=true', [], tx);
     });
   }

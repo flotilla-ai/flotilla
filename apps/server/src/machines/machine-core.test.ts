@@ -21,13 +21,14 @@ const repoDir = realpathSync(mkdtempSync(join(tmpdir(), 'flt-mc-')));
 function lines(stream: NodeJS.ReadableStream): AsyncIterable<string> { return (async function* () { let rest = ''; for await (const c of stream) { rest += c.toString(); const p = rest.split('\n'); rest = p.pop()!; for (const x of p) yield x; } if (rest) yield rest; })(); }
 const spawned: string[] = [];
 const local: ProcessTransport = { spawn(argv, opts) { spawned.push(argv.join(' ')); const child = spawn(argv[0], argv.slice(1), { cwd: repoDir, env: { PATH: process.env.PATH!, ...opts.env }, detached: true, stdio: ['ignore', 'pipe', 'pipe'] }); return { stdout: lines(child.stdout!), stderr: lines(child.stderr!), exit: new Promise((r) => child.once('exit', (code, signal) => r({ code, signal }))), signal: async (sig) => { try { if (child.pid) process.kill(-child.pid, sig); } catch { /* exited */ } } } satisfies ProcessHandle; } };
-const calls: string[] = []; let failNextStart = false; let n = 0; let recoverId: string | null = null;
+const calls: string[] = []; let failNextStart = false; let failNextNetwork = false; let n = 0; let recoverId: string | null = null;
 const driver = {
   async startThreadContainer(i: Record<string, unknown>) { calls.push(`start ${i.memMb} ${i.cpus}`); if (failNextStart) { failNextStart = false; throw new Error('resume failed'); } return { containerId: `c${++n}` }; },
   transport: () => local, copyIn: async () => undefined, copyOut: async () => Buffer.from(''),
   async stop(id: string) { calls.push(`stop ${id}`); }, async remove(id: string) { calls.push(`remove ${id}`); },
   async isRunning(id: string) { return !calls.includes(`stop ${id}`) && !calls.includes(`remove ${id}`); },
   async deleteWorkspace(t: string) { calls.push(`delete-workspace ${t}`); },
+  async removeThreadNetwork(t: string) { calls.push(`remove-network ${t}`); if (failNextNetwork) { failNextNetwork = false; throw new Error('network busy'); } },
   async findContainer() { return recoverId; }
 };
 const pushed: string[] = [];
@@ -162,6 +163,45 @@ describe('machine core', () => {
     expect((await boot('["example.org"]')).containerId).not.toBe(a.containerId); expect(calls).toContain(`remove ${a.containerId}`);
     await core.release(t); clock += 3 * MIN; await core.tick();
   });
+  it('review: interrupted deletion cleanup is recovered durably', async () => {
+    await pool.query(`INSERT INTO machine_cleanups (thread_id,container_id) VALUES ('thr_orphan_cleanup','c-orphan')`);
+    calls.length = 0;
+    failNextNetwork = true;
+    await core.recoverCleanups();
+    expect((await pool.query(`SELECT 1 FROM machine_cleanups WHERE thread_id='thr_orphan_cleanup'`)).rows.length).toBe(1);
+    calls.length = 0;
+    await core.recoverCleanups();
+    expect(calls).toContain('remove-network thr_orphan_cleanup');
+    expect(calls).toContain('remove c-orphan');
+    expect(calls).toContain('delete-workspace thr_orphan_cleanup');
+    expect((await pool.query(`SELECT 1 FROM machine_cleanups WHERE thread_id='thr_orphan_cleanup'`)).rows).toEqual([]);
+  });
+
+  it('review: deleting a Captain disposes its pooled machine before the lease cascade', async () => {
+    const t = await thread(null);
+    const { threadLifecycle } = await import('../thread-lifecycle/store.js');
+    threadLifecycle(url).onDelete((threadId) => core.prepareDestroy(threadId));
+    await core.boot(t, null, () => driver.startThreadContainer({}), driver as never); await core.release(t);
+    await pool.query(`UPDATE threads SET role='captain' WHERE id=$1`, [t]);
+    const crew = await thread(null);
+    await pool.query(`INSERT INTO approvals (id,thread_id,captain_id,kind,question,options,blocking,state) VALUES ('apr_del',$1,$2,'decision','q','[]',true,'open')`, [crew, t]);
+    calls.length = 0;
+    await threadLifecycle(url).apply(t, owner, { action: 'delete' });
+    expect(await lease(t)).toBeUndefined();
+    expect(calls.some((c) => c.startsWith('remove c'))).toBe(true);
+    expect(calls).toContain(`delete-workspace ${t}`);
+  });
+
+  it('review: promotion to Captain preserves pool-machine wake and keep-awake behavior', async () => {
+    const t = await thread(null);
+    await core.boot(t, null, () => driver.startThreadContainer({}), driver as never); await core.release(t);
+    await pool.query(`UPDATE threads SET role='captain' WHERE id=$1`, [t]);
+    await runner.wakeMachine(t);
+    expect((await lease(t))).toMatchObject({ state: 'awake' });
+    const state = await core.keepAwake(t, true);
+    expect(state.keepAwakeUntil).toBeTruthy();
+  });
+
   it('review: restart recovery keeps a live starting machine reserved; wake refuses shared subagent placement', async () => {
     const t = await thread(null);
     await core.boot(t, null, () => driver.startThreadContainer({}), driver as never); await core.release(t);

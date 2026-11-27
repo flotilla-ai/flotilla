@@ -178,3 +178,4 @@
 - phase2-37: troubleshooting content is static operator documentation; its typed index exists only as test-owned coverage inventory, so no runtime table is warranted.
 - phase2-19: subagent message/stream APIs are implemented as owner-validated aliases over the child thread's event store; fork/side-chat rows remain blocked until a workspace/session-copy primitive exists.
 - phase2-35: GitHub tokens are never stored in these tables; `tokenRef` is only an external vault reference. Installation permission validation is fail-closed at write time; live GitHub verification remains needs-human-login.
+- phase2-20: promotion is implemented as an in-place thread role change so history/PRs/machine/model/member references are preserved by identity; crew admission is fail-closed on owner/project/role/ancestry/existing-crew mismatch.
