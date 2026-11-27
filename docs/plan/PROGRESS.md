@@ -1,11 +1,11 @@
 # Flotilla progress
 
-Current phase: phase 2, waves 3-6 continuing in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-Current `flotilla/p1` head before this PR: `30fbbf4` (phase2-15 device execution).
+Current phase: phase 3, wave 1 starting in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
+Current `flotilla/p1` head before this PR: `f82e2f3` (phase 3/4 plan).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after all phase-2 units: done 297, pending 214, needs-human-login 24, n-a 22, blocked 82.
+Counted in `docs/plan/PARITY.md` after all phase-2 units: done 307, pending 204, needs-human-login 24, n-a 22, blocked 82.
 
 ## Unit table
 
@@ -60,11 +60,14 @@ Counted in `docs/plan/PARITY.md` after all phase-2 units: done 297, pending 214,
 | phase2-22-captain-ops | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/77 | Captain digest documents/rules/messages/actions/templates; see `docs/runlog/phase2-22.md` |
 | phase2-16-dock-cli | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/78 | dock install verification/layout/dirs/commands/user isolation; see `docs/runlog/phase2-16.md` |
 | phase2-15-device-execution | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/79 | device worktree policy/placement/Tailscale/import validation foundation; see `docs/runlog/phase2-15.md` |
+| phase2-exit | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/80 | exit report, compose verify, missing projects ledger rows restored |
+| plan3+4 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/81 | exact handoff coverage for 192 P3 and 22 P4 rows |
+| phase3-17-api-folders-files | in review | 1 |  | public folders/pins/files download/users API; see `docs/runlog/phase3-17.md` |
 ## Next action
 
-1. Merge the phase 2 exit report, then open the phase 3 plan PR.
-2. Keep live GitHub/device rows fixture-backed and marked needs-human-login until a real operator login verifies them.
-3. Continue into phase 3 only after the exit PR is merged.
+1. Merge phase3-17 after its gate, then continue independent phase-3 API/core units.
+2. Keep external/vendor integration rows fixture-backed and mark exact needs-human-login commands.
+3. Continue without child sessions in free-mode parent.
 
 ## Phase 1 summary (preserved)
 
