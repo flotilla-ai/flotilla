@@ -1,7 +1,7 @@
 # Flotilla progress
 
 Current phase: phase 2, wave 1 (serialized foundations) and wave 2 (core threads and runner).
-Current `flotilla/p1` head: `eba906f` (phase2-06, phase2-10, phase2-17, repair-8 and repair-9 merged; phase2-12 branched from `9fc248b` and merged `0662ec8` then `eba906f`).
+Current `flotilla/p1` head: `6b5546a` (phase2-06, phase2-10, phase2-17, repair-8, repair-9, repair-10 and repair-12 merged; phase2-12 branched from `9fc248b` and merged `0662ec8`, `eba906f` then `6b5546a`).
 
 ## Row counts
 
