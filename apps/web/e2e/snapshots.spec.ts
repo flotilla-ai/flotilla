@@ -1,0 +1,26 @@
+import {expect,test} from '@playwright/test';
+const steps=(failAt:string|null)=>['setup','repos','scrub','verify','capture'].map((step,i,a)=>({step,state:failAt===null||i<a.indexOf(failAt)?'passed':step===failAt?'failed':'skipped',output:step===failAt?'npm ERR! missing script: build':`${step} ok`,ms:5}));
+const good={id:'snb_good',state:'succeeded',failedStep:null,environmentVersion:1,tier:128,usedGb:2.5,images:[{tier:128,ref:'flotilla-snapshot/prj_1:snb_good-128gb'},{tier:64,ref:'flotilla-snapshot/prj_1:snb_good-64gb'}],steps:steps(null),createdAt:null};
+const bad={...good,id:'snb_bad',state:'failed',failedStep:'setup',environmentVersion:2,images:[],usedGb:null,steps:steps('setup')};
+test('CAPY-193/194 snapshot settings save repos, tier and smaller sizes; CAPY-196 history shows per-step logs and asks why it failed',async({page})=>{
+ const puts:any[]=[];let rebuilds=0;
+ await page.route('**/api/v1/projects/prj_1/snapshot',r=>{if(r.request().method()==='PUT'){puts.push(r.request().postDataJSON());return r.fulfill({json:{spec:puts.at(-1).spec}})}return r.fulfill({json:{spec:{enabled:true,repos:['o/r'],tier:128,alsoSmaller:false},requested:false,lastCheckAt:null,boot:{image:good.images[0].ref,buildId:'snb_good',repair:{buildId:'snb_bad',prompt:'x'}}}})});
+ await page.route('**/api/v1/projects/prj_1/snapshot/rebuild',r=>{rebuilds++;return r.fulfill({status:202,body:''})});
+ await page.route('**/api/v1/projects/prj_1/snapshots/builds',r=>r.fulfill({json:{items:[bad,good]}}));
+ await page.route('**/api/v1/projects/prj_1/snapshots/builds/snb_bad',r=>r.fulfill({json:{...bad,ask:'Snapshot build snb_bad failed at step "setup". Explain why it failed and fix it.'}}));
+ await page.goto('/#/snapshots');await page.getByLabel('project id').fill('prj_1');
+ await expect(page.getByText(`Boots from ${good.images[0].ref}`)).toBeVisible();
+ await expect(page.getByLabel('repos')).toHaveValue('o/r');
+ await page.getByLabel('disk tier').selectOption('256');await page.getByLabel('Also snapshot smaller sizes').check();
+ await page.getByRole('button',{name:'Save snapshot settings'}).click();
+ await expect.poll(()=>puts).toEqual([{spec:{enabled:true,repos:['o/r'],tier:256,alsoSmaller:true}}]);
+ await page.getByRole('button',{name:'Rebuild'}).click();await expect.poll(()=>rebuilds).toBe(1);
+ const failed=page.getByLabel('build snb_bad');
+ await expect(failed.getByText('npm ERR! missing script: build')).toBeVisible();
+ await expect(failed.getByText('capture skipped 5 ms')).toBeVisible();
+ expect(await failed.getByText('failed',{exact:true}).evaluate(e=>getComputedStyle(e).color)).toBe('rgb(242, 140, 40)');
+ await expect(page.getByLabel('build snb_good').getByText('64 GB flotilla-snapshot/prj_1:snb_good-64gb')).toBeVisible();
+ const ask=failed.getByRole('link',{name:'Ask why it failed'});
+ await expect(ask).toHaveAttribute('href',/^#\/compose\?prompt=Snapshot%20build%20snb_bad%20failed%20at%20step/);
+ await ask.click();await expect(page).toHaveURL(/#\/compose\?prompt=/);
+});

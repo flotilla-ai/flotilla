@@ -1,4 +1,5 @@
 import { machineCore } from '../machines/machine-core.js';
+import { snapshotStore } from '../snapshots/store.js';
 import type { AgentAdapter } from '@flotilla/core/types';
 import { Hono } from 'hono';
 import Docker from 'dockerode';
@@ -14,7 +15,7 @@ import { modelPolicyApi, modelsCatalogStore, withConnectionKeys } from '../model
 
 let singleton: ThreadRunner | null = null;
 export function defaultRunner(): ThreadRunner {
-  singleton ??= new ThreadRunner({ store: new EventStore(process.env.DATABASE_URL ?? 'postgres://postgres@postgres:5432/flotilla'), driver: new DockerMachineDriver(new Docker()), adapters: new Map<string, AgentAdapter>([['fake', fakeAdapter], ['claude-code', claudeCodeAdapter], ['codex', codexAdapter]]), vault: withConnectionKeys(secretsStore()), resolveEngine: (user, engine) => modelsCatalogStore().resolve(user, engine), runOut: modelPolicyApi(), mcp: mcpStore(), machines: machineCore() });
+  singleton ??= new ThreadRunner({ store: new EventStore(process.env.DATABASE_URL ?? 'postgres://postgres@postgres:5432/flotilla'), driver: new DockerMachineDriver(new Docker()), adapters: new Map<string, AgentAdapter>([['fake', fakeAdapter], ['claude-code', claudeCodeAdapter], ['codex', codexAdapter]]), vault: withConnectionKeys(secretsStore()), resolveEngine: (user, engine) => modelsCatalogStore().resolve(user, engine), runOut: modelPolicyApi(), mcp: mcpStore(), machines: machineCore(), snapshots: snapshotStore() });
   return singleton;
 }
 function userId(c: unknown): string { return (c as { get(key: string): string }).get('userId'); }
