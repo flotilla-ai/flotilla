@@ -1,11 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 2, waves 3-6 continuing in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-Current `flotilla/p1` head before this PR: `f89b0ca` (phase2-25 review policy).
+Current `flotilla/p1` head before this PR: `a278a5f` (phase2-22 captain operations).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after phase2-16 and phase2-25: done 285, pending 235, needs-human-login 23, n-a 22, blocked 71.
+Counted in `docs/plan/PARITY.md` after phase2-16, phase2-22 and phase2-25: done 292, pending 221, needs-human-login 23, n-a 22, blocked 78.
 
 ## Unit table
 
@@ -57,9 +57,10 @@ Counted in `docs/plan/PARITY.md` after phase2-16 and phase2-25: done 285, pendin
 | phase2-23-pr-autofix | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/74 | PR settings/list/actions/review actor and no-CI wake foundation; see `docs/runlog/phase2-23.md` |
 | phase2-24-review-core | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/75 | durable review rounds/findings/triage/readiness/posting policy; see `docs/runlog/phase2-24.md` |
 | phase2-25-review-policy | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/76 | review context/policy/guides/evidence/stack detection; see `docs/runlog/phase2-25.md` |
+| phase2-22-captain-ops | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/77 | Captain digest documents/rules/messages/actions/templates; see `docs/runlog/phase2-22.md` |
 ## Next action
 
-1. Merge Captain operations and dock CLI after their gates, then continue device execution directly in the parent session.
+Counted in `docs/plan/PARITY.md` after phase2-16, phase2-22 and phase2-25: done 292, pending 221, needs-human-login 23, n-a 22, blocked 78.
 2. Keep live GitHub rows fixture-backed and marked needs-human-login until a real operator login verifies them.
 
 ## Phase 1 summary (preserved)
@@ -75,9 +76,4 @@ None as whole units. Row-level blocked items are recorded in `docs/plan/PARITY.m
 - phase2-36: machine cost uses runner type `pool` until phase2-12 machine core stamps sizes; no browser e2e for `/usage`; real vendor run-out detection (CAPY-333) still needs human login. See `docs/runlog/phase2-36.md`.
 
 See `docs/runlog/P1-EXIT.md` and phase-2 runlogs (phase2-33: `docs/runlog/phase2-33.md`). Live vendor, GitHub, device, paired-machine and vendor-login behavior remains `needs-human-login` or unverified where marked.
-
-## Units
-
-| Unit | Area | Rows | Status |
-|---|---|---|---|
-| phase2-16 | dock cli | CAPY-250..260 | in review |
+Counted in `docs/plan/PARITY.md` after phase2-16, phase2-22 and phase2-25: done 292, pending 221, needs-human-login 23, n-a 22, blocked 78.

@@ -79,16 +79,16 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-073 | Captains | P2 | done | phase2-20 |  | Existing threads can be added to a crew with the owner-validated move action `POST /captains/:id/crew/:threadId`; regression in `create-crew.test.ts`. |
 | CAPY-074 | Captains | P2 | done | phase2-20 |  | Crew rules enforce same owner/project, root non-Captain threads only, not itself, and one crew at a time with enumerated refusal reasons; regression in `create-crew.test.ts`. |
 | CAPY-075 | Captains | P2 | done | phase2-20 |  | Finished crew threads can be archived by their Captain and any crew thread can be released with the existing delete action; regression in `create-crew.test.ts`. |
-| CAPY-076 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-077 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-078 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-076 | Captains | P2 | blocked | phase2-22 |  | Crew lifecycle events exist in the scheduler, but turn-end/need wiring into this operations surface and beside-chat UI is not connected. |
+| CAPY-077 | Captains | P2 | blocked | phase2-22 |  | No runner/crew event currently reports that a crew thread answered the user directly. |
+| CAPY-078 | Captains | P2 | blocked | phase2-22 |  | Pull-requests page has no Captain filter control; no UI integration is implemented. |
 | CAPY-079 | Captains | P1 | done | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Restart-safe wake persistence/coalescing proved by real Postgres fake-clock test. |
-| CAPY-080 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-081 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-082 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-080 | Captains | P2 | done | phase2-22 |  | Digest API and /captain-ops digest tab expose the digest file and top five Needs-you entries. |
+| CAPY-081 | Captains | P2 | done | phase2-22 |  | One-line digest commands such as merge repo#123 are parsed, dispatched to the action handler, and the item is dropped. |
+| CAPY-082 | Captains | P2 | done | phase2-22 |  | Digest-layout instructions are saved as durable captain rules and written to DIGEST-LAYOUT.md with confirmation. |
 | CAPY-083 | Captains | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-084 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-085 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-084 | Captains | P2 | done | phase2-22 |  | Digest API falls back DIGEST.md, ONGOING.md, then NOTES.md and enforces the 64 KiB cap. |
+| CAPY-085 | Captains | P2 | done | phase2-22 |  | Rule instructions are durable, appended to RULES.md, and return a confirmation. |
 | CAPY-086 | Captains | P1 | done | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Restart-safe wake persistence/coalescing proved by real Postgres fake-clock test. |
 | CAPY-087 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-088 | Captains | P2 | done | phase2-20 |  | Promotion preserves `owner_id` and crew membership requires matching owner, so Captain actions run as the owner identity; regression in `create-crew.test.ts`. |
@@ -98,12 +98,12 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-092 | Captains | P2 | blocked | phase2-21 |  | Pool placement and per-thread machine-name metadata exist, but cloud-vs-device selection fails closed because paired devices are unavailable. |
 | CAPY-093 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-094 | Captains | P2 | done | phase2-21 |  | Captain alias is durable profile metadata with validation. |
-| CAPY-095 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-096 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-095 | Captains | P2 | blocked | phase2-22 |  | Automations still create ordinary threads and cannot yet hand work to or start Captain threads. |
+| CAPY-096 | Captains | P2 | done | phase2-22 |  | Captain-to-captain messages are durable and suppressed when an active suppress-chatter rule matches. |
 | CAPY-097 | Captains | P1 | done | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-098 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-099 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-100 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-098 | Captains | P2 | blocked | phase2-22 |  | Captains-first/hybrid sidebar with pinned faces and waiting questions is not implemented. |
+| CAPY-099 | Captains | P2 | blocked | phase2-22 |  | No chat observer starts work from a passing mention. |
+| CAPY-100 | Captains | P2 | done | phase2-22 |  | Feature, Triage and Janitor captain templates are exposed by the API and web copy. |
 | CAPY-101 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-102 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-103 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
@@ -495,7 +495,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-492 | Captains | P2 | done | phase2-21 |  | API creates a crew thread in the Captain project and adds/removes crew membership. |
 | CAPY-493 | Captains | P2 | done | phase2-21 |  | Captain photo upload stores bounded png/jpeg/webp bytes and org library selection is supported. |
 | CAPY-494 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-495 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-495 | Captains | P2 | blocked | phase2-22 |  | Large crew/subagent lists are not virtualized. |
 | CAPY-496 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-497 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-498 | Review | P2 | done | phase2-24 |  | Review state and finding triage are exposed through the REST API. |
