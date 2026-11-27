@@ -226,3 +226,8 @@ exit=0
 ## Devin Review round 4 (f7d068)
 - Fixed in 33e21e9: creating a project whose primary branch was chosen but doesn't exist used to return 201, and threads then used the missing branch. A pinned primary is now mirrored before responding. A missing branch returns 409 `base branch <name> not found` and the project row is deleted. A primary with no chosen branch still mirrors in the background.
 - Fixed in ccaedec: a failed lazy clone used to fail silently in the UI. It now shows `Could not clone <repo> on branch <branch> (<status>)`. Browser proof: `npx playwright test e2e/projects.spec.ts` gives `2 passed (3.2s)`.
+
+## Merge of p1 6b5546a (26902ab, by the parent) and Devin Review round 5
+- The parent's merge dropped six phase2-29 lines from DECISIONS-LOG. Restored in 0c1b74e, with the visibility and CAPY-181 lines updated to match the gate.
+- Fixed in 3f42346: a missing pinned branch now deletes the bare mirror it just fetched (primary or lazy), so rejected projects leave no orphan mirrors. A pinned primary's 201 now returns the row after cloning (`clonedAt` and description set), so idempotent replays match.
+- `make check` on 3f42346: server `Test Files 24 passed (24)`, `Tests 155 passed | 1 skipped (156)`; web `Test Files 6 passed (6)`, `Tests 16 passed (16)`; exit 0.
