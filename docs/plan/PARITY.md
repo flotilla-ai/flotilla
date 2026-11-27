@@ -223,9 +223,9 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-217 | Cloud machines | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-218 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-219 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-220 | Previews | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-220 | Previews | P1 | phase1fix-03 | https://github.com/flotilla-ai/flotilla/pull/22 | Local fixture network proves authenticated preview cookie/share access, no-token and UI-cookie rejection, and gate bearer enforcement. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-221 | Previews | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-222 | Previews | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-222 | Previews | P1 | phase1fix-03 | https://github.com/flotilla-ai/flotilla/pull/22 | Local fixture network proves authenticated preview cookie/share access, no-token and UI-cookie rejection, and gate bearer enforcement. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-223 | Previews | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-224 | Previews | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-225 | Previews | P2 | pending |  |  | Awaiting phase P2 unit. |
