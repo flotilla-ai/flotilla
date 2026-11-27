@@ -65,6 +65,13 @@ Checks after the merge:
 ## Devin Review round 2
 Fixed: `ModelPolicyApi.answer` now returns `false` for a free offer revoked by `runOutFree: 'never'`. `answerApproval` then leaves the thread paused, so it is no longer re-queued on the exhausted connection. A test asserts that the status and run count are unchanged.
 
+## Base moved (round 3)
+Ran a real merge of `origin/flotilla/p1` at `9dc39fe` (phase2-29 projects) as merge `c02ca9e`. Conflicts in `PROGRESS.md` and `DECISIONS-LOG.md` were resolved by keeping both sides and recounting the rows (done 144, pending 429, needs-human-login 17, n-a 22, blocked 27).
+
+Checks after the merge:
+- `make check` exited 0: apps/server `Test Files 26 passed (26)`, `Tests 172 passed | 1 skipped (173)`; apps/web `Tests 17 passed (17)`.
+- `pnpm -r lint` exited 0.
+
 ## Unverified
 - Runs shorter than the 10 s machine ticker get no machine cost (escalated to phase2-12).
 - Machine minutes are priced per runner type `pool` (the only type until phase2-12 machine core records sizes); no real machine sizes are metered here.
