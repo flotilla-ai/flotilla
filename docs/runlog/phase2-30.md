@@ -1,6 +1,6 @@
 # phase2-30 Drive core
 
-Branch `flotilla/phase2-30-drive-core` from `origin/flotilla/p1`, then real-merged `eba906f` (phase2-17) and the later `origin/flotilla/p1` head (repair-10/12 and others). Temporary Postgres 16 container, temp blob dir, fake machine driver, fake adapter, Playwright with mocked API. No vendor calls or logins.
+Branch `flotilla/phase2-30-drive-core` from `origin/flotilla/p1`, then real-merged `eba906f` (phase2-17) the later `origin/flotilla/p1` head (repair-10/12 and others), and `9dc39fe` (phase2-29 projects, phase2-18 subagents; conflicts in `runner.ts` kept both `onBeforeRun` and `onPlacement`, ledgers kept both sides; a stray `||||||| eba906f` marker left in DECISIONS-LOG by the earlier merge was removed). Temporary Postgres 16 container, temp blob dir, fake machine driver, fake adapter, Playwright with mocked API. No vendor calls or logins.
 
 ## Rows
 - done: CAPY-272, CAPY-273, CAPY-274, CAPY-275, CAPY-276, CAPY-278, CAPY-279, CAPY-502, CAPY-503.
@@ -36,7 +36,7 @@ Branch `flotilla/phase2-30-drive-core` from `origin/flotilla/p1`, then real-merg
 ## `pnpm --filter @flotilla/server test`
 First run after merging phase2-17: `Tests 1 failed | 154 passed | 1 skipped (156)`; the failure was `wakes.test.ts` CAPY-041 (`expected 2 to be 1`, archived-thread timer run count). That file passed 3/3 alone and in `make check` below; it is the phase2-17 timer race that repair-12 (#49, now merged into the base) targets, not Drive code.
 
-## `make check` (after Devin Review fixes and merging `origin/flotilla/p1`)
+## `make check` (after merging `9dc39fe`)
 ```
 apps/gate test:  Test Files  2 passed (2)
 apps/gate test:       Tests  5 passed (5)
@@ -54,8 +54,8 @@ packages/adapters/generic-cli test:  Test Files  1 passed (1)
 packages/adapters/generic-cli test:       Tests  4 passed (4)
 packages/adapters/fake test:  Test Files  1 passed (1)
 packages/adapters/fake test:       Tests  3 passed (3)
-apps/server test:  Test Files  24 passed (24)
-apps/server test:       Tests  156 passed | 1 skipped (157)
+apps/server test:  Test Files  26 passed (26)
+apps/server test:       Tests  175 passed | 1 skipped (176)
 make check exit=0
 ```
 
