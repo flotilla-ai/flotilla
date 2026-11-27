@@ -73,3 +73,8 @@ make check exit=0
 - Real `claude --mcp-config /run/flotilla/mcp.json` loading the generated file inside a thread container (needs `claude auth login`).
 - STDIO servers starting on a real thread machine (Test marks connect `null`).
 - Codex TOML import covers a subset (strings, string arrays, inline tables, `[mcp_servers.x.env]`); OAuth discovery and dynamic client registration are not built.
+
+## Devin Review round 1
+- Fixed: scrub before truncating Test/OAuth errors; 10 s deadline on token requests; proposals reject literal text beside `${VAR}` (only `Bearer`/`Basic`/`Token` prefixes allowed); Codex `enabled = false` kept on import; a failed MCP apply reopens its approval; a failed MCP file copy removes the machine and fails the start.
+- Escalated: Test/OAuth requests can reach private addresses from the server (SSRF). Self-hosted MCP servers on private networks are a real use, so an egress policy is an operator decision, not built here.
+- `make check` after fixes: exit 0 (server 154 passed, 1 skipped; web 19 passed).
