@@ -1,11 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 2, waves 3-6 continuing in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-Current `flotilla/p1` head before this PR: `b518a16` (phase2-14 devices pairing).
+Current `flotilla/p1` head before this PR: `09c329c` (phase2-28 automation API).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after automation control: done 259, pending 281, needs-human-login 19, n-a 22, blocked 57.
+Counted in `docs/plan/PARITY.md` after phase2-23: done 262, pending 268, needs-human-login 22, n-a 22, blocked 62.
 
 ## Unit table
 
@@ -53,11 +53,12 @@ Counted in `docs/plan/PARITY.md` after automation control: done 259, pending 281
 | phase2-14-devices-pairing | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/70 | Pairing codes, device trust/status/heartbeat, machine picker, workspace policy, folder scan; 3 rows done, 7 device-execution rows blocked; see `docs/runlog/phase2-14.md` |
 | phase2-27-automation-control | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/71 | automation control operations, cap, webhook rotation, filters; 4 rows done, Drive/machine/output rows blocked; see `docs/runlog/phase2-27.md` |
 | repair-19-runner-requeue | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/72 | failed starts requeue claimed input instead of cancelling user messages |
-| phase2-28-automation-api | in review | 1 |  | automation REST CRUD, run/batch controls, state transitions; see `docs/runlog/phase2-28.md` |
+| phase2-28-automation-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/73 | automation REST CRUD, run/batch controls, state transitions; see `docs/runlog/phase2-28.md` |
+| phase2-23-pr-autofix | in review | 1 |  | PR settings/list/actions/review actor and no-CI wake foundation; CAPY-110/120/125 done, CAPY-115/117/123 need live GitHub login, UI/chat/sidebar rows blocked; see `docs/runlog/phase2-23.md` |
 ## Next action
 
-1. Continue machine UX/devices/dock and Captain/work-surface units directly in the parent session. CAPY-061/062 need a paired-device target and an agent-callable subagent tool.
-2. Repair runner queue so failed starts requeue undelivered inbox items instead of dropping them.
+1. Merge phase2-23 after its gate, then integrate review core/policy and continue Captain/device/dock units directly in the parent session.
+2. Keep live GitHub rows fixture-backed and marked needs-human-login until a real operator login verifies them.
 
 ## Phase 1 summary (preserved)
 
