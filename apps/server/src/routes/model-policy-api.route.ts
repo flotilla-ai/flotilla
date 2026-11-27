@@ -1,5 +1,5 @@
 import { Hono, type Context } from 'hono';
-import { modelPolicyApi } from '../models-catalog/model-policy-api.js';
+import { modelPolicyApi } from '../models-catalog/store.js';
 
 const userId = (c: Context) => c.get('userId') as string;
 const body = async (c: Context) => ((await c.req.json().catch(() => null)) ?? {}) as Record<string, any>;

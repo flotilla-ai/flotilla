@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import pg from 'pg';
 import { Hono } from 'hono';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { argvFor as claudeArgv } from '@flotilla/adapter-claude-code';
 import { argvFor } from '@flotilla/adapter-codex';
 import { fakeAdapter } from '@flotilla/adapter-fake';
 import type { AdapterEvent, AgentAdapter, StartInput } from '@flotilla/core/types';
@@ -65,7 +66,7 @@ beforeAll(async () => {
   owner = (await auth.setup('owner@x', 'pw', await auth.getSetupToken()))!.userId;
   const session = (await auth.login('owner@x', 'pw'))!;
   cookie = `flotilla_session=${session.id}`; csrf = session.csrfToken;
-  const storeMod = await import('./store.js'); const { modelPolicyApi } = await import('./model-policy-api.js');
+  const storeMod = await import('./store.js'); const { modelPolicyApi } = storeMod;
   app = await (await import('../loader.js')).createApp();
   const runner = new ThreadRunner({ store: new EventStore(url), driver: driver as never, adapters: new Map([['fake', scripted], ['claude-code', scripted], ['codex', scripted]]), vault: storeMod.withConnectionKeys({ mutate: async () => [], prepare: async () => ({ env: {}, grants: [] }) }, storeMod.modelsCatalogStore(url)), runOut: modelPolicyApi() });
   threadsApp = new Hono();
@@ -136,6 +137,7 @@ describe('model policy and model API', () => {
     const input = starts.find((s) => s.threadId === t.id)!;
     expect(input.contextWindow).toBe(1_050_000);
     expect(argvFor(input)).toEqual(['codex', 'exec', '--json', '--model', 'gpt-6', '-c', 'model_context_window=1050000', 'p']);
+    expect(claudeArgv({ ...input, model: 'claude-fixture' })).toEqual(expect.arrayContaining(['--model', 'claude-fixture']));
   });
 
   it('CAPY-485: changing a connection Base URL reaches the next run through the adapter base-URL env var', async () => {

@@ -8,8 +8,7 @@ import { EventStore } from '../events/store.js';
 import { DockerMachineDriver } from '../machines/dockerDriver.js';
 import { ThreadRunner } from '../runner/runner.js';
 import { parseVariables, secretsStore } from '../secrets/store.js';
-import { modelsCatalogStore, withConnectionKeys } from '../models-catalog/store.js';
-import { modelPolicyApi } from '../models-catalog/model-policy-api.js';
+import { modelPolicyApi, modelsCatalogStore, withConnectionKeys } from '../models-catalog/store.js';
 
 let singleton: ThreadRunner | null = null;
 export function defaultRunner(): ThreadRunner {

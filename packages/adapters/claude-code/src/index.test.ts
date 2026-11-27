@@ -14,8 +14,6 @@ describe('claude-code adapter', () => {
     const argv = argvFor(input());
     expect(argv).toEqual(expect.arrayContaining(['-p', '--output-format', 'stream-json', '--verbose', '--max-budget-usd', '0.05', '--strict-mcp-config', '--setting-sources', 'user']));
     expect(argv).not.toContain('--bare');
-    expect(argv).not.toContain('--model');
-    expect(argvFor(input({ model: 'claude-fixture' }))).toEqual(expect.arrayContaining(['--model', 'claude-fixture']));
   });
   it('uses --bare only for api-key auth', () => {
     expect(argvFor(input({ auth: 'api-key' }))).toContain('--bare');

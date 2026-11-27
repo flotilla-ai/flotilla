@@ -76,7 +76,7 @@ $ cd apps/server && npx vitest run src/git/mirror.test.ts
 
 - Types: `RunOutPolicy`, `ModelPolicy`, `ModelListItem`, `ConnectionPatch` (`models-catalog/types.ts`); catalog `contextWindow`; core `StartInput.contextWindow`, `AuthMethod` api-key `baseUrlEnvVar`, adapter `done.stopReason: 'run_out'`.
 - Migration `0010_model_policy.sql`: `model_policies` per user; approvals kind `run-out`; runs state `run_out`.
-- `GET /api/v1/models`, `POST /api/v1/models/background`, `GET|PUT /api/v1/me/model-policy` (`routes/model-policy-api.route.ts`, `models-catalog/model-policy-api.ts`).
+- `GET /api/v1/models`, `POST /api/v1/models/background`, `GET|PUT /api/v1/me/model-policy` (`routes/model-policy-api.route.ts`; `ModelPolicyApi` lives in `models-catalog/store.ts`).
 - Run order: enabled, non-failing, policy-allowed connections, subscriptions first, then owner → org → free. Policy exclusions apply to resolve, picker, list and run-out.
 - Runner: a `run_out` stop re-queues the prompt and asks `runOut.onRunOut` — switch (keep-going / ask-before-free on a paid connection) or open a Wait/Use card and pause; answering Use re-resolves and reruns; `/wait` and `/continue` messages answer the card. A missing adapter fails the run instead of silently using the first adapter.
 - `defaultRunner` registers fake, claude-code and codex adapters. Connection Base URL is validated http(s) and injected as the manifest `baseUrlEnvVar` (`ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL`). Codex receives `-c model_context_window=<n>` when the catalog row has a window.
@@ -162,11 +162,8 @@ apps/server test:       Tests  118 passed | 1 skipped (119)
 exit=0
 ```
 
-## CI fix on `dfe3c68`
+## CI flake on `dfe3c68` and diff reduction
 
-CI `check` failed once in `runner-queue.test.ts` CAPY-469: the test read `run.ended` right after the `runs` row turned `failed`, but the runner writes that row before appending the event (5/5 local passes). The test now waits for the event.
+CI `check` failed once in phase2-05's `runner-queue.test.ts` CAPY-469: the test reads `run.ended` right after the `runs` row turns `failed`, but the runner writes that row before it appends the event. It passed 5/5 locally. The one-line test wait was reverted to keep the phase2-04 diff in budget, and the race is escalated for a parent repair (fix: `until(() => kinds(t.id, 'run.ended'), (e) => e.length > 0)`).
 
-```text
-$ cd apps/server && npx vitest run src/runner/runner-queue.test.ts
-      Tests  12 passed (12)
-```
+Parent merge-gate asked for at most 18 files (15 preferred): `ModelPolicyApi` moved from `models-catalog/model-policy-api.ts` into `models-catalog/store.ts`, and the Claude `--model` assertion moved from `packages/adapters/claude-code/src/index.test.ts` into the CAPY-337 test in `model-policy-api.test.ts`. 16 files remain.
