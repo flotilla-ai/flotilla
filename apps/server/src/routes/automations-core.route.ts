@@ -10,7 +10,7 @@ export function createAutomationsCoreRoute(store = () => automationStore(undefin
   const app = new Hono();
   app.post('/projects/:id/automations', async (c) => {
     const created = await store().create(userId(c), c.req.param('id'), await body(c));
-    c.header('x-flotilla-no-replay', '1');
+    c.header('x-flotilla-redact-keys', 'webhookToken,webhookUrl');
     return c.json(created, 201);
   });
   app.get('/projects/:id/automations', async (c) => c.json({ items: await store().list(userId(c), c.req.param('id')) }));
