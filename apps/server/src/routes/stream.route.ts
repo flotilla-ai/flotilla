@@ -26,7 +26,7 @@ export function createStreamRoute(store: EventStore): { basePath: string; app: H
     const keyId = (c as unknown as { get(key: string): ApiPrincipal | undefined }).get('principal')?.keyId;
     const keys = apiPlatformStore();
     // A revoked or expired API key ends its open streams at the next recheck.
-    const recheck = keyId ? setInterval(() => void keys.keyActive(keyId).then((ok) => ok || iterator.return?.()).catch(() => undefined), keys.keyRecheckMs) : undefined;
+    const recheck = keyId ? setInterval(() => void keys.keyActive(keyId).then((ok) => { if (!ok) void iterator.return?.(); }).catch(() => undefined), keys.keyRecheckMs) : undefined;
     const body = new ReadableStream<Uint8Array>({
       async start(controller) {
         void (async () => {
