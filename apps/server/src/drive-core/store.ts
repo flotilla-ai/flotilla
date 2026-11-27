@@ -7,7 +7,7 @@ import { ApiFailure } from '../api-platform/types.js';
 import { CARDS, DEFAULT_LIMITS, DriveFailure, MOUNT_MAX_BYTES, MOUNT_ROOT, parsePath, scopeDir, scopeId, skillName, tar, untar, type DriveFailureCard, type DriveItem, type DriveLimits, type DriveMount, type DriveScope, type DriveSource, type DriveUsage, type DriveVersion } from './types.js';
 
 type Row = Record<string, any>;
-type MountDriver = { copyIn?(id: string, dir: string, tar: Buffer): Promise<void>; copyOut?(id: string, path: string): Promise<Buffer> };
+type MountDriver = { copyIn?(id: string, dir: string, tar: Buffer): Promise<void>; copyOut?(id: string, path: string, maxBytes?: number): Promise<Buffer> };
 export type DriveRunCtx = { thread: Row; containerId: string; driver: unknown };
 export interface DriveThreadView { mounts: DriveMount[]; instructions: { scope: DriveScope; path: string; sha256: string }[]; skills: { scope: DriveScope; name: string; path: string }[] }
 
@@ -50,7 +50,7 @@ export class DriveStore {
     return Promise.all(scopes.map((s) => this.usage(s)));
   }
   async usage(scope: DriveScope, client?: pg.PoolClient): Promise<DriveUsage> {
-    const [r] = await this.q(`SELECT COALESCE(sum(size),0)::text AS used FROM drive_items WHERE scope_kind=$1 AND scope_id=$2 AND type='file'`, [scope.kind, scopeId(scope)], client);
+    const [r] = await this.q(`SELECT COALESCE(sum(v.size),0)::text AS used FROM drive_versions v JOIN drive_items i ON i.id=v.item_id WHERE i.scope_kind=$1 AND i.scope_id=$2`, [scope.kind, scopeId(scope)], client);
     const usedBytes = Number(r.used);
     return { scope, usedBytes, limitBytes: this.limits.quotaBytes, full: usedBytes >= this.limits.quotaBytes };
   }
@@ -83,7 +83,7 @@ export class DriveStore {
       if (prior?.type === 'folder') throw new ApiFailure('Conflict', `${path} is a folder`);
       if (opts.baseVersion !== undefined && (prior?.version ?? 0) !== opts.baseVersion) throw new ApiFailure('Conflict', `${path} changed since version ${opts.baseVersion}`);
       const { usedBytes } = await this.usage(scope, client);
-      if (usedBytes - Number(prior?.size ?? 0) + data.length > this.limits.quotaBytes) throw new DriveFailure(CARDS.drive_full(`${gib(usedBytes)} of ${gib(this.limits.quotaBytes)} used`));
+      if (usedBytes + data.length > this.limits.quotaBytes) throw new DriveFailure(CARDS.drive_full(`${gib(usedBytes)} of ${gib(this.limits.quotaBytes)} used`));
       let parentId: string | null = null; const parts = path.split('/');
       for (let i = 1; i < parts.length; i++) {
         const [f]: Row[] = (await client.query(`INSERT INTO drive_items (id,scope_kind,scope_id,parent_id,path,name,type) VALUES ($1,$2,$3,$4,$5,$6,'folder')
@@ -136,12 +136,16 @@ export class DriveStore {
     }
     return out;
   }
+  /** One tar per Drive; folders (and writable Drive roots, even empty) are explicit `node`-owned entries so the agent can add files. */
   private async archive(mounts: DriveMount[], name: (m: DriveMount, path: string) => string): Promise<{ tars: Buffer[]; skipped: number }> {
     let total = 0; let skipped = 0; const tars: Buffer[] = [];
     for (const m of mounts) {
-      const entries: { name: string; data: Buffer }[] = [];
-      for (const f of m.files) { const data = await readFile(this.blob(f.sha256)); if (total + data.length > MOUNT_MAX_BYTES) { skipped++; continue; } total += data.length; entries.push({ name: name(m, f.path), data }); }
-      if (entries.length) tars.push(tar(entries));
+      const files: { name: string; data: Buffer }[] = [];
+      for (const f of m.files) { const data = await readFile(this.blob(f.sha256)); if (total + data.length > MOUNT_MAX_BYTES) { skipped++; continue; } total += data.length; files.push({ name: name(m, f.path), data }); }
+      if (!files.length && !m.writable) continue;
+      const dirs = new Set<string>();
+      for (const n of [`${name(m, '')}x`, ...files.map((f) => f.name)]) { const parts = n.split('/'); for (let i = 1; i < parts.length; i++) dirs.add(`${parts.slice(0, i).join('/')}/`); }
+      tars.push(tar([...[...dirs].sort().map((d) => ({ name: d, data: Buffer.alloc(0) })), ...files]));
     }
     return { tars, skipped };
   }
@@ -149,7 +153,6 @@ export class DriveStore {
   async mount({ thread, containerId, driver }: DriveRunCtx): Promise<string> {
     try {
       const v = await this.view(thread);
-      if (!v.mounts.some((m) => m.files.length)) return '';
       const copyIn = (driver as MountDriver).copyIn; if (!copyIn) throw new Error('the machine driver cannot receive files');
       const { tars, skipped } = await this.archive(v.mounts, (m, p) => `${rel(m.dir)}/${p}`);
       for (const t of tars) await copyIn.call(driver, containerId, '/run', t);
@@ -169,9 +172,11 @@ export class DriveStore {
   /** Saves files the run created or changed in writable Drives as versions by the thread (autosave, no commit). Deletions are not synced. */
   async writeBack({ thread, containerId, driver }: DriveRunCtx): Promise<DriveItem[]> {
     const copyOut = (driver as MountDriver).copyOut; if (!copyOut) return [];
+    const mounted = this.mounted.get(containerId); this.mounted.delete(containerId);
     let entries: { name: string; data: Buffer }[];
-    try { entries = untar(await copyOut.call(driver, containerId, MOUNT_ROOT)); } catch { return []; }
-    const current = await this.view(thread); const base = this.mounted.get(containerId) ?? current.mounts; this.mounted.delete(containerId);
+    try { entries = untar(await copyOut.call(driver, containerId, MOUNT_ROOT, MOUNT_MAX_BYTES)); }
+    catch (err) { if (mounted) await this.card(thread.id, CARDS.save_failed(`${MOUNT_ROOT}: ${(err as Error).message}`)).catch(() => undefined); return []; }
+    const current = await this.view(thread); const base = mounted ?? current.mounts;
     const saved: DriveItem[] = []; const failed = new Map<string, DriveFailureCard>();
     for (const e of entries) {
       const [, dir, ...rest] = e.name.split('/');

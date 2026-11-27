@@ -31,7 +31,8 @@ async function thread(ownerId: string, extra: { projectId?: string; role?: strin
   return (await pool.query(`INSERT INTO threads (id,code,project_id,role,owner_id,title,status,engine,budget,spent) VALUES ($1,$1,$2,$3,$4,'t','idle','{}','{}','{}') RETURNING *`, [id, extra.projectId ?? null, extra.role ?? 'thread', ownerId])).rows[0];
 }
 const project = async (name: string, ownerId: string) => (await pool.query(`INSERT INTO projects (id,owner_id,name,repo,trust,budget) VALUES ($1,$2,$1,'{}','untrusted','{}') RETURNING id`, [`prj_${name}`, ownerId])).rows[0].id as string;
-const fakeDriver = () => { const copied: Buffer[] = []; return { copied, out: tar([]), fail: false, async copyIn(_id: string, at: string, t: Buffer) { if (this.fail) throw new Error('no space left on device'); expect(at).toBe('/run'); copied.push(t); }, async copyOut() { return this.out; } }; };
+const listDirs = (b: Buffer) => { const out: string[] = []; for (let o = 0; o + 512 <= b.length; o += 512) { const h = b.subarray(o, o + 512); if (h[156] === 0x35) { out.push(h.subarray(0, 100).toString().replace(/\0.*$/s, '')); expect(h.subarray(100, 107).toString()).toBe('0000755'); expect(h.subarray(108, 115).toString()).toBe('0001000'); } } return out; };
+const fakeDriver = () => { const copied: Buffer[] = []; return { copied, out: tar([]), fail: false, async copyIn(_id: string, at: string, t: Buffer) { if (this.fail) throw new Error('no space left on device'); expect(at).toBe('/run'); copied.push(t); }, async copyOut(_id?: string, _p?: string, _max?: number): Promise<Buffer> { return this.out; } }; };
 
 beforeAll(async () => {
   container = (await exec('docker', ['run', '-d', '--rm', '-p', '127.0.0.1::5432', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', 'postgres:16'])).stdout.trim();
@@ -80,6 +81,8 @@ describe('drive core', () => {
     const t = await thread(users.admin.id, { projectId: p }); const d = fakeDriver();
     const note = await store.mount({ thread: t, containerId: 'c1', driver: d });
     const files = d.copied.flatMap((c) => untar(c).map((f) => f.name));
+    const dirs = d.copied.flatMap((c) => listDirs(c));
+    expect(dirs).toEqual(expect.arrayContaining(['flotilla/', 'flotilla/drive/', 'flotilla/drive/personal/', 'flotilla/drive/personal/skills/release-notes/', 'flotilla/drive/project-personal/']));
     expect(files).toEqual(expect.arrayContaining(['flotilla/drive/org/AGENTS.md', 'flotilla/drive/project/AGENTS.md', 'flotilla/drive/project/docs/AGENTS.md', 'flotilla/drive/personal/skills/release-notes/SKILL.md']));
     expect(note).toContain('Org rule: be brief.'); expect(note).toContain('Project rule: run pnpm test.'); expect(note).not.toContain('not a root file');
     expect(note).toContain('release-notes: /run/flotilla/drive/personal/skills/release-notes/SKILL.md'); expect(note).not.toContain('Bad Name');
@@ -149,12 +152,14 @@ describe('drive core', () => {
     await expect(small.save(scope, 'b.txt', Buffer.alloc(101), { by: users.admin.id, source: 'agent' })).rejects.toMatchObject({ card: { code: 'file_too_large' } });
     await small.save(scope, 'b.txt', Buffer.alloc(100), { by: users.admin.id, source: 'agent' });
     await expect(small.save(scope, 'c.txt', Buffer.alloc(1), { by: users.admin.id, source: 'agent' })).rejects.toMatchObject({ card: { code: 'drive_full', title: 'Drive is full' } });
-    await small.save(scope, 'b.txt', Buffer.alloc(10), { by: users.admin.id, source: 'agent' });
+    await expect(small.save(scope, 'b.txt', Buffer.alloc(10), { by: users.admin.id, source: 'agent' })).rejects.toMatchObject({ card: { code: 'drive_full' } });
+    await small.remove(await small.item(users.admin.id, (await small.list(scope)).find((i) => i.path === 'a.txt')!.id, true));
+    expect((await small.usage(scope)).usedBytes).toBe(100);
     expect(DEFAULT_LIMITS.fileBytes).toBe(100 * 1024 * 1024);
     const gib = 1024 ** 3; const big: DriveScope = { kind: 'automation', id: 'aut_big' };
     const roomy = new DriveStore(url, dir, { ...DEFAULT_LIMITS, quotaBytes: 5 * gib });
     const seed = await roomy.save(big, 'seed.bin', Buffer.from('x'), { by: users.admin.id, source: 'agent' });
-    await pool.query(`UPDATE drive_items SET size=$2 WHERE id=$1`, [seed.id, 3 * gib]);
+    await pool.query(`UPDATE drive_versions SET size=$2 WHERE item_id=$1`, [seed.id, 3 * gib]);
     expect(await roomy.usage(big)).toMatchObject({ usedBytes: 3 * gib, limitBytes: 5 * gib, full: false });
     await roomy.save(big, 'more.bin', Buffer.from('y'), { by: users.admin.id, source: 'agent' });
     const tight = new DriveStore(url, dir, { ...DEFAULT_LIMITS, quotaBytes: 3 * gib });
@@ -168,8 +173,11 @@ describe('drive core', () => {
     const full = new DriveStore(url, dir, { ...DEFAULT_LIMITS, quotaBytes: 1 });
     d.out = tar([{ name: 'drive/personal/huge.md', data: Buffer.from('too much') }]);
     expect(await full.writeBack({ thread: t, containerId: 'c3', driver: d })).toEqual([]);
+    const lost = fakeDriver(); await store.mount({ thread: t, containerId: 'c4', driver: lost }); lost.copyOut = async (_id?: string, _p?: string, max?: number) => { expect(max).toBe(512 * 1024 * 1024); throw new Error('/run/flotilla/drive is larger than 536870912 bytes'); };
+    expect(await store.writeBack({ thread: t, containerId: 'c4', driver: lost })).toEqual([]);
     const cards = (await pool.query(`SELECT question,options,blocking,detail FROM approvals WHERE thread_id=$1 ORDER BY detail->'drive'->>'code'`, [t.id])).rows;
-    expect(cards.map((c) => [c.detail.drive.code, c.blocking])).toEqual([['drive_full', false], ['mount_failed', false]]);
+    expect(cards.map((c) => [c.detail.drive.code, c.blocking])).toEqual([['drive_full', false], ['mount_failed', false], ['save_failed', false]]);
+    expect(cards[2].question).toContain('larger than 536870912 bytes');
     expect(cards[1].question).toContain('Drive could not be mounted'); expect(cards[1].question).toContain('send the message again');
     expect(cards[0].question).toContain('Drive is full'); expect(cards[0].question).toContain('Delete files');
   });

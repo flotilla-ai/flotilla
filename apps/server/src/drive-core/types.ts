@@ -54,7 +54,7 @@ export function parsePath(raw: unknown): string {
 export const skillName = (path: string) => /^skills\/([a-z0-9][a-z0-9-]{0,63})\/SKILL\.md$/.exec(path)?.[1] ?? null;
 
 export const CARDS: Record<DriveFailureCode, (detail: string) => DriveFailureCard> = {
-  drive_full: (d) => ({ code: 'drive_full', title: 'Drive is full', nextStep: `Delete files or versions you no longer need, or raise FLOTILLA_DRIVE_QUOTA_BYTES (${d}).` }),
+  drive_full: (d) => ({ code: 'drive_full', title: 'Drive is full', nextStep: `Delete files you no longer need (that frees all their versions), or raise FLOTILLA_DRIVE_QUOTA_BYTES (${d}).` }),
   file_too_large: (d) => ({ code: 'file_too_large', title: 'File is larger than 100 MiB', nextStep: `Split ${d} or keep it in the repository or an artifact store instead of Drive.` }),
   upload_too_large: (d) => ({ code: 'upload_too_large', title: 'Upload is larger than 32 MB', nextStep: `Upload ${d} in smaller parts, or have a thread write it to Drive (up to 100 MiB).` }),
   mount_failed: (d) => ({ code: 'mount_failed', title: 'Drive could not be mounted', nextStep: `This run started without Drive files (${d}). Check the machine has free disk and send the message again.` }),
@@ -66,15 +66,16 @@ export class DriveFailure extends ApiFailure {
 
 type TarEntry = { name: string; data: Buffer };
 function header(name: string, size: number, type: string): Buffer {
+  const mode = type === '5' ? '0000755\0' : '0000644\0';
   const h = Buffer.alloc(512);
-  h.write(name, 0, 100); h.write('0000644\0', 100); h.write('0001000\0', 108); h.write('0001000\0', 116);
+  h.write(name, 0, 100); h.write(mode, 100); h.write('0001000\0', 108); h.write('0001000\0', 116);
   h.write(size.toString(8).padStart(11, '0') + '\0', 124); h.write('00000000000\0', 136); h.write('        ', 148); h.write(type, 156); h.write('ustar\0', 257); h.write('00', 263);
   let sum = 0; for (const b of h) sum += b;
   h.write(sum.toString(8).padStart(6, '0') + '\0 ', 148);
   return h;
 }
 const pad = (b: Buffer) => Buffer.concat([b, Buffer.alloc((512 - b.length % 512) % 512)]);
-/** A ustar archive; names over 100 bytes get a PAX `path` record. */
+/** A ustar archive owned by uid/gid 1000 (`node`); names ending in `/` are folders; names over 100 bytes get a PAX `path` record. */
 export function tar(entries: TarEntry[]): Buffer {
   const out: Buffer[] = [];
   for (const e of entries) {
@@ -83,7 +84,7 @@ export function tar(entries: TarEntry[]): Buffer {
       const pax = Buffer.from(rec(Buffer.byteLength(e.name) + 8));
       out.push(header('PaxHeader', pax.length, 'x'), pad(pax));
     }
-    out.push(header(e.name.slice(0, 100), e.data.length, '0'), pad(e.data));
+    const dir = e.name.endsWith('/'); out.push(header(e.name.slice(0, 100), dir ? 0 : e.data.length, dir ? '5' : '0'), ...(dir ? [] : [pad(e.data)]));
   }
   return Buffer.concat([...out, Buffer.alloc(1024)]);
 }
