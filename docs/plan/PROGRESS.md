@@ -1,11 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 2, waves 3-6 continuing in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-Current `flotilla/p1` head: `962a920` (phase2-20 captain crew rules).
+Current `flotilla/p1` head before this PR: `d297bd5` (repair-16 progress).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` at `962a920`: done 209, pending 349, needs-human-login 18, n-a 22, blocked 38.
+Counted in `docs/plan/PARITY.md` on this branch after machine UX/networking: done 213, pending 344, needs-human-login 18, n-a 22, blocked 39.
 
 ## Unit table
 
@@ -45,6 +45,7 @@ Counted in `docs/plan/PARITY.md` at `962a920`: done 209, pending 349, needs-huma
 | phase2-20-captain-create-crew | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/62 | promote/add/archive/release crew API and ownership/project rules; 6 rows done, dialog/folder/ask/full lifecycle rows blocked; machine cleanup/deletion review hardening included; see `docs/runlog/phase2-20.md` |
 | phase2-19-subagent-forks-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/60 | subagent list/get/messages plus subagent/task SSE APIs; 5 rows done, fork/side-chat rows blocked for missing workspace/session-copy primitive; see `docs/runlog/phase2-19.md` |
 | phase2-37-support-docs | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/58 | troubleshooting guide/index covering all 12 required operator topics; CAPY-464 done; see `docs/runlog/phase2-37.md` |
+| phase2-13-machine-ux-network | in review | 1 |  | network posture, resize/move, sleeping workspace reads, web shell auto-backgrounding; CAPY-214/477/478/479 done, CAPY-215 blocked for missing desktop server; see `docs/runlog/phase2-13.md` |
 
 ## Next action
 

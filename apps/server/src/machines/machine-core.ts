@@ -182,6 +182,13 @@ export class MachineCore {
     await this.q('UPDATE machine_leases SET keep_awake_until=$2 WHERE thread_id=$1 AND state=\'awake\'', [threadId, on ? this.at(this.now() + this.cap.keepAwakeMs) : null]);
     return this.state(threadId);
   }
+  /** User-requested resize/move helper: fail closed while a run holds the machine, otherwise sleep it without deleting the workspace volume. */
+  async sleepNow(threadId: string): Promise<void> {
+    const [r] = await this.q('SELECT * FROM machine_leases WHERE thread_id=$1', [threadId]);
+    if (!r || r.state === 'sleeping' || r.state === 'deleted') return;
+    if (r.state === 'starting' || r.holds > 0) throw new ApiFailure('Conflict', 'machine is busy; stop the run before moving it');
+    await this.sleep(r, this.now());
+  }
   /** Captures machine state before a thread row is deleted; the returned cleanup runs only after the delete commits. */
   async prepareDestroy(threadId: string): Promise<() => Promise<void>> {
     const [r] = await this.q('SELECT * FROM machine_leases WHERE thread_id=$1', [threadId]);
