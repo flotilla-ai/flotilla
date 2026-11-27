@@ -38,7 +38,7 @@ export class NotificationCenter {
     if(existing&&existing.user_id!==userId)throw new ApiFailure('Conflict','push endpoint is already registered');
     if(existing){await this.q('UPDATE push_subscriptions SET keys=$2 WHERE id=$1',[existing.id,JSON.stringify(input.keys??{})]);return{id:existing.id}}
     const id=`ps_${crypto.randomBytes(8).toString('hex')}`;
-    await this.q('INSERT INTO push_subscriptions(id,user_id,endpoint,keys) VALUES($1,$2,$3,$4)',[id,userId,input.endpoint,JSON.stringify(input.keys??{})]);
+    try{await this.q('INSERT INTO push_subscriptions(id,user_id,endpoint,keys) VALUES($1,$2,$3,$4)',[id,userId,input.endpoint,JSON.stringify(input.keys??{})])}catch(err){if((err as {code?:string}).code==='23505')throw new ApiFailure('Conflict','push endpoint is already registered');throw err}
     return { id };
   }
   private async insert(userId:string,kind:AppNotification['kind'],body:string,payload:Record<string,unknown>={}):Promise<AppNotification> {
