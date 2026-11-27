@@ -275,14 +275,14 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-269 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
 | CAPY-270 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
 | CAPY-271 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-272 | Drive | P2 | done | phase2-30 | PRURL | Scopes `org`, `user`, `project`, `project-user`, `automation`, `captain` in `drive_items` (Postgres) + content-addressed blobs in `FLOTILLA_DRIVE_DIR`; access: org read all/write admin, personal owner, project owner, automation admin, Captain owner (drive-core.test.ts). |
-| CAPY-273 | Drive | P2 | done | phase2-30 | PRURL | Each thread mount copies its Drives to `/run/flotilla/drive/<scope>` before the agent starts (`onBeforeRun`); root `AGENTS.md` text is appended to the prompt (drive-core.test.ts, fake driver + fake adapter). |
-| CAPY-274 | Drive | P2 | done | phase2-30 | PRURL | `skills/<name>/SKILL.md` files are mounted and listed by name/path in the run prompt and `GET /threads/:id/drive` (drive-core.test.ts). |
-| CAPY-275 | Drive | P2 | done | phase2-30 | PRURL | After a run, changed files in writable mounted Drives are saved as new versions `by` the thread (`source=agent`), no git commit; unchanged files skipped; deletions inside the machine are not synced (drive-core.test.ts). |
-| CAPY-276 | Drive | P2 | done | phase2-30 | PRURL | `/#/drive` page (scope picker, folders, edit+Save with `baseVersion`, upload, delete); `PUT /drive/files` rejects >32 MB uploads with a card (drive-core.test.ts + e2e/drive-core.spec.ts with mocked API). |
-| CAPY-277 | Drive | P2 | blocked | phase2-30 | PRURL | `GET /threads/:id/drive/copy` returns a point-in-time tar (`x-flotilla-drive-sync: none`) and later edits are not reflected (drive-core.test.ts); nothing unpacks it into `~/.flotilla/drive` on a local machine yet; needs the BYOM machine unit. |
-| CAPY-278 | Drive | P2 | done | phase2-30 | PRURL | Every version kept in `drive_versions` (no expiry); `GET /drive/items/:id/versions`, `POST /drive/items/:id/restore` writes a new `restore` version (drive-core.test.ts). |
-| CAPY-279 | Drive | P2 | done | phase2-30 | PRURL | No plans in Flotilla: quota per Drive is `FLOTILLA_DRIVE_QUOTA_BYTES` (default 10 GiB); 100 MiB per file; over-quota save returns 413 with a `drive_full` card shown on the Drive page (drive-core.test.ts + spec). |
+| CAPY-272 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | Scopes `org`, `user`, `project`, `project-user`, `automation`, `captain` in `drive_items` (Postgres) + content-addressed blobs in `FLOTILLA_DRIVE_DIR`; access: org read all/write admin, personal owner, project owner, automation admin, Captain owner (drive-core.test.ts). |
+| CAPY-273 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | Each thread mount copies its Drives to `/run/flotilla/drive/<scope>` before the agent starts (`onBeforeRun`); root `AGENTS.md` text is appended to the prompt (drive-core.test.ts, fake driver + fake adapter). |
+| CAPY-274 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | `skills/<name>/SKILL.md` files are mounted and listed by name/path in the run prompt and `GET /threads/:id/drive` (drive-core.test.ts). |
+| CAPY-275 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | After a run, changed files in writable mounted Drives are saved as new versions `by` the thread (`source=agent`), no git commit; unchanged files skipped; deletions inside the machine are not synced (drive-core.test.ts). |
+| CAPY-276 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | `/#/drive` page (scope picker, folders, edit+Save with `baseVersion`, upload, delete); `PUT /drive/files` rejects >32 MB uploads with a card (drive-core.test.ts + e2e/drive-core.spec.ts with mocked API). |
+| CAPY-277 | Drive | P2 | blocked | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | `GET /threads/:id/drive/copy` returns a point-in-time tar (`x-flotilla-drive-sync: none`) and later edits are not reflected (drive-core.test.ts); nothing unpacks it into `~/.flotilla/drive` on a local machine yet; needs the BYOM machine unit. |
+| CAPY-278 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | Every version kept in `drive_versions` (no expiry); `GET /drive/items/:id/versions`, `POST /drive/items/:id/restore` writes a new `restore` version (drive-core.test.ts). |
+| CAPY-279 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | No plans in Flotilla: quota per Drive is `FLOTILLA_DRIVE_QUOTA_BYTES` (default 10 GiB); 100 MiB per file; over-quota save returns 413 with a `drive_full` card shown on the Drive page (drive-core.test.ts + spec). |
 | CAPY-280 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-281 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-282 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
@@ -505,8 +505,8 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-499 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-500 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-501 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-502 | Drive | P2 | done | phase2-30 | PRURL | Usage is summed as bigint; a Drive at >2 GiB accepts saves up to its quota (drive-core.test.ts, sizes recorded without writing 2 GiB). |
-| CAPY-503 | Drive | P2 | done | phase2-30 | PRURL | Mount/save failures insert a non-blocking `approvals` card with `detail.drive={code,title,nextStep}`; the run still starts (drive-core.test.ts). |
+| CAPY-502 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | Usage is summed as bigint; a Drive at >2 GiB accepts saves up to its quota (drive-core.test.ts, sizes recorded without writing 2 GiB). |
+| CAPY-503 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | Mount/save failures insert a non-blocking `approvals` card with `detail.drive={code,title,nextStep}`; the run still starts (drive-core.test.ts). |
 | CAPY-504 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-505 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-506 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |

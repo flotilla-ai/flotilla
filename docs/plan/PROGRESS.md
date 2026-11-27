@@ -32,7 +32,7 @@ Counted in `docs/plan/PARITY.md` on this branch: done 124, pending 445, needs-hu
 | phase2-10-environments | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/39 | environments model/store/executor seams; 2 rows done, 7 blocked on phase2-11/phase2-12 wiring; see `docs/runlog/phase2-10.md` |
 | phase2-17-wakes | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/45 | wake router, watches/timers, background jobs, cross-thread peek/send, held messages; 9 rows done, 4 blocked; see `docs/runlog/phase2-17.md` |
 
-| phase2-30-drive-core | in review | 1 | PRURL | Drive store, versions, quota, thread mount/write-back, failure cards, `/drive` page; 9 rows done, 1 blocked (CAPY-277 BYOM); see `docs/runlog/phase2-30.md` |
+| phase2-30-drive-core | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/51 | Drive store, versions, quota, thread mount/write-back, failure cards, `/drive` page; 9 rows done, 1 blocked (CAPY-277 BYOM); see `docs/runlog/phase2-30.md` |
 | phase2-06-thread-composer | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/40 | composer keymap/attachments, request cards + Undo, thread codes, sections/ticks/reading place, deep link, owner-approved feedback; 10 rows done; see `docs/runlog/phase2-06.md` |
 
 ## Next action
