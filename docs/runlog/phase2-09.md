@@ -97,3 +97,5 @@ $ pnpm --filter @flotilla/web exec vitest run src/features/previews
 - Merged `origin/flotilla/p1` (`bd40ab1`, phase2-07). DECISIONS-LOG and PROGRESS conflicts were resolved keeping both sides. Afterwards: server previews+machines `Tests  20 passed | 1 skipped (21)`, web `Tests  3 passed (3)`, typecheck OK, `pnpm -r lint` exit 0.
 - Fixed: the preview iframe is sandboxed without `allow-top-navigation` (the test failed before the fix and passes after). Stale suggestions are cleared when the thread changes, and Open never re-PUTs an existing preview.
 - Escalated: a cross-site preview origin cannot receive the Lax preview cookie inside the iframe. The default same-host :8081 setup and P2 subdomains are same-site.
+
+- Merged `origin/flotilla/p1` (`26f6713`, phase2-05). The PROGRESS.md conflict was resolved keeping both entries. Afterwards: server previews+machines `Tests  20 passed | 1 skipped (21)`, web `Tests  3 passed (3)`, typecheck OK, lint exit 0.
