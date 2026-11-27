@@ -4,7 +4,7 @@ test('CAPY-276 Drive page browses, edits, uploads and deletes; CAPY-279 shows th
  const item=(p:string)=>({id:`drv_${p}`,path:p,name:p.split('/').pop(),type:'file',size:files[p].length,version:1});
  await page.route('**/api/v1/drive/scopes',r=>r.fulfill({json:{items:[{scope:{kind:'user',id:'usr_1'},usedBytes:2*1048576,limitBytes:10*1048576,full:false},{scope:{kind:'org'},usedBytes:0,limitBytes:10*1048576,full:false}]}}));
  await page.route('**/api/v1/drive/items?*',r=>{const parent=new URL(r.request().url()).searchParams.get('parent')??'';const kids=Object.keys(files).filter(p=>p.split('/').slice(0,-1).join('/')===parent).map(item);const folders=parent?[]:[...new Set(Object.keys(files).filter(p=>p.includes('/')).map(p=>p.split('/')[0]))].map(f=>({id:`drv_${f}`,path:f,name:f,type:'folder',size:0,version:0}));return r.fulfill({json:{items:[...folders,...kids]}})});
- await page.route('**/api/v1/drive/items/*/content',r=>r.fulfill({body:files[decodeURIComponent(r.request().url().split('/').at(-2)!.slice(4))]}));
+ await page.route('**/api/v1/drive/items/*/content',r=>{const p=decodeURIComponent(r.request().url().split('/').at(-2)!.slice(4));return r.fulfill({body:p==='img.bin'?Buffer.from([0xff,0xfe,0x00]):files[p]})});
  await page.route('**/api/v1/drive/items/drv_*',r=>{if(r.request().method()==='DELETE'){delete files[decodeURIComponent(r.request().url().split('/').at(-1)!.slice(4))];return r.fulfill({status:204})}return r.fallback()});
  await page.route('**/api/v1/drive/files?*',r=>{const u=new URL(r.request().url());const p=u.searchParams.get('path')!;puts.push(`${p}@${u.searchParams.get('baseVersion')??'-'}`);if(full)return r.fulfill({status:413,json:{error:'full',code:'flotilla/PayloadTooLarge',card:{code:'drive_full',title:'Drive is full',nextStep:'Delete files or versions you no longer need.'}}});files[p]=r.request().postDataBuffer()?.toString()??'';return r.fulfill({json:item(p)})});
  await page.goto('/#/drive');
@@ -19,5 +19,7 @@ test('CAPY-276 Drive page browses, edits, uploads and deletes; CAPY-279 shows th
  full=true;await page.getByLabel('new file name').fill('more.md');await page.getByRole('button',{name:'New file',exact:true}).click();
  const alert=page.getByRole('alert');await expect(alert.getByText('Drive is full')).toBeVisible();await expect(alert.getByText('Delete files or versions you no longer need.')).toBeVisible();
  expect(await alert.evaluate(e=>getComputedStyle(e).borderColor)).toBe('rgb(242, 140, 40)');
- expect(puts).toEqual(['notes.md@1','up.txt@-','more.md@-']);
+ expect(puts).toEqual(['notes.md@1','up.txt@-','more.md@0']);
+ await page.getByRole('button',{name:'Dismiss',exact:true}).click();files['img.bin']='\xff\xfe';await page.reload();await page.getByRole('button',{name:'img.bin',exact:true}).click();
+ await expect(page.getByRole('alert').getByText('img.bin is not a text file')).toBeVisible();await expect(page.getByLabel('file content')).toHaveCount(0);
 });
