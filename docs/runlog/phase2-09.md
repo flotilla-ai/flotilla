@@ -99,3 +99,4 @@ $ pnpm --filter @flotilla/web exec vitest run src/features/previews
 - Escalated: a cross-site preview origin cannot receive the Lax preview cookie inside the iframe. The default same-host :8081 setup and P2 subdomains are same-site.
 
 - Merged `origin/flotilla/p1` (`26f6713`, phase2-05). The PROGRESS.md conflict was resolved keeping both entries. Afterwards: server previews+machines `Tests  20 passed | 1 skipped (21)`, web `Tests  3 passed (3)`, typecheck OK, lint exit 0.
+- Merged `origin/flotilla/p1` (`505d663`, phase2-08). PROGRESS.md was resolved keeping both unit entries. Afterwards: server previews+machines `Tests  20 passed | 1 skipped (21)`, web `Tests  3 passed (3)`, typecheck OK, lint exit 0.
