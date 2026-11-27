@@ -83,4 +83,20 @@ export class DockerMachineDriver {
       await network.remove().catch(() => undefined);
     }
   }
+
+  /** Removes the deterministic per-thread network even when the container record is already gone. */
+  async removeThreadNetwork(threadId: string): Promise<void> {
+    const name = `flt-${threadId}`;
+    const gateIds = new Set((await this.docker.listContainers({ all: true, filters: { label: ['flotilla.role=gate'] } })).map((x) => x.Id));
+    for (const row of await this.docker.listNetworks({ filters: { label: [`flotilla.thread=${threadId}`] } })) {
+      const network = this.docker.getNetwork(row.Id);
+      const inspect = await network.inspect().catch(() => null);
+      const attached = Object.entries(inspect?.Containers ?? {});
+      if (attached.some(([id]) => !gateIds.has(id))) throw new Error(`network ${name} is still in use`);
+      await gateClient().deleteNetwork(inspect?.Name ?? name).catch(() => undefined);
+      for (const [attachedId] of attached) await network.disconnect({ Container: attachedId, Force: true }).catch(() => undefined);
+      await network.remove();
+    }
+  }
+
 }
