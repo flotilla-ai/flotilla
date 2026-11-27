@@ -25,10 +25,24 @@ export class ApiTasksReviewsStore {
   private lifecycle() { return this.lifecycleStore; }
   async listTasks(userId: string): Promise<{ items: TaskAlias[] }> { return { items: (await this.lifecycle().list(userId, 'all')).map(task) }; }
   async getTask(userId: string, id: string): Promise<TaskAlias> { return task(await this.lifecycle().view(id, userId)); }
-  async taskMessages(userId: string, id: string): Promise<{ items: TaskMessage[] }> {
-    await this.lifecycle().view(id, userId);
-    const rows = (await this.pool.query(`SELECT id,seq,kind,at,source,payload FROM events WHERE thread_id=$1 AND kind IN ('user.message','agent.message') ORDER BY seq LIMIT 1000`, [id])).rows as Row[];
-    return { items: rows.map(msg) };
+  async taskMessages(userId: string, id: string, cursorInput?: string, limitInput?: number): Promise<{ items: TaskMessage[]; nextCursor: string | null }> {
+    const after = cursorInput === undefined ? 0 : Number(cursorInput);
+    if (!Number.isSafeInteger(after) || after < 0) throw new ApiFailure('ValidationFailed', 'cursor must be a non-negative message sequence');
+    if (limitInput !== undefined && (!Number.isSafeInteger(limitInput) || limitInput < 1)) throw new ApiFailure('ValidationFailed', 'limit must be a positive integer');
+    const limit = Math.min(limitInput ?? 500, 500);
+    const rows = (await this.pool.query(`WITH access AS (
+        SELECT 1 FROM threads t LEFT JOIN thread_members m ON m.thread_id=t.id AND m.user_id=$2
+        WHERE t.id=$1 AND (t.owner_id=$2 OR t.visibility='shared' OR m.joined)
+      )
+      SELECT e.id,e.seq,e.kind,e.at,e.source,e.payload,(SELECT count(*)::int FROM access) access_count
+      FROM events e WHERE e.thread_id=$1 AND e.kind IN ('user.message','agent.message','agent.delta') AND e.seq>$3 AND EXISTS (SELECT 1 FROM access)
+      ORDER BY e.seq LIMIT $4`, [id, userId, after, limit + 1])).rows as Row[];
+    if (!rows.length) {
+      const [access] = (await this.pool.query(`SELECT 1 FROM threads t LEFT JOIN thread_members m ON m.thread_id=t.id AND m.user_id=$2 WHERE t.id=$1 AND (t.owner_id=$2 OR t.visibility='shared' OR m.joined)`, [id, userId])).rows as Row[];
+      if (!access) throw new ApiFailure('NotFound', 'task not found');
+    }
+    const page = rows.slice(0, limit);
+    return { items: page.map(msg), nextCursor: rows.length > limit ? String(page.at(-1)?.seq ?? after) : null };
   }
   reviewSettings(userId: string, repo: string, input?: Row): Promise<ReviewSettings> { return this.reviews.settings(userId, repo, input); }
   startReview(userId: string, input: Row): Promise<ReviewRun> { return this.reviews.start(userId, input, 'api'); }
@@ -41,11 +55,22 @@ export class ApiTasksReviewsStore {
   async pull(userId: string, repo: string, prNumber: number): Promise<ReviewPull> { return { repo, prNumber, ...(await this.reviews.state(userId, repo, prNumber)) }; }
   async updateFindingStatuses(userId: string, input: Row): Promise<{ items: ReviewFinding[] }> {
     if (!Array.isArray(input.items) || !input.items.length || input.items.length > 100) throw new ApiFailure('ValidationFailed', 'items must list 1-100 finding updates');
-    const out: ReviewFinding[] = [];
-    for (const item of input.items as Row[]) {
+    const updates = input.items as Row[];
+    if (new Set(updates.map((x) => x.id)).size !== updates.length) throw new ApiFailure('ValidationFailed', 'finding ids must be unique');
+    for (const item of updates) {
       if (typeof item.id !== 'string') throw new ApiFailure('ValidationFailed', 'each finding update needs an id');
-      out.push(await this.reviews.triage(userId, item.id, item.status));
+      if (!['open', 'resolved', 'irrelevant'].includes(String(item.status))) throw new ApiFailure('ValidationFailed', 'invalid triage status');
     }
+    const client = await this.pool.connect(); const out: ReviewFinding[] = [];
+    try {
+      await client.query('BEGIN');
+      for (const item of updates) {
+        const r = (await client.query(`UPDATE review_findings SET status=$3,github_thread_state=CASE WHEN $3='open' THEN 'open' ELSE 'resolved' END,updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING *`, [item.id, userId, item.status])).rows[0] as Row | undefined;
+        if (!r) throw new ApiFailure('NotFound', 'review finding not found');
+        out.push(reviewFinding(r));
+      }
+      await client.query('COMMIT');
+    } catch (e) { await client.query('ROLLBACK'); throw e } finally { client.release() }
     return { items: out };
   }
 }

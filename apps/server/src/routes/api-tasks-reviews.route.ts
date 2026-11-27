@@ -10,7 +10,7 @@ export function createApiTasksReviewsRoute(getStore = () => apiTasksReviewsStore
   const app = new Hono();
   app.get('/tasks', async (c) => c.json(await getStore().listTasks(user(c))));
   app.get('/tasks/:id', async (c) => c.json(await getStore().getTask(user(c), c.req.param('id'))));
-  app.get('/tasks/:id/messages', async (c) => c.json(await getStore().taskMessages(user(c), c.req.param('id'))));
+  app.get('/tasks/:id/messages', async (c) => c.json(await getStore().taskMessages(user(c), c.req.param('id'), c.req.query('cursor'), c.req.query('limit') === undefined ? undefined : Number(c.req.query('limit')))));
   app.get('/review-settings/:owner/:repo', async (c) => c.json(await getStore().reviewSettings(user(c), `${c.req.param('owner')}/${c.req.param('repo')}`)));
   app.put('/review-settings/:owner/:repo', async (c) => c.json(await getStore().reviewSettings(user(c), `${c.req.param('owner')}/${c.req.param('repo')}`, await body(c))));
   app.post('/review-runs', async (c) => c.json(await getStore().startReview(user(c), await body(c)), 201));
