@@ -96,48 +96,40 @@ apps/server lint: Done
 EXIT 0
 ```
 
-## After merging `origin/flotilla/p1` `0662ec8`
-`pnpm --filter @flotilla/server test`:
+## After merging `origin/flotilla/p1` `eba906f`
+`make check` (includes `pnpm --filter @flotilla/server test`):
 ```
- Test Files  23 passed (23)
-      Tests  141 passed | 1 skipped (142)
-   Start at  11:58:13
-   Duration  7.93s (transform 1.34s, setup 0ms, collect 3.86s, tests 42.21s, environment 4ms, prepare 1.74s)
-
-EXIT 0
-```
-`make check`:
-```
-apps/gate test:  Test Files  2 passed (2)
-apps/gate test:       Tests  5 passed (5)
 packages/core test:  Test Files  6 passed (6)
 packages/core test:       Tests  15 passed (15)
+apps/gate test:  Test Files  2 passed (2)
+apps/gate test:       Tests  5 passed (5)
 apps/web test$ vitest run --passWithNoTests src
 packages/adapters/host test:  Test Files  1 passed (1)
 packages/adapters/host test:       Tests  3 passed (3)
-apps/web test:  Test Files  5 passed (5)
-apps/web test:       Tests  16 passed (16)
-packages/adapters/codex test:  Test Files  1 passed (1)
-packages/adapters/codex test:       Tests  5 passed (5)
+apps/web test:  Test Files  6 passed (6)
+apps/web test:       Tests  17 passed (17)
 packages/adapters/claude-code test:  Test Files  1 passed (1)
 packages/adapters/claude-code test:       Tests  7 passed (7)
+packages/adapters/codex test:  Test Files  1 passed (1)
+packages/adapters/codex test:       Tests  5 passed (5)
 packages/adapters/generic-cli test:  Test Files  1 passed (1)
 packages/adapters/generic-cli test:       Tests  4 passed (4)
 packages/adapters/fake test:  Test Files  1 passed (1)
 packages/adapters/fake test:       Tests  3 passed (3)
-apps/server test:  Test Files  23 passed (23)
-apps/server test:       Tests  141 passed | 1 skipped (142)
+apps/server test:  Test Files  24 passed (24)
+apps/server test:       Tests  154 passed | 1 skipped (155)
 apps/gate lint: Done
 packages/core lint: Done
 packages/adapters/host lint: Done
 apps/web lint: Done
 packages/adapters/fake lint: Done
-packages/adapters/claude-code lint: Done
-packages/adapters/codex lint: Done
 packages/adapters/generic-cli lint: Done
+packages/adapters/codex lint: Done
+packages/adapters/claude-code lint: Done
 apps/server lint: Done
 EXIT 0
 ```
+CI run 1 on `4f614c0` failed once in `runner-queue.test.ts` CAPY-476/026 (`usedTokens` 0 vs 1500); that test does not use `machines` and passed 3/3 locally in isolation and in the run above (unverified flake).
 
 ## Unverified
 - Real Docker sleep/wake with `flotilla-thread:dev` (container removal, volume reuse, `deleteWorkspace` volume removal) was not run; tests use a fake driver.
