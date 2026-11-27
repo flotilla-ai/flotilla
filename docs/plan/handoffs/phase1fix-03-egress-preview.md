@@ -24,4 +24,4 @@ make check
 
 EXPECTED: real network traffic through the gate/container path, not only policy unit tests; preview bearer gets 200, missing bearer gets 401, and a UI session cookie is rejected on the preview origin.
 
-ROWS: CAPY-152, CAPY-153, CAPY-154, CAPY-155, CAPY-156, CAPY-157, CAPY-158, CAPY-421, CAPY-422, CAPY-423, CAPY-424
+ROWS: CAPY-220, CAPY-222

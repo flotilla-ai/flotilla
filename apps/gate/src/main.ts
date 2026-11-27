@@ -9,6 +9,7 @@ export type GateState = {
   byInterface: Map<string, NetworkRule>;
   byName: Map<string, NetworkRule>;
   interfaceForName: Map<string, string>;
+  edgeAddresses?: Set<string>;
 };
 const defaultResolver: Resolver = async (host) => (await lookup(host, { all: true, verbatim: true })).map((x) => x.address);
 function token(): string | null { try { return readFileSync('/run/flotilla-gate/token', 'utf8').trim(); } catch { return process.env.GATE_ADMIN_TOKEN ?? null; } }
@@ -30,7 +31,11 @@ export function createGate(state: GateState = { byInterface: new Map(), byName: 
     req.pipe(upstream);
   });
 
-  const admin = createServer((req, res) => { void adminApi(req, res, state); });
+  const admin = createServer((req, res) => {
+    const local = (req.socket.localAddress ?? '').replace(/^::ffff:/, '');
+    if (state.edgeAddresses?.size && !state.edgeAddresses.has(local)) { res.writeHead(404); res.end(); return; }
+    void adminApi(req, res, state);
+  });
   return { proxy, relay, admin, state };
 }
 
@@ -100,7 +105,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const gate = createGate();
   gate.proxy.listen(3128, () => console.log('gate proxy listening on 3128'));
   gate.relay.listen(80, () => console.log('gate relay listening on 80'));
-  const edgeIp = Object.values(networkInterfaces()).flat().find((x) => x && x.family === 'IPv4' && !x.internal)?.address;
-  if (edgeIp) gate.state.byInterface.set(edgeIp, { allow: [], edge: true });
-  gate.admin.listen(3129, edgeIp, () => console.log('gate admin listening on 3129'));
+  const edgeIps = Object.values(networkInterfaces()).flat().filter((x) => x && x.family === 'IPv4' && !x.internal).map((x) => x!.address);
+  gate.state.edgeAddresses = new Set(edgeIps);
+  for (const edgeIp of edgeIps) gate.state.byInterface.set(edgeIp, { allow: [], edge: true });
+  gate.admin.listen(3129, () => console.log('gate admin listening on 3129'));
 }
