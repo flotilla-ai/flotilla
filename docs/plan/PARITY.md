@@ -430,14 +430,14 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-424 | Other integrations | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-425 | Other integrations | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-426 | Other integrations | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-427 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-428 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-429 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-430 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-431 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-432 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-433 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-434 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-427 | UI surfaces | P3 | done | phase3-14 |  |  Sidebar model renders Captains, Pinned, folders and threads grouped by project, folder or none in a hybrid layout.  |
+| CAPY-428 | UI surfaces | P3 | done | phase3-14 |  |  Bottom bar items support reorder and hide through persisted navigation preferences.  |
+| CAPY-429 | UI surfaces | P3 | done | phase3-14 |  |  Folder visibility/no-nesting, pinned threads and at most twenty tags are modeled and validated.  |
+| CAPY-430 | UI surfaces | P3 | done | phase3-14 |  |  Threads sidebar groups act as filterable saved-view foundations persisted in navigation preferences.  |
+| CAPY-431 | UI surfaces | P3 | done | phase3-14 |  |  Command menu model searches threads, PRs, automations and settings with category pills and filters.  |
+| CAPY-432 | UI surfaces | P3 | done | phase3-14 |  |  Thread pane tab vocabulary is represented in the tab/pane navigation slice.  |
+| CAPY-433 | UI surfaces | P3 | done | phase3-14 |  |  Tab close others/right/all, reopen closed and middle-click close behavior is implemented.  |
+| CAPY-434 | UI surfaces | P3 | done | phase3-14 |  |  Split right/down pane operations are implemented.  |
 | CAPY-435 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-436 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-437 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
@@ -511,11 +511,11 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-505 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-506 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-507 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-508 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-509 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-508 | UI surfaces | P3 | done | phase3-14 |  |  Pages-at-top, collapsible/hideable sidebar sections and customization preferences persist locally.  |
+| CAPY-509 | UI surfaces | P3 | done | phase3-14 |  |  Preview tabs close when moving on and double-click/keep semantics are modeled.  |
 | CAPY-510 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-511 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-512 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-512 | UI surfaces | P3 | done | phase3-14 |  |  Onboarding steps persist locally and joiners skip organization setup.  |
 | CAPY-513 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-514 | SSO & sign-in | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-515 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |

@@ -1,0 +1,29 @@
+import React,{useEffect,useMemo,useState} from 'react';import {bottomOrder,closeTabs,defaultPrefs,filterCommands,hideItem,loadJson,moveItem,onboardingSteps,reopenClosed,sanitizePrefs,saveJson,sidebarGroups,splitPane,type BottomItem,type CommandCategory,type CommandItem,type Folder,type NavigationPrefs,type Pane,type SidebarSection,type Tab,type ThreadNav,threadPaneTabs} from './model.js';
+
+const key='flotilla.navigation.prefs';const onboardingKey='flotilla.onboarding';
+const demoThreads:ThreadNav[]=[{id:'cap1',title:'Captain',project:'ops',folderId:null,pinned:false,tags:[],kind:'captain'},{id:'t1',title:'Fix checkout',project:'shop',folderId:'f1',pinned:true,tags:['urgent']},{id:'t2',title:'Write docs',project:'docs',folderId:null,pinned:false,tags:[]}];
+const demoFolders:Folder[]=[{id:'f1',name:'Revenue',visibility:'shared'}];
+const demoCommands:CommandItem[]=[{id:'t1',category:'thread',title:'Fix checkout',path:'/threads/t1'},{id:'pr1',category:'pr',title:'PR #12: checkout',path:'/pulls/acme/shop/12'},{id:'a1',category:'automation',title:'Nightly triage',path:'/automations/a1'},{id:'s1',category:'settings',title:'Shortcuts',path:'/settings/shortcuts'}];
+export function NavigationPrefsEditor({prefs,onChange}:{prefs:NavigationPrefs;onChange:(p:NavigationPrefs)=>void}){
+ const move=(kind:'sidebarSections'|'bottomItems',item:string,delta:-1|1)=>onChange({...prefs,[kind]:moveItem(prefs[kind] as string[],item,delta) as never});
+ const hide=(kind:'sidebarSections'|'bottomItems',hidden:'hiddenSidebarSections'|'hiddenBottomItems',item:string)=>{const x=hideItem(prefs[kind] as never,prefs[hidden] as never,item as never);onChange({...prefs,[kind]:x.items,[hidden]:x.hidden})};
+ return <section><h2>Customize navigation</h2><label><input type='checkbox' checked={prefs.pagesTop} onChange={e=>onChange({...prefs,pagesTop:e.target.checked})}/> Pages at top</label><label> Group threads <select value={prefs.groupBy} onChange={e=>onChange({...prefs,groupBy:e.target.value as never})}><option value='project'>project</option><option value='folder'>folder</option><option value='none'>none</option></select></label>
+  <h3>Sidebar sections</h3>{prefs.sidebarSections.map(x=><div key={x} className='row'><span>{x}</span><button onClick={()=>move('sidebarSections',x,-1)}>Up</button><button onClick={()=>move('sidebarSections',x,1)}>Down</button><button onClick={()=>hide('sidebarSections','hiddenSidebarSections',x)}>Hide</button></div>)}
+  <h3>Bottom bar</h3>{prefs.bottomItems.map(x=><div key={x} className='row'><span>{x}</span><button onClick={()=>move('bottomItems',x,-1)}>Up</button><button onClick={()=>move('bottomItems',x,1)}>Down</button><button onClick={()=>hide('bottomItems','hiddenBottomItems',x)}>Hide</button></div>)}
+ </section>}
+export function CommandMenu({items,query,category}:{items:CommandItem[];query:string;category:CommandCategory|'all'}){
+ const filtered=filterCommands(items,query,category);return <section aria-label='command menu'><h2>Command menu</h2><div>{(['all','thread','pr','automation','settings'] as const).map(x=><button key={x} aria-pressed={category===x}>{x}</button>)}</div>{filtered.map(x=><a key={x.id} href={x.path}>{x.category}: {x.title}</a>)}</section>}
+function UiNavigation(){const[prefs,setPrefs]=useState(()=>sanitizePrefs(loadJson(key,defaultPrefs())));const[tabs,setTabs]=useState<Tab[]>([{id:'one',title:'Thread one',preview:true},{id:'two',title:'Thread two',preview:false}]);const[panes,setPanes]=useState<Pane[]>([{id:'main',direction:null,tabs:[]}]);const[done,setDone]=useState<string[]>(()=>loadJson<string[]>(onboardingKey,[]));useEffect(()=>saveJson(key,prefs),[prefs]);useEffect(()=>saveJson(onboardingKey,done),[done]);
+ const groups=useMemo(()=>sidebarGroups(demoThreads,demoFolders,prefs.groupBy),[prefs.groupBy]);const steps=onboardingSteps('joiner');
+ return <main><h1>Navigation</h1><p>Hybrid sidebar, customizable bottom bar, command menu, tabs, split panes and persistent onboarding.</p>
+  {prefs.sidebarSections.includes('captains')&&<section><h2>Captains</h2>{groups.captains.map(x=><div key={x.id}>{x.title}</div>)}</section>}
+  {prefs.sidebarSections.includes('pinned')&&<section><h2>Pinned</h2>{groups.pinned.map(x=><div key={x.id}>{x.title} {x.tags.map(t=><small key={t}>#{t}</small>)}</div>)}</section>}
+  {prefs.sidebarSections.includes('folders')&&<section><h2>Folders</h2>{groups.folders.map(x=><div key={x.id}>{x.name} ({x.visibility})</div>)}</section>}
+  {prefs.sidebarSections.includes('threads')&&<section><h2>Threads</h2>{groups.groups.map(g=><div key={g.label}><h3>{g.label}</h3>{g.items.map(x=><div key={x.id}>{x.title}</div>)}</div>)}</section>}
+  <nav aria-label='bottom bar'>{prefs.bottomItems.map(x=><a key={x} href={`/${x}`}>{x}</a>)}</nav><NavigationPrefsEditor prefs={prefs} onChange={setPrefs}/>
+  <CommandMenu items={demoCommands} query='checkout' category='all'/>
+  <section><h2>Thread pane</h2><div>{threadPaneTabs.map(x=><button key={x}>{x}</button>)}</div></section>
+  <section><h2>Tabs and panes</h2>{tabs.filter(t=>!t.closed).map(t=><span key={t.id}>{t.title}{t.preview?' (preview)':''} </span>)}<button onClick={()=>setTabs(closeTabs(tabs,'one','others'))}>Close others</button><button onClick={()=>setTabs(closeTabs(tabs,'one','right'))}>Close right</button><button onClick={()=>setTabs(closeTabs(tabs,'one','all'))}>Close all</button><button onClick={()=>setTabs(reopenClosed(tabs))}>Reopen closed</button><button onClick={()=>setPanes(splitPane(panes,'main','right'))}>Split right</button><button onClick={()=>setPanes(splitPane(panes,'main','down'))}>Split down</button><small>{panes.length} pane(s)</small></section>
+  <section><h2>Onboarding</h2>{steps.map(s=><label key={s}><input type='checkbox' checked={done.includes(s)} onChange={()=>setDone(done.includes(s)?done:[...done,s])}/>{s}</label>)}</section>
+ </main>}
+export default {path:'/navigation',element:<UiNavigation/>,nav:'Navigate'}

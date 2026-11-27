@@ -5,7 +5,7 @@ Current `flotilla/p1` head before this PR: `17cef95` (phase3-20 merge).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after all phase-2 units: done 358, pending 153, needs-human-login 24, n-a 22, blocked 82.
+Counted in `docs/plan/PARITY.md` after all phase-2 units: done 369, pending 142, needs-human-login 24, n-a 22, blocked 82.
 
 ## Unit table
 
