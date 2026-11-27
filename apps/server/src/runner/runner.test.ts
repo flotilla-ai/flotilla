@@ -56,6 +56,20 @@ describe('thread runner',()=>{
     const t=await runner.createThread({ownerId:'usr_test',title:'first attachments',prompt:'hello',requestId:'req-first-attachments',attachments:['file_first']});
     const item=(await pool.query('SELECT attachments,state FROM thread_inbox WHERE thread_id=$1 ORDER BY created_at LIMIT 1',[t.id as string])).rows[0];
     expect(item.attachments).toEqual(['file_first']); expect(item.state).toBe('waiting_upload');
+    await runner.drain();
+    expect((await pool.query('SELECT count(*)::int n FROM runs WHERE thread_id=$1',[t.id as string])).rows[0].n).toBe(0);
+    await pool.query(`UPDATE api_files SET uploaded_at=now() WHERE id='file_first'`);
+    await runner.resumePending(); await runner.drain();
+    await waitFor(`SELECT 1 FROM runs WHERE thread_id=$1 AND state<>'running' AND state<>'starting'`,[t.id as string]);
+    expect((await pool.query('SELECT state FROM thread_inbox WHERE thread_id=$1 ORDER BY created_at LIMIT 1',[t.id as string])).rows[0].state).toBe('delivered');
+    await runner.stop(t.id as string,'usr_test');
+  },20_000);
+  it('rejects unknown first-prompt attachments before creating the thread',async()=>{
+    await expect(runner.createThread({ownerId:'usr_test',title:'bad first attachments',prompt:'hello',requestId:'req-bad-first-attachments',attachments:['file_missing_first']})).rejects.toThrow('unknown attachment');
+    expect((await pool.query(`SELECT count(*)::int n FROM threads WHERE owner_id='usr_test' AND title='bad first attachments'`)).rows[0].n).toBe(0);
+    await pool.query(`INSERT INTO api_files (id,owner_id,name,content_type,size,upload_token_hash,upload_expires_at) VALUES ('file_retry_first','usr_test','a.txt','text/plain',1,'',now())`);
+    const t=await runner.createThread({ownerId:'usr_test',title:'bad first attachments',prompt:'hello',requestId:'req-bad-first-attachments',attachments:['file_retry_first']});
+    expect((await pool.query('SELECT count(*)::int n FROM thread_inbox WHERE thread_id=$1',[t.id as string])).rows[0].n).toBe(1);
     await runner.stop(t.id as string,'usr_test');
   },20_000);
   it('does not mutate another owner approval before the ownership check',async()=>{

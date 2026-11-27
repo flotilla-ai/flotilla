@@ -55,6 +55,7 @@ export class ThreadRunner {
     if (input.projectId) { const ownedProject=(await this.pool.query('SELECT 1 FROM projects WHERE id=$1 AND owner_id=$2',[input.projectId,input.ownerId])).rows[0]; if(!ownedProject) throw new Error('project not found'); }
     const env = input.env ?? [];
     if (env.length && !this.deps.vault) throw new Error('secrets vault not configured');
+    await this.inbox.validateAttachments(input.ownerId, input.attachments);
     const threadId = id('thr'); const code = `FLO-${randomBytes(2).toString('hex').toUpperCase()}`;
     const row = (await this.pool.query(`INSERT INTO threads (id,code,project_id,role,owner_id,title,status,engine,budget,spent,parent_id) VALUES ($1,$2,$3,'thread',$4,$5,'queued',$6,$7,$8,$9) RETURNING *`, [threadId, code, input.projectId ?? null, input.ownerId, input.title, JSON.stringify(input.engine ?? { adapter: 'fake', model: null, effort: null, connectionId: null }), JSON.stringify(budget(input.maxUsd ?? null)), JSON.stringify(zero), input.parentId ?? null])).rows[0];
     if (env.length) await this.deps.vault!.mutate('thread', threadId, env, input.ownerId).catch(async (err) => { await this.pool.query('DELETE FROM threads WHERE id=$1', [threadId]); throw err; });
@@ -155,6 +156,7 @@ export class ThreadRunner {
 
   async startNext(threadId: string, trigger: string): Promise<void> {
     if (this.running.has(threadId)) return;
+    if (!(await this.inbox.hasPending(threadId))) return;
     if ((await this.pool.query(`SELECT 1 FROM approvals WHERE thread_id=$1 AND gate='plan' AND state='open'`, [threadId])).rows[0]) return;
     if (this.running.has(threadId)) return;
     const promise = this.run(threadId, trigger).catch(async (_err) => { await this.pool.query(`UPDATE threads SET status='failed' WHERE id=$1`, [threadId]); }).finally(() => this.running.delete(threadId));

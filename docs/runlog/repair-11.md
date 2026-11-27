@@ -18,3 +18,5 @@ The regression proves the first inbox item carries `file_first` and enters `wait
 
 ## Unverified
 The new-thread composer still does not expose attachment picking; this repair only makes the server/API path possible.
+
+Review round 1: first-prompt uploads no longer start an empty agent run before files arrive; unknown attachment ids are validated before the thread row/event exist, so retrying the same idempotency key can correct the request. Focused runner proof now passes 6/6.
