@@ -83,11 +83,14 @@ export class CheckMonitor {
     const rows = await this.deps.pool.query(`SELECT t.id thread_id, p.repo repo, pr.number, pr.head_branch FROM prs pr JOIN threads t ON t.id=pr.thread_id JOIN projects p ON p.id=t.project_id WHERE pr.owned=true`);
     for (const row of rows.rows) {
       const repoName = typeof row.repo === 'string' ? row.repo : row.repo.fullName;
-      const branch = row.head_branch;
       try {
         const client = this.deps.clientFor(repoName);
-        const pr = await client.findPr(repoName, branch);
-        if (pr) await this.process(repoName, row.number, row.thread_id, pr.head.sha);
+        const pr = await client.getPr(repoName, row.number);
+        if (pr) {
+          const state = pr.merged_at ? 'merged' : pr.state ?? 'open';
+          await this.deps.pool.query('UPDATE prs SET state=$3, updated_at=COALESCE($4::timestamptz,prs.updated_at) WHERE repo=$1 AND number=$2', [repoName, row.number, state, pr.updated_at ?? null]);
+          await this.process(repoName, row.number, row.thread_id, pr.head.sha);
+        }
       } catch { /* keep polling later */ }
     }
   }

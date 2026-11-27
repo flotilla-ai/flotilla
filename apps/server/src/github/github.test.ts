@@ -125,6 +125,23 @@ describe('github client and autofix wake logic', () => {
     await Promise.all([monitor.process('o/r', 1, 'thr_race', 'sha'), monitor.process('o/r', 1, 'thr_race', 'sha')]);
     expect(wakes).toEqual(['CI passed for o/r#1']);
   });
+  it('refreshes merged state for owned pull requests during polling', async () => {
+    const writes: unknown[][] = [];
+    const monitor = new CheckMonitor({
+      pool: { query: async (sql: string, args: unknown[] = []) => {
+        if (sql.includes('github_installations')) return { rows: [] };
+        if (sql.includes('FROM prs pr JOIN threads')) return { rows: [{ thread_id: 'thr_owned', repo: 'o/r', number: 3, head_branch: 'feature' }] };
+        writes.push([sql, ...args]); return { rows: [] };
+      } } as never,
+      store: { appendEvents: async () => undefined } as never,
+      clientFor: () => ({ getPr: async () => ({ number: 3, state: 'closed', merged_at: '2026-01-02T00:00:00Z', updated_at: '2026-01-02T00:00:00Z', head: { sha: 'merge-sha' } }), checkRuns: async () => [{ status: 'completed', conclusion: 'success', name: 'check' }] }) as never,
+      wake: async () => {}
+    });
+    await monitor.pollOnce();
+    const update = writes.find((x) => String(x[0]).includes('UPDATE prs SET state'));
+    expect(update?.slice(1)).toEqual(['o/r', 3, 'merged', '2026-01-02T00:00:00Z']);
+  });
+
   it('routes check_run webhooks to the owning thread', async () => {
     const seen: string[] = [];
     const monitor = { deps: { pool: { query: async () => ({ rows: [{ thread_id: 'thr_owner' }] }) } }, process: async (_r: string, _n: number, thread: string) => { seen.push(thread); return 'green'; } };
