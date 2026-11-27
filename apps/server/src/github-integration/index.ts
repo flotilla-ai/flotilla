@@ -19,13 +19,25 @@ export function permissionsSufficient(actual: Record<string, string>, required: 
 export class GitHubIntegrationStore {
   constructor(readonly pool: pg.Pool) {}
   async connect(userId: string, input: { login?: unknown; kind?: unknown; tokenRef?: unknown; commitIdentity?: unknown; commitEmail?: unknown }): Promise<GitHubAccount> {
-    const login = String(input.login ?? '').trim();
-    if (!/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/.test(login)) throw new ApiFailure('ValidationFailed', 'login must be a GitHub login');
-    const kind = input.kind ?? 'personal'; if (kind !== 'personal' && kind !== 'organization') throw new ApiFailure('ValidationFailed', 'kind must be personal or organization');
-    const identity = input.commitIdentity ?? 'you-capy-coauthor'; if (!IDENTITIES.includes(identity as CommitIdentity)) throw new ApiFailure('ValidationFailed', 'invalid commit identity');
-    const email = input.commitEmail == null ? null : String(input.commitEmail); if (email && !/^[^@\s]+@[^@\s]+$/.test(email)) throw new ApiFailure('ValidationFailed', 'invalid commit email');
-    const accountId = id('gha');
-    await this.pool.query(`INSERT INTO github_accounts (id,user_id,login,kind,token_ref,commit_identity,commit_email) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (user_id,login) DO UPDATE SET revoked_at=NULL,kind=$4,token_ref=$5,commit_identity=$6,commit_email=$7`, [accountId, userId, login, kind, input.tokenRef == null ? null : String(input.tokenRef), identity, email]);
+    const login = String(input.login ?? '').trim().toLowerCase();
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,38})$/.test(login)) throw new ApiFailure('ValidationFailed', 'login must be a GitHub login');
+    const has = (key: string) => Object.prototype.hasOwnProperty.call(input, key);
+    const kind = has('kind') ? input.kind : 'personal'; if (kind !== 'personal' && kind !== 'organization') throw new ApiFailure('ValidationFailed', 'kind must be personal or organization');
+    const identity = has('commitIdentity') ? input.commitIdentity : 'you-capy-coauthor'; if (!IDENTITIES.includes(identity as CommitIdentity)) throw new ApiFailure('ValidationFailed', 'invalid commit identity');
+    const email = !has('commitEmail') || input.commitEmail == null ? null : String(input.commitEmail); if (email && !/^[^@\s]+@[^@\s]+$/.test(email)) throw new ApiFailure('ValidationFailed', 'invalid commit email');
+    const tokenRef = !has('tokenRef') || input.tokenRef == null ? null : String(input.tokenRef);
+    const existing = (await this.pool.query('SELECT * FROM github_accounts WHERE user_id=$1 AND login=$2', [userId, login])).rows[0];
+    if (existing) {
+      const sets = ['revoked_at=NULL']; const values: unknown[] = [existing.id];
+      const set = (column: string, value: unknown) => { values.push(value); sets.push(`${column}=$${values.length}`); };
+      if (has('kind')) set('kind', kind);
+      if (has('tokenRef')) set('token_ref', tokenRef);
+      if (has('commitIdentity')) set('commit_identity', identity);
+      if (has('commitEmail')) set('commit_email', email);
+      await this.pool.query(`UPDATE github_accounts SET ${sets.join(',')} WHERE id=$1`, values);
+    } else {
+      await this.pool.query('INSERT INTO github_accounts (id,user_id,login,kind,token_ref,commit_identity,commit_email) VALUES ($1,$2,$3,$4,$5,$6,$7)', [id('gha'), userId, login, kind, tokenRef, identity, email]);
+    }
     return (await this.pool.query('SELECT * FROM github_accounts WHERE user_id=$1 AND login=$2', [userId, login])).rows.map(camel)[0] as GitHubAccount;
   }
   async accounts(userId: string): Promise<GitHubAccount[]> { return (await this.pool.query('SELECT * FROM github_accounts WHERE user_id=$1 AND revoked_at IS NULL ORDER BY login', [userId])).rows.map(camel) as GitHubAccount[]; }
