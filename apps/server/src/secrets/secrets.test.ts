@@ -68,6 +68,8 @@ beforeAll(async () => {
 }, 60_000);
 afterAll(async () => { await pool?.end(); if (container) spawn('sh', ['-c', `sleep 5; docker rm -f ${container}`], { detached: true, stdio: 'ignore' }).unref(); });
 
+const runEnded = async (threadId: string) => (await pool.query(`SELECT payload->>'state' AS state FROM events WHERE thread_id=$1 AND kind='run.ended'`, [threadId])).rows;
+
 describe('secrets vault', () => {
   it('CAPY-380: values are envelope-encrypted at rest with the local KMS key and bound to their scope/name', async () => {
     const p = await project('kms');
@@ -216,7 +218,8 @@ describe('secrets vault', () => {
     for (let i = 0; i < 50 && (await status()) !== 'failed'; i++) await new Promise((res) => setTimeout(res, 100));
     await new Promise((res) => setTimeout(res, 300));
     expect(await status()).toBe('failed');
-    expect((await pool.query('SELECT count(*)::int n FROM runs WHERE thread_id=$1', [t.id])).rows[0].n).toBe(0);
+    expect((await pool.query('SELECT state FROM runs WHERE thread_id=$1', [t.id])).rows).toEqual([{ state: 'failed' }]);
+    expect(await runEnded(t.id)).toEqual([{ state: 'failed' }]);
     expect(r.queued.get(t.id) ?? []).toEqual([]);
   }, 20_000);
   it('CAPY-385: a failed secrets-file copy fails machine preparation before the agent starts', async () => {
@@ -231,6 +234,17 @@ describe('secrets vault', () => {
     expect(starts).toHaveLength(0);
     expect((await pool.query('SELECT state FROM runs WHERE thread_id=$1', [t.id])).rows).toEqual([{ state: 'failed' }]);
     expect((await pool.query('SELECT count(*)::int n FROM budget_holds WHERE scope_id=$1', [t.id])).rows[0].n).toBe(0);
+    expect(await runEnded(t.id)).toEqual([{ state: 'failed' }]);
     expect(r.queued.get(t.id) ?? []).toEqual([]);
+  }, 20_000);
+
+  it('a thread at its spending cap pauses for budget approval even when the vault is unreadable', async () => {
+    const down = async () => { throw new Error('kms unavailable'); };
+    const r = new ThreadRunner({ store: new EventStore(process.env.DATABASE_URL!), driver: driver as never, adapters: new Map([['fake', spyAdapter]]), vault: { mutate: down, prepare: down } });
+    const t = (await r.createThread({ ownerId: owner, title: 'cap', prompt: 'hello', maxUsd: 0 })) as { id: string };
+    const status = async () => (await pool.query('SELECT status FROM threads WHERE id=$1', [t.id])).rows[0].status;
+    for (let i = 0; i < 50 && (await status()) !== 'paused'; i++) await new Promise((res) => setTimeout(res, 100));
+    expect(await status()).toBe('paused');
+    expect((await pool.query(`SELECT count(*)::int n FROM approvals WHERE thread_id=$1 AND kind='budget'`, [t.id])).rows[0].n).toBe(1);
   }, 20_000);
 });

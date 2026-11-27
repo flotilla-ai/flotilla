@@ -85,8 +85,6 @@ export class ThreadRunner {
 
   private async run(threadId: string, trigger: string): Promise<void> {
     const thread = await this.thread(threadId); if (!thread) return;
-    let prepared: PreparedSecrets;
-    try { prepared = await this.deps.vault?.prepare(threadId) ?? { env: {}, grants: [] }; } catch (err) { this.queued.delete(threadId); throw err; }
     const runId = id('run'); const ordinal = ((await this.pool.query('SELECT max(ordinal) n FROM runs WHERE thread_id=$1', [threadId])).rows[0].n ?? 0) + 1;
     await this.pool.query(`INSERT INTO runs (id,thread_id,ordinal,trigger,state,usage) VALUES ($1,$2,$3,$4,'starting',$5)`, [runId, threadId, ordinal, JSON.stringify({ kind: trigger, eventId: null }), JSON.stringify(zero)]);
     await this.pool.query(`UPDATE threads SET status='working',updated_at=now() WHERE id=$1`, [threadId]);
@@ -94,9 +92,10 @@ export class ThreadRunner {
 
     const policy = thread.budget as { maxUsd: number | null; maxWallSec: number | null; maxTokens: number | null; warnAt: number };
     const reserveAmount = Math.min(20_000, Math.max(1, policy.maxUsd ?? 20_000));
+    if (policy.maxUsd !== null && (thread.spent as CostTotals).usd >= policy.maxUsd) return this.pauseBudget(threadId, runId, 'budget');
+    let prepared: PreparedSecrets;
+    try { prepared = await this.deps.vault?.prepare(threadId) ?? { env: {}, grants: [] }; } catch (err) { return this.failStart(threadId, runId, err); }
     if (policy.maxUsd !== null) {
-      const spent = (thread.spent as CostTotals).usd;
-      if (spent >= policy.maxUsd) return this.pauseBudget(threadId, runId, 'budget');
       await this.pool.query('INSERT INTO budget_holds (scope,scope_id,run_id,amount) VALUES ($1,$2,$3,$4)', ['thread', threadId, runId, reserveAmount]);
     }
 
@@ -117,11 +116,9 @@ export class ThreadRunner {
         if (!('copyIn' in this.deps.driver)) throw new Error('machine driver cannot receive the secrets file');
         await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', secretsTar(prepared.env));
       } catch (err) {
-        tokenService?.endRun(runId); this.queued.delete(threadId);
-        await this.pool.query('DELETE FROM budget_holds WHERE run_id=$1', [runId]);
-        await this.pool.query(`UPDATE runs SET state='failed',ended_at=now() WHERE id=$1`, [runId]);
+        tokenService?.endRun(runId);
         await ((this.deps.driver as Driver & {remove?(id:string):Promise<void>}).remove?.(machine.containerId) ?? this.deps.driver.stop(machine.containerId)).catch(() => undefined);
-        throw new Error('secrets file could not be written to the machine', { cause: err });
+        return this.failStart(threadId, runId, new Error('secrets file could not be written to the machine', { cause: err }));
       }
     }
     if (runToken && 'copyIn' in this.deps.driver) await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', captainMcpTar(runToken.token)).catch(() => undefined);
@@ -167,6 +164,13 @@ export class ThreadRunner {
     if (event.t === 'text') { const out = scrubber.push(event.delta); if (out) await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'agent.delta', source: 'adapter', trust: 'trusted', payload: { text: out } }] as never); return; }
     const kind = event.t === 'tool_call' ? 'agent.tool_call' : event.t === 'tool_result' ? 'agent.tool_result' : event.t === 'done' ? null : null;
     if (kind) await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind, source: 'adapter', trust: 'trusted', payload: scrub(event, eventSecrets) }] as never);
+  }
+  private async failStart(threadId: string, runId: string, err: unknown): Promise<never> {
+    this.queued.delete(threadId);
+    await this.pool.query('DELETE FROM budget_holds WHERE run_id=$1', [runId]);
+    await this.pool.query(`UPDATE runs SET state='failed',ended_at=now() WHERE id=$1`, [runId]);
+    await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'run.ended', source: 'kernel', trust: 'trusted', payload: { state: 'failed', usage: zero } }] as never);
+    throw err;
   }
   private async pauseBudget(threadId: string, runId: string, why: string): Promise<void> {
     const approvalId = id('apr');
