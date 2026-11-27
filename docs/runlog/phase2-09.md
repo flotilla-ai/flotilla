@@ -70,3 +70,8 @@ $ pnpm --filter @flotilla/server test   (after round-1 fixes)
 $ pnpm -r lint
 lint=0
 ```
+
+## Review round 2
+
+- Fixed: a revoked share cookie no longer overrides a valid private cookie (new assertion failed 401, then passed).
+- Escalated: shared/private previews share one origin (`:8081`); per-preview origin isolation needs the P2 wildcard-host design.

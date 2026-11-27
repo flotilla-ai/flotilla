@@ -34,14 +34,15 @@ export function createPreviewServer(tokens = previewTokens, gateHost = 'gate-edg
       if (!previewCookie) { res.writeHead(401); res.end(); return; }
       res.writeHead(302, { location: cleanPath(req.url ?? '/'), 'set-cookie': `flotilla_preview=${previewCookie}; Path=/p; HttpOnly; SameSite=Lax` }); res.end(); return;
     }
-    const shareRaw = q.get('share') ?? cookie(req.headers.cookie, 'flotilla_share');
-    const share = shareRaw ? verifyShareToken(shareRaw) : null;
-    if (share && (share.code !== code || share.port !== port)) { res.writeHead(401); res.end(); return; }
+    const fromQuery = q.get('share');
+    const shareRaw = fromQuery ?? cookie(req.headers.cookie, 'flotilla_share');
+    const row = await deps.store?.byCode(code, port) ?? null;
+    const v = shareRaw ? verifyShareToken(shareRaw) : null;
+    const share = v && v.code === code && v.port === port && !(row?.share_revoked_at && (v.iat ?? 0) <= row.share_revoked_at.getTime()) ? v : null;
+    if (fromQuery && !share) { res.writeHead(401); res.end(); return; }
     const pc = cookie(req.headers.cookie, 'flotilla_preview');
     if (!share && !tokens.check(pc ?? '', { code, port })) { res.writeHead(401); res.end(); return; }
-    const row = await deps.store?.byCode(code, port) ?? null;
-    if (share && row?.share_revoked_at && (share.iat ?? 0) <= row.share_revoked_at.getTime()) { res.writeHead(401); res.end(); return; }
-    if (share && q.get('share')) { res.writeHead(302, { location: cleanPath(req.url ?? '/'), 'set-cookie': `flotilla_share=${shareRaw}; Path=/p/${code}/${port}; HttpOnly; SameSite=Lax` }); res.end(); return; }
+    if (share && fromQuery) { res.writeHead(302, { location: cleanPath(req.url ?? '/'), 'set-cookie': `flotilla_share=${shareRaw}; Path=/p/${code}/${port}; HttpOnly; SameSite=Lax` }); res.end(); return; }
     if (deps.machine && await deps.machine.state(code) === 'asleep') {
       const link = `${uiUrl}/#/threads/${encodeURIComponent(row?.thread_id ?? share?.threadId ?? '')}`;
       card(res, 503, 'This machine is asleep', `<a href="${esc(link)}">Start the machine</a>, then reload this page. Only members can start it.`); return;

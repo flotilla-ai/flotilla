@@ -20,6 +20,7 @@ let container = ''; let pool: pg.Pool; let api: Hono; let proxy: Server; let ups
 let listening = true; let user = 'usr_owner';
 const seen: { host?: string; url?: string }[] = [];
 const runs: string[] = [];
+const proxyTokens = new PreviewTokens();
 const machine = { asleep: false, runs,
   async state() { return machine.asleep ? 'asleep' as const : 'awake' as const; },
   async listening() { return [3000, 5173, 8080]; },
@@ -52,7 +53,7 @@ beforeAll(async () => {
     if (!listening) { reject(new Error('gate denied')); return; }
     const s = connect(upPort, '127.0.0.1', () => resolve(s)); s.once('error', reject);
   });
-  proxy = createPreviewServer(new PreviewTokens(), 'unused', { store, machine: fakeMachine, connect: dial, uiUrl: 'http://ui.test' }).listen(0);
+  proxy = createPreviewServer(proxyTokens, 'unused', { store, machine: fakeMachine, connect: dial, uiUrl: 'http://ui.test' }).listen(0);
   base = `http://127.0.0.1:${(proxy.address() as AddressInfo).port}`;
 }, 60_000);
 afterAll(async () => { proxy?.close(); upstream?.close(); await pool?.end(); if (container) spawn('sh', ['-c', `docker rm -f ${container}`], { detached: true, stdio: 'ignore' }).unref(); });
@@ -156,6 +157,8 @@ describe('preview lifecycle', () => {
     expect((await call('/threads/thr_pv/previews/3000/share', 'DELETE')).status).toBe(200);
     expect((await open(link)).status).toBe(401);
     expect((await fetch(`${base}/p/FLO-9/3000/app.js`, { headers: { cookie: shareCookie.split(';')[0] } })).status).toBe(401);
+    const priv = proxyTokens.exchange(proxyTokens.mint({ threadId: 'thr_pv', code: 'FLO-9', port: 3000, exp: Date.now() + 60_000 }))!;
+    expect((await fetch(`${base}/p/FLO-9/3000/app.js`, { headers: { cookie: `${shareCookie.split(';')[0]}; flotilla_preview=${priv}` } })).status).toBe(200);
     ({ previews } = await (await call('/threads/thr_pv/previews')).json() as { previews: { port: number; access: string; shareUntil: string }[] });
     expect(previews.find((p) => p.port === 3000)?.access).toBe('private');
     expect((await call('/threads/thr_pv/previews/9999/share', 'POST', {})).status).toBe(404);
