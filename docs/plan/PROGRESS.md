@@ -50,6 +50,7 @@ Counted in `docs/plan/PARITY.md` on this branch after devices pairing: done 219,
 
 | phase2-14-devices-pairing | in review | 1 |  | Pairing codes, device trust/status/heartbeat, machine picker, workspace policy, folder scan; 3 rows done, 7 device-execution rows blocked; see `docs/runlog/phase2-14.md` |
 
+
 ## Next action
 
 1. Continue machine UX/devices/dock and Captain/work-surface units directly in the parent session. CAPY-061/062 need a paired-device target and an agent-callable subagent tool.
