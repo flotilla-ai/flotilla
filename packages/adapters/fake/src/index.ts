@@ -15,7 +15,7 @@ export class FakeAdapter implements AgentAdapter {
     binary: 'fake-agent',
     versionRange: '0.x',
     transport: 'stdout-jsonl' as const,
-    capabilities: { resume: true, cancel: true, steerMidTurn: false, nativeSubagents: false, vendorBudgetFlag: null, hardCapSupported: true, mcp: false, images: false, planMode: false, permissionModes: [] },
+    capabilities: { resume: true, cancel: true, steerMidTurn: false, nativeSubagents: false, vendorBudgetFlag: null, hardCapSupported: true, mcp: true, images: false, planMode: false, permissionModes: [] },
     auth: [{ kind: 'none' as const }],
     costReporting: 'usd' as const,
     egressHosts: []
@@ -28,7 +28,8 @@ export class FakeAdapter implements AgentAdapter {
 
   start(input: StartInput): AsyncIterable<AdapterEvent> {
     const hang = input.env.FAKE_HANG === '1';
-    const args = [bin, fixture(hang ? 'hang.jsonl' : input.mcpConfigPath ? 'captain-crew.jsonl' : 'pr-happy.jsonl')];
+    const captainFixture = input.prompt.includes('Wake reasons:') ? 'captain-digest.jsonl' : 'captain-crew.jsonl';
+    const args = [bin, fixture(hang ? 'hang.jsonl' : input.mcpConfigPath ? captainFixture : 'pr-happy.jsonl')];
     if (hang) args.push('--hang');
     if (input.env.FAKE_SPAWN_CHILD === '1') args.push('--spawn-child');
     if (input.mcpConfigPath) args.push('--mcp-config', input.mcpConfigPath);

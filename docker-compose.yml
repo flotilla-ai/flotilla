@@ -10,16 +10,22 @@ services:
       interval: 2s
       retries: 30
     volumes: [pgdata:/var/lib/postgresql/data]
+  thread-image:
+    image: flotilla-thread:p1-fix02
+    build: { context: ., dockerfile: deploy/thread.Dockerfile }
+    command: ["true"]
   server:
     build: { context: ., dockerfile: deploy/server.Dockerfile }
     ports: ["8080:8080", "8081:8081"]
     depends_on:
       postgres: { condition: service_healthy }
+      thread-image: { condition: service_completed_successfully }
     networks: [db, edge, default]
     command: ["sh","-c","test -f /run/flotilla-gate/token || node -e \"process.stdout.write(require('crypto').randomBytes(32).toString('base64url'))\" > /run/flotilla-gate/token; exec node apps/server/dist/index.js"]
     environment:
       DATABASE_URL: postgres://postgres@postgres:5432/flotilla
       FLOTILLA_DOMAIN: localhost
+      FLOTILLA_THREAD_IMAGE: flotilla-thread:p1-fix02
       FLOTILLA_MASTER_KEY_FILE: /run/secrets/master_key
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

@@ -1,7 +1,7 @@
 # Flotilla progress
 
 Current phase: phase1fix / planning phases 2-4.
-Current `flotilla/p1` head at this branch start: `9e15b480ed6d8b7e4f2de1800382bd6f431589c4`.
+Current `flotilla/p1` head at this branch start: `64571ef91fb3a6ff6178c0548be2baa0e1e06ff1`.
 
 ## Row counts
 
@@ -12,16 +12,16 @@ Initialized in `docs/plan/PARITY.md`: P2/P3/P4 rows are pending; phase 1 rows ar
 | Unit | Status | Attempts | PR | Notes |
 |---|---|---:|---|---|
 | phase1 units 01-17 | merged | 1+ | see phase-1 summary below | compose, fake thread, cost and budget approval proven |
-| plan-p234 | running | 1 | this PR | run rules, parity ledger, coverage script |
-| phase1fix-01 | running | 1 | https://github.com/flotilla-ai/flotilla/pull/20 | scheduler restart recovery; real Postgres fake-clock restart test passes |
-| phase1fix-02 | pending | 0 | | Captain five-crew fake relay |
+| plan-p234 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/19 | run rules, parity ledger, coverage script |
+| phase1fix-01 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/20 | scheduler restart recovery; real Postgres fake-clock restart test passes |
+| phase1fix-02 | running | 1 | https://github.com/flotilla-ai/flotilla/pull/21 | Captain five-crew fake relay |
 | phase1fix-03 | pending | 0 | | egress/preview local fixtures |
 
 ## Next action
 
-1. Merge this plan PR through the PR-only gate.
-2. Merge phase1fix-01, then implement phase1fix-02.
-3. Plan phase 2 only after the three fixes are merged.
+1. Merge phase1fix-02 through the PR-only gate.
+2. Implement and merge phase1fix-03.
+3. Plan phase 2 only after phase1fix-03 is merged.
 
 ## Phase 1 summary (preserved)
 

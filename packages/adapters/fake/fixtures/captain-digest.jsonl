@@ -1,0 +1,4 @@
+{"t":"session","adapterSessionId":"fake-captain-wake"}
+{"t":"text","delta":"digest updated"}
+{"t":"usage","usdMicro":1000,"cumulative":true}
+{"t":"done","stopReason":"end_turn"}
