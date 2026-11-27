@@ -18,7 +18,7 @@ export function DriveEditor({scope,item,onSaved}:{scope:string;item:Item;onSaved
  const makeShare=async(access:'read'|'write')=>{const s=await api(`/drive/items/${item.id}/shares`,{method:'POST',body:JSON.stringify({access})});const u=new URL(s.url,location.href).href;setShare(u);await navigator.clipboard?.writeText(u).catch(()=>undefined)};
  const outline=item.name.endsWith('.md')?markdownOutline(text):[];
  return <section aria-label='drive editor'><h2>{item.path}</h2>{err&&<p>{err}</p>}<textarea ref={ta} aria-label='file content' rows={12} value={text} onChange={e=>setText(e.target.value)}/><button disabled={!!err} onClick={()=>void save()}>Save</button>
-  {outline.length>0&&<nav aria-label='markdown outline'><b>Outline</b>{outline.map(h=><div key={h.line} style={{paddingLeft:(h.level-1)*12}}><a href={`#line-${h.line}`}>{h.text}</a></div>)}</nav>}
+  {outline.length>0&&<nav aria-label='markdown outline'><b>Outline</b>{outline.map(h=><div key={h.line} style={{paddingLeft:(h.level-1)*12}}><button type='button' onClick={()=>jump(h.line)}>{h.text}</button></div>)}</nav>}
   <div><button onClick={()=>void makeShare('read')}>Share read link</button><button onClick={()=>void makeShare('write')}>Share write link</button>{share&&<small> copied: {share}</small>}</div>
   {versions.length>1&&<section><b>Compare versions</b><select aria-label='compare from' value={a} onChange={e=>setA(Number(e.target.value))}>{versions.map(v=><option key={v.version} value={v.version}>v{v.version}</option>)}</select><select aria-label='compare to' value={b} onChange={e=>setB(Number(e.target.value))}>{versions.map(v=><option key={v.version} value={v.version}>v{v.version}</option>)}</select><pre aria-label='version diff'>{diff}</pre></section>}
  </section>;
