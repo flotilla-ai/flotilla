@@ -19,6 +19,7 @@ async function request(path: string, init: RequestInit & { json?: unknown } = {}
 }
 async function createAutomation(input: Record<string, unknown>) { const r = await request('/projects/prj_auto/automations', { method: 'POST', json: input }); return { status: r.status, body: await r.json() as any }; }
 const manual = { type: 'manual' };
+function nowYearMonth(): { year: number; month: number } { const d = new Date(); return { year: d.getUTCFullYear(), month: d.getUTCMonth() }; }
 beforeAll(async () => {
   container = (await exec('docker', ['run', '-d', '--rm', '-p', '127.0.0.1::5432', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', 'postgres:16'])).stdout.trim();
   const port = (await exec('docker', ['port', container, '5432/tcp'])).stdout.trim().split(':').pop();
@@ -124,4 +125,11 @@ it('CAPY-152/154/155/159/160/161/162/163/164/165/166/500: automation triggers, c
   expect(dueRows).toHaveLength(1); expect(dueRows[0].status).toBe('queued');
   const again = (await store.dueSchedules(minute)).filter((x) => x.automationId === scheduled.id);
   expect(again[0].status).toBe('duplicate'); expect(again[0].id).toBe(dueRows[0].id);
+
+  const monthly = await store.create('usr_a', 'prj_auto', { name: 'Monthly', prompt: 'monthly', triggers: [{ type: 'schedule', cron: '0 0 1 * *', timezone: 'UTC' }], model: { pinned: false } });
+  const firstThisMonth = Date.UTC(nowYearMonth().year, nowYearMonth().month, 1, 0, 0);
+  const occurrence = new Date(firstThisMonth <= minute.getTime() - 60_000 ? firstThisMonth : Date.UTC(nowYearMonth().year, nowYearMonth().month - 1, 1, 0, 0));
+  await pool.query('UPDATE automations SET created_at=$2 WHERE id=$1', [monthly.id, new Date(occurrence.getTime() - 40 * 24 * 60 * 60_000)]);
+  const missed = (await store.dueSchedules(minute)).filter((x) => x.automationId === monthly.id);
+  expect(missed[0]).toMatchObject({ status: 'queued' }); expect((missed[0].payload.at as string)).toBe(occurrence.toISOString());
 }, 30_000);

@@ -1,5 +1,6 @@
 import { createHash, createHmac, randomUUID } from 'node:crypto';
 import pg from 'pg';
+import { Cron } from 'croner';
 import { ApiFailure } from '../api-platform/types.js';
 import { modelsCatalogStore } from '../models-catalog/store.js';
 
@@ -62,14 +63,16 @@ export function cronMatches(expr: string, timezone: string, date: Date): boolean
   const dayMatch = domWild && dowWild ? true : domWild || dowWild ? dom && dow : dom || dow;
   return cronSet(f[0], 0, 59).has(z.minute) && cronSet(f[1], 0, 23).has(z.hour) && cronSet(f[3], 1, 12).has(z.month) && dayMatch;
 }
+function cronJob(expr: string, timezone: string): Cron {
+  try { return new Cron(expr, { timezone, paused: true }); }
+  catch { throw new ApiFailure('ValidationFailed', 'schedule must be a valid 5-field cron expression with an IANA timezone'); }
+}
 function validateCron(expr: string, timezone: string): void {
-  const probe = Date.UTC(2026, 0, 5, 0, 0);
-  const occurrences: Date[] = [];
-  for (let i = 0; i < 8 * 24 * 60 && occurrences.length < 2; i++) {
-    const d = new Date(probe + i * 60_000);
-    if (cronMatches(expr, timezone, d)) occurrences.push(d);
-  }
-  if (occurrences.length === 2 && occurrences[1].getTime() - occurrences[0].getTime() < 5 * 60_000) throw new ApiFailure('ValidationFailed', 'schedule frequency floor is 5 minutes');
+  cronMatches(expr, timezone, new Date());
+  const job = cronJob(expr, timezone);
+  const first = job.nextRun(new Date());
+  const second = first ? job.nextRun(new Date(first.getTime() + 60_000)) : null;
+  if (first && second && second.getTime() - first.getTime() < 5 * 60_000) throw new ApiFailure('ValidationFailed', 'schedule frequency floor is 5 minutes');
 }
 function valueMatch(rule: unknown, actual: unknown): boolean {
   if (Array.isArray(rule)) return rule.some((x) => valueMatch(x, actual));
@@ -294,12 +297,13 @@ export class AutomationStore {
         const base = Math.max(new Date(a.createdAt).getTime(), last?.at ? new Date(last.at as string).getTime() : 0);
         let latest: Date | null = null;
         const end = Math.floor(now.getTime() / 60_000) * 60_000;
-        // Scan backwards from now rather than forwards from the last run. Sparse monthly/yearly
-        // schedules are still discovered when their day arrives; missed occurrences coalesce to the
-        // newest due minute inside the recovery window.
-        for (let minute = end; minute > base && minute >= end - 7 * 24 * 60 * 60_000; minute -= 60_000) {
-          const d = new Date(minute);
-          if (cronMatches(String(t.cron), String(t.timezone ?? 'UTC'), d)) { latest = d; break; }
+        // Croner calculates the next occurrence directly, so even a months-old missed schedule is
+        // found without a minute-by-minute scan. Iterate to the newest due occurrence; older misses coalesce.
+        const job = cronJob(String(t.cron), String(t.timezone ?? 'UTC'));
+        let next = job.nextRun(new Date(base));
+        for (let iterations = 0; next && next.getTime() <= end && iterations < 200_000; iterations++) {
+          latest = next;
+          next = job.nextRun(new Date(next.getTime() + 60_000));
         }
         if (latest) out.push(await this.insertRun(a, 'schedule', key, { at: latest.toISOString(), cron: t.cron, timezone: t.timezone, coalesced: latest.getTime() !== end }, `cron:${a.id}:${key}:${Math.floor(latest.getTime() / 60000)}`));
       }
