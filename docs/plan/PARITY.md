@@ -228,19 +228,19 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-225 | Previews | P2 | done | phase2-09 | PR pending | Per-preview hostname (e.g. `web.localhost:1355`) is sent as the upstream Host header so portless-style routers resolve the app; localUrl uses it too. |
 | CAPY-226 | Previews | P2 | done | phase2-09 | PR pending | Previews work on threads with no PR; each preview carries an in-machine localUrl for the machine browser alongside the private preview URL. |
 | CAPY-227 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-228 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-229 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-230 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-231 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-232 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-233 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-234 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-235 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-236 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-228 | Devices & desktop app | P2 | blocked | phase2-14 |  | Pairing-code claim, device bearer tokens, approval and revocation are proven, but Google/GitHub sign-in and a real flotilla-runner desktop pairing flow are absent. |
+| CAPY-229 | Devices & desktop app | P2 | done | phase2-14 |  | Machine picker API returns cloud plus approved paired devices with status, platform, workspace policy and zero local machine metering metadata. |
+| CAPY-230 | Devices & desktop app | P2 | done | phase2-14 |  | Device workspace policy persists new-worktree default, existing-worktree or current-checkout paths with validation. |
+| CAPY-231 | Devices & desktop app | P2 | done | phase2-14 |  | Fixture scan links git folders by origin remote and authenticated device scan reports persist project folder metadata. |
+| CAPY-232 | Devices & desktop app | P2 | blocked | phase2-14 |  | Paired devices carry machineMetering=none metadata, but runner execution/billing does not yet place or meter threads on devices. |
+| CAPY-233 | Devices & desktop app | P2 | blocked | phase2-14 |  | The self-hosted API is central, but local threads cannot execute on paired devices yet, so browser follow/reply of a real local thread is unproven. |
+| CAPY-234 | Devices & desktop app | P2 | blocked | phase2-14 |  | Device status and a 24 h wait-until timestamp are durable, but runner placement does not yet wait for device reconnect. |
+| CAPY-235 | Devices & desktop app | P2 | blocked | phase2-14 |  | The cloud-checkpoints setting is durable, but checkpoint capture/upload of device worktrees is not implemented. |
+| CAPY-236 | Devices & desktop app | P2 | blocked | phase2-14 |  | The move-to-cloud toggle is durable, but offline automatic migration is not implemented. |
 | CAPY-237 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-238 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-239 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-240 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-240 | Devices & desktop app | P2 | blocked | phase2-14 |  | The keep-awake setting is durable, but no flotilla-runner power-management enforcement exists yet. |
 | CAPY-241 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-242 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-243 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |

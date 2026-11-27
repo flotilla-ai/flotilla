@@ -1,6 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import pg from 'pg';
 import { migrate } from '../db/migrate.js';
+import { localKms, masterKey } from '../secrets/vault.js';
 import { ApiFailure, decodeCursor, encodeCursor, pageLimit, type ApiFile, type ApiKey, type ApiPrincipal, type FileRef, type List, type Page, type UploadGrant } from './types.js';
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
@@ -10,6 +11,20 @@ type Row = Record<string, any>;
 const toKey = (r: Row): ApiKey => ({ id: r.id, name: r.name, prefix: r.prefix, userId: r.user_id, createdBy: r.created_by, expiresAt: iso(r.expires_at), lastUsedAt: iso(r.last_used_at), revokedAt: iso(r.revoked_at), createdAt: r.created_at.toISOString() });
 const toFile = (r: Row): ApiFile => ({ id: r.id, name: r.name, contentType: r.content_type, size: Number(r.size), status: r.uploaded_at ? 'uploaded' : 'pending', createdAt: r.created_at.toISOString() });
 const fileCols = 'id,name,content_type,size,uploaded_at,created_at';
+
+let replayKey: Buffer | undefined;
+function idempotencyReplayKey(): Buffer {
+  if (replayKey) return replayKey;
+  try { return (replayKey = masterKey()); } catch { return (replayKey = randomBytes(32)); }
+}
+const encryptedReplayPrefix = 'enc:v1:';
+function sealReplayBody(body: string, aad: string): string {
+  return encryptedReplayPrefix + localKms(idempotencyReplayKey()).seal(Buffer.from(body, 'utf8'), aad).toString('base64');
+}
+function openReplayBody(body: string, aad: string): string {
+  if (!body.startsWith(encryptedReplayPrefix)) return body;
+  return localKms(idempotencyReplayKey()).open(Buffer.from(body.slice(encryptedReplayPrefix.length), 'base64'), aad).toString('utf8');
+}
 
 export type Idempotency = { state: 'new' | 'conflict' | 'pending' } | { state: 'replay'; status: number; body: string; contentType: string };
 
@@ -74,11 +89,11 @@ export class ApiPlatformStore {
     if (!row) return { state: 'pending' };
     if (row.method !== method || row.path !== path || (row.fingerprint !== fingerprint && row.fingerprint !== legacyFingerprint)) return { state: 'conflict' };
     if (row.status === null) return { state: 'pending' };
-    return { state: 'replay', status: row.status, body: row.body, contentType: row.content_type };
+    return { state: 'replay', status: row.status, body: openReplayBody(String(row.body ?? ''), `api-idempotency:${principalId}:${requestId}`), contentType: row.content_type };
   }
   async finishRequest(principalId: string, requestId: string, res: { status: number; body: string; contentType: string } | null): Promise<void> {
     if (!res) await this.q('DELETE FROM api_idempotency WHERE principal_id=$1 AND request_id=$2 AND status IS NULL', [principalId, requestId]);
-    else await this.q('UPDATE api_idempotency SET status=$3, body=$4, content_type=$5 WHERE principal_id=$1 AND request_id=$2', [principalId, requestId, res.status, res.body, res.contentType]);
+    else await this.q('UPDATE api_idempotency SET status=$3, body=$4, content_type=$5 WHERE principal_id=$1 AND request_id=$2', [principalId, requestId, res.status, sealReplayBody(res.body, `api-idempotency:${principalId}:${requestId}`), res.contentType]);
   }
 
   async createUpload(ownerId: string, input: { name?: unknown; contentType?: unknown; size?: unknown }, baseUrl: string): Promise<UploadGrant> {
