@@ -34,7 +34,12 @@ services:
   gate:
     build: { context: ., dockerfile: deploy/server.Dockerfile }
     command: ["node", "apps/gate/dist/main.js"]
-    networks: [edge, default]
+    environment:
+      GATE_EDGE_HOST: gate-edge
+    networks:
+      edge:
+        aliases: [gate-edge]
+      default: {}
     labels: ["flotilla.role=gate"]
     volumes: ["gate-secret:/run/flotilla-gate:ro"]
 networks:

@@ -22,7 +22,7 @@ export class PreviewTokens {
   exchange(one: string) { const p = this.cookies.get(one); if (!p || p.exp <= Date.now()) return null; this.cookies.delete(one); const cookie = randomBytes(24).toString('base64url'); this.cookies.set(cookie, p); return cookie; }
   check(cookie: string, p: { threadId?: string; code?: string; port: number }) { const x = this.cookies.get(cookie); return !!x && x.exp > Date.now() && (!p.threadId || x.threadId === p.threadId) && (!p.code || x.code === p.code) && x.port === p.port; }
 }
-export async function connectThroughGate(code: string, port: number, token: string, gateHost = 'gate', gatePort = 3128): Promise<Socket> {
+export async function connectThroughGate(code: string, port: number, token: string, gateHost = 'gate-edge', gatePort = 3128): Promise<Socket> {
   return new Promise((resolve, reject) => {
     const s = netConnect(gatePort, gateHost, () => { s.write(`CONNECT flt-${code}:${port} HTTP/1.1\r\nHost: flt-${code}:${port}\r\nAuthorization: Bearer ${token}\r\n\r\n`); });
     let head = '';
