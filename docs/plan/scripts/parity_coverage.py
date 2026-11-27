@@ -5,6 +5,9 @@ Usage: python3 docs/plan/scripts/parity_coverage.py P2
 import re, sys
 from pathlib import Path
 phase = sys.argv[1] if len(sys.argv) > 1 else 'P2'
+if phase not in {'P1', 'P2', 'P3', 'P4'}:
+    print(f'unsupported phase: {phase}; expected P1, P2, P3 or P4')
+    raise SystemExit(1)
 root = Path(__file__).resolve().parents[3]
 spec = (root / 'docs/plan/SPEC.md').read_text(encoding='utf-8')
 expected = set()
@@ -17,7 +20,11 @@ seen = {}
 for path in sorted((root / 'docs/plan/handoffs').glob(f'phase{phase[1]}-*.md')):
     for line in path.read_text(encoding='utf-8').splitlines():
         if line.startswith('ROWS:'):
-            for rid in re.findall(r'CAPY-\d{3}', line):
+            malformed = re.findall(r'CAPY-\d{4,}', line)
+            if malformed:
+                print(f'{path.name}: malformed row id(s): ' + ', '.join(malformed))
+                raise SystemExit(1)
+            for rid in re.findall(r'CAPY-\d{3}(?!\d)', line):
                 seen.setdefault(rid, []).append(path.name)
 missing = sorted(expected - set(seen))
 extra = sorted(set(seen) - expected)
