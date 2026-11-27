@@ -11,6 +11,8 @@ import { getRunTokenService } from '../captain/tools/registry.js';
 import { captainMcpTar } from '../captain/tools/mcpConfig.js';
 import { secretsTar, type SecretsStore } from '../secrets/store.js';
 import type { EnvVarMutation, PreparedSecrets } from '../secrets/types.js';
+import { ApiFailure } from '../api-platform/types.js';
+import { DELIVERY_MODES, PLAN_PROMPT, RunnerQueue, adapterError, parseCommand, type AdapterError, type ContextMeter, type DeliveryMode, type ThreadInboxItem } from './runner-queue.js';
 
 type Driver = GitDriver & { startThreadContainer(input: Record<string, unknown>): Promise<{ containerId: string }>; stop(id: string): Promise<void> };
 type Row = Record<string, unknown>;
@@ -25,14 +27,27 @@ export function onAfterRun(fn:AfterRun):()=>void{afterRunHooks.push(fn);return()
 
 export class ThreadRunner {
   readonly running = new Map<string, Promise<void>>();
-  readonly queued = new Map<string, string[]>();
   readonly cancelled = new Set<string>();
   readonly containers = new Map<string,string>();
-  constructor(readonly deps: RunnerDeps) {}
+  readonly inbox: RunnerQueue;
+  private readonly live = new Map<string, { runId: string; adapter: AgentAdapter; sessionId: string | null }>();
+  private readonly supervised = new Set<Promise<void>>();
+  constructor(readonly deps: RunnerDeps) { this.inbox = new RunnerQueue(deps.store.pool); }
   get pool() { return this.deps.store.pool; }
+  private supervise(promise: Promise<void>): void {
+    const tracked = promise.catch(() => undefined).finally(() => this.supervised.delete(tracked));
+    this.supervised.add(tracked);
+  }
+  async drain(): Promise<void> {
+    while (this.supervised.size) await Promise.allSettled(this.supervised);
+  }
+  kick(threadId: string): void { this.supervise(this.startNext(threadId, 'message')); }
+  async resumePending(): Promise<void> { for (const t of new Set([...(await this.inbox.releaseUploads()), ...(await this.inbox.pendingThreads())])) this.kick(t); }
+  async assertOwner(threadId: string, userId: string): Promise<Row> { const t = await this.thread(threadId); if (!t || t.owner_id !== userId) throw new ApiFailure('NotFound', 'thread not found'); return t; }
+  private adapterFor(thread: Row): AgentAdapter | undefined { return this.deps.adapters.get((thread.engine as Row).adapter as string) ?? [...this.deps.adapters.values()][0]; }
 
   private async owned(threadId: string, userId?: string): Promise<boolean> { if (!userId) return true; const t=await this.thread(threadId); return t?.owner_id===userId; }
-  async createThread(input: { ownerId: string; projectId?: string | null; title: string; prompt: string; engine?: Thread['engine']; maxUsd?: number | null; requestId?: string; env?: EnvVarMutation[] }): Promise<Row> {
+  async createThread(input: { ownerId: string; projectId?: string | null; title: string; prompt: string; engine?: Thread['engine']; maxUsd?: number | null; requestId?: string; env?: EnvVarMutation[]; parentId?: string }): Promise<Row> {
     if (input.requestId) {
       const prior = await this.pool.query(`SELECT e.thread_id FROM events e JOIN threads t ON t.id=e.thread_id WHERE e.request_id=$1 AND e.kind='thread.created' AND t.owner_id=$2 ORDER BY e.seq LIMIT 1`, [input.requestId, input.ownerId]);
       if (prior.rows[0]) { const row=(await this.pool.query('SELECT * FROM threads WHERE id=$1', [prior.rows[0].thread_id])).rows[0]; if(row?.owner_id!==input.ownerId) throw new Error('not found'); return row; }
@@ -41,23 +56,77 @@ export class ThreadRunner {
     const env = input.env ?? [];
     if (env.length && !this.deps.vault) throw new Error('secrets vault not configured');
     const threadId = id('thr'); const code = `FLO-${randomBytes(2).toString('hex').toUpperCase()}`;
-    const row = (await this.pool.query(`INSERT INTO threads (id,code,project_id,role,owner_id,title,status,engine,budget,spent) VALUES ($1,$2,$3,'thread',$4,$5,'queued',$6,$7,$8) RETURNING *`, [threadId, code, input.projectId ?? null, input.ownerId, input.title, JSON.stringify(input.engine ?? { adapter: 'fake', model: null, effort: null, connectionId: null }), JSON.stringify(budget(input.maxUsd ?? null)), JSON.stringify(zero)])).rows[0];
+    const row = (await this.pool.query(`INSERT INTO threads (id,code,project_id,role,owner_id,title,status,engine,budget,spent,parent_id) VALUES ($1,$2,$3,'thread',$4,$5,'queued',$6,$7,$8,$9) RETURNING *`, [threadId, code, input.projectId ?? null, input.ownerId, input.title, JSON.stringify(input.engine ?? { adapter: 'fake', model: null, effort: null, connectionId: null }), JSON.stringify(budget(input.maxUsd ?? null)), JSON.stringify(zero), input.parentId ?? null])).rows[0];
     if (env.length) await this.deps.vault!.mutate('thread', threadId, env, input.ownerId).catch(async (err) => { await this.pool.query('DELETE FROM threads WHERE id=$1', [threadId]); throw err; });
     const createSecrets = { ...this.deps.secrets, ...Object.fromEntries(env.flatMap((m) => m.op === 'set' ? [[m.name, m.value]] : [])) };
     await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'thread.created', source: 'kernel', trust: 'trusted', payload: scrub({ title: input.title }, createSecrets) }, { runId: null, kind: 'user.message', source: 'user', trust: 'trusted', payload: scrub({ text: input.prompt }, createSecrets) }] as never, { requestId: input.requestId });
-    this.queued.set(threadId,[input.prompt]);
-    void this.startNext(threadId, 'message');
+    const cmd = parseCommand(input.prompt);
+    await this.inbox.add({ threadId, text: cmd.kind === 'plan' ? cmd.body : input.prompt, mode: 'queue', plan: cmd.kind === 'plan', by: input.ownerId, ownerId: input.ownerId });
+    this.kick(threadId);
     return row;
   }
 
-  async message(threadId: string, text: string, mode: 'queue' | 'interrupt' = 'queue', userId?: string): Promise<void> {
-    const thread = await this.thread(threadId); if (!thread || (userId && thread.owner_id!==userId)) throw new Error('not found');
-    await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'user.message', source: userId ? 'user' : 'kernel', trust: userId ? 'trusted' : 'untrusted', payload: scrub({ text, mode, by: userId }, this.deps.secrets ?? {}) }] as never);
-    if (mode === 'interrupt') await this.interrupt(threadId); else this.queued.set(threadId, [...(this.queued.get(threadId) ?? []), text]);
-    if (!this.running.has(threadId)) void this.startNext(threadId, 'message');
+  async message(threadId: string, text: string, mode: DeliveryMode = 'queue', userId?: string, attachments: string[] = []): Promise<{ item: ThreadInboxItem | null; sideThreadId?: string }> {
+    if (!DELIVERY_MODES.includes(mode)) throw new ApiFailure('ValidationFailed', 'mode must be queue, steer or interrupt');
+    const thread = await this.thread(threadId); if (!thread || (userId && thread.owner_id!==userId)) throw new ApiFailure('NotFound', 'thread not found');
+    const cmd = parseCommand(text);
+    if (cmd.kind === 'side') {
+      const side = await this.createThread({ ownerId: thread.owner_id as string, parentId: threadId, projectId: thread.project_id as string | null, title: `btw: ${cmd.body.slice(0, 60)}`, prompt: cmd.body, engine: thread.engine as Thread['engine'] });
+      await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'thread.side', source: 'kernel', trust: 'trusted', payload: { threadId: side.id } }] as never);
+      return { item: null, sideThreadId: side.id as string };
+    }
+    const item = await this.inbox.add({ threadId, text: cmd.body, mode, plan: cmd.kind === 'plan', by: userId ?? null, ownerId: thread.owner_id as string, attachments, priority: mode === 'interrupt' ? 1 : 0 });
+    await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'user.message', source: userId ? 'user' : 'kernel', trust: userId ? 'trusted' : 'untrusted', payload: scrub({ text, mode, by: userId, inboxId: item.id }, this.deps.secrets ?? {}) }] as never);
+    return { item: item.state === 'pending' ? await this.deliver(threadId, item) : item };
   }
-  async interrupt(threadId: string, userId?: string): Promise<void> { if (!(await this.owned(threadId,userId))) throw new Error('not found'); this.cancelled.add(threadId); await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'control.interrupt', source: 'user', trust: 'trusted', payload: {} }] as never); }
-  async stop(threadId: string, userId?: string): Promise<void> { if (!(await this.owned(threadId,userId))) throw new Error('not found'); this.cancelled.add(threadId); this.queued.delete(threadId); await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'control.stop', source: 'user', trust: 'trusted', payload: {} }] as never); await this.pool.query(`UPDATE threads SET status='idle',updated_at=now() WHERE id=$1`, [threadId]); }
+  /** Steer if the live adapter can inject at its next step; interrupt for send-now; otherwise the item waits for the turn to end. */
+  async deliver(threadId: string, item: ThreadInboxItem): Promise<ThreadInboxItem> {
+    const live = this.live.get(threadId);
+    if (!live) { this.kick(threadId); return item; }
+    if (item.mode === 'steer' && live.sessionId && live.adapter.manifest.capabilities.steerMidTurn && live.adapter.steer) {
+      const claimed = await this.inbox.markDelivered(item.id, live.runId);
+      if (claimed && (await live.adapter.steer(live.sessionId, item.text).catch(() => 'queued' as const)) === 'delivered') return claimed;
+      if (claimed) await this.pool.query(`UPDATE thread_inbox SET state='pending',delivered_at=NULL,run_id=NULL WHERE id=$1`, [item.id]);
+    }
+    if (item.mode === 'interrupt') await this.interrupt(threadId);
+    return item;
+  }
+  async sendNow(threadId: string, itemId: string): Promise<ThreadInboxItem> { const item = await this.inbox.prioritize(threadId, itemId); return item.state === 'pending' ? this.deliver(threadId, { ...item, mode: item.mode === 'steer' ? 'steer' : 'interrupt' }) : item; }
+  async newVersion(threadId: string, itemId: string, text: string, userId: string): Promise<ThreadInboxItem> {
+    const thread = await this.assertOwner(threadId, userId); const sent = await this.inbox.get(threadId, itemId);
+    if (!sent) throw new ApiFailure('NotFound', 'message not found');
+    if (sent.state !== 'delivered') throw new ApiFailure('Conflict', 'edit queued messages in place');
+    const version = Math.max(...(await this.inbox.versions(threadId, itemId)).map((v) => v.version)) + 1;
+    const item = await this.inbox.add({ threadId, text, mode: 'queue', plan: sent.plan, by: userId, ownerId: thread.owner_id as string, attachments: sent.attachments, rootId: sent.rootId, version, priority: 1 });
+    // No adapter exposes fork/rewind yet, so the edited version starts a new session (SPEC CAPY-010 fallback).
+    await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'user.message', source: 'user', trust: 'trusted', payload: scrub({ text, mode: 'queue', by: userId, inboxId: item.id, rootId: sent.rootId, version, fork: 'new-session' }, this.deps.secrets ?? {}) }] as never);
+    return this.deliver(threadId, item);
+  }
+  async retry(threadId: string, userId: string, engine: { model?: string; connectionId?: string }): Promise<ThreadInboxItem> {
+    const thread = await this.assertOwner(threadId, userId);
+    const last = (await this.pool.query('SELECT state FROM runs WHERE thread_id=$1 ORDER BY ordinal DESC LIMIT 1', [threadId])).rows[0];
+    const sent = await this.inbox.lastDelivered(threadId);
+    if (last?.state !== 'failed' || !sent || this.running.has(threadId)) throw new ApiFailure('Conflict', 'nothing to retry');
+    if (engine.model !== undefined || engine.connectionId !== undefined) await this.pool.query('UPDATE threads SET engine=engine || $2::jsonb WHERE id=$1', [threadId, JSON.stringify({ ...(engine.model !== undefined ? { model: engine.model } : {}), ...(engine.connectionId !== undefined ? { connectionId: engine.connectionId } : {}) })]);
+    await this.pool.query(`UPDATE threads SET status='queued' WHERE id=$1`, [threadId]);
+    const item = await this.inbox.add({ threadId, text: sent.text, mode: 'queue', plan: sent.plan, by: userId, ownerId: thread.owner_id as string, attachments: sent.attachments, priority: 1 });
+    await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'control.retry', source: 'user', trust: 'trusted', payload: { inboxId: item.id, ...engine } }] as never);
+    return this.deliver(threadId, item);
+  }
+  async context(threadId: string, userId: string, compactAt?: unknown): Promise<ContextMeter> {
+    const thread = await this.assertOwner(threadId, userId);
+    const caps = this.adapterFor(thread)?.manifest.capabilities as { compaction?: boolean } | undefined;
+    const compactSupported = caps?.compaction === true;
+    if (compactAt !== undefined) {
+      if (!compactSupported) throw new ApiFailure('Conflict', 'this agent does not support compaction');
+      if (typeof compactAt !== 'number' || !(compactAt > 0 && compactAt <= 1)) throw new ApiFailure('ValidationFailed', 'compactAt must be in (0, 1]');
+      await this.pool.query('UPDATE threads SET compact_at=$2 WHERE id=$1', [threadId, compactAt]); thread.compact_at = compactAt;
+    }
+    const usage = (await this.pool.query('SELECT usage FROM runs WHERE thread_id=$1 AND ended_at IS NOT NULL ORDER BY ordinal DESC LIMIT 1', [threadId])).rows[0]?.usage as CostTotals | undefined;
+    return { usedTokens: usage ? usage.inputTokens + usage.outputTokens + usage.cacheTokens : 0, compactAt: (thread.compact_at as number | null) ?? Number(process.env.FLOTILLA_COMPACT_AT ?? 0.8), compactSupported };
+  }
+  async interrupt(threadId: string, userId?: string): Promise<void> { if (!(await this.owned(threadId,userId))) throw new Error('not found'); this.cancelled.add(threadId); const live = this.live.get(threadId); if (live) await live.adapter.cancel(live.runId as never).catch(() => undefined); await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'control.interrupt', source: 'user', trust: 'trusted', payload: {} }] as never); }
+  async stop(threadId: string, userId?: string): Promise<void> { if (!(await this.owned(threadId,userId))) throw new Error('not found'); this.cancelled.add(threadId); await this.inbox.cancelAll(threadId); { const live = this.live.get(threadId); if (live) await live.adapter.cancel(live.runId as never).catch(() => undefined); } await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'control.stop', source: 'user', trust: 'trusted', payload: {} }] as never); await this.pool.query(`UPDATE threads SET status='idle',updated_at=now() WHERE id=$1`, [threadId]); }
 
   async answerApproval(approvalId: string, optionId: string, value: number | undefined, userId: string): Promise<Row | null> {
     const existing = (await this.pool.query('SELECT thread_id FROM approvals WHERE id=$1 AND state=$2', [approvalId, 'open'])).rows[0];
@@ -67,17 +136,25 @@ export class ThreadRunner {
     if (approval.kind === 'budget' && optionId === 'raise' && value) await this.pool.query(`UPDATE threads SET budget=jsonb_set(budget,'{maxUsd}',to_jsonb($2::int)),status='queued' WHERE id=$1`, [approval.thread_id, value]);
     if (approval.kind === 'budget' && optionId === 'stop') await this.stop(approval.thread_id);
     await this.deps.store.appendEvents(approval.thread_id, [{ runId: null, kind: 'approval.resolved', source: 'kernel', trust: 'trusted', payload: { approvalId, optionId, value } }] as never);
-    if (optionId === 'raise') { if (this.running.has(approval.thread_id)) this.queued.set(approval.thread_id,[...(this.queued.get(approval.thread_id)??[]),'Continue within the raised budget.']); void this.startNext(approval.thread_id, 'resume'); }
+    if (approval.gate === 'plan') {
+      const owner = (await this.thread(approval.thread_id))!.owner_id as string;
+      if (optionId === 'approve') { await this.pool.query(`UPDATE threads SET plan_mode=false,status='queued',needs_you='[]' WHERE id=$1`, [approval.thread_id]); await this.inbox.add({ threadId: approval.thread_id, text: 'Plan approved. Implement the plan now.', mode: 'queue', by: null, ownerId: owner, priority: 1 }); }
+      else await this.pool.query(`UPDATE threads SET status='queued',needs_you='[]' WHERE id=$1`, [approval.thread_id]);
+      this.kick(approval.thread_id);
+    }
+    if (optionId === 'raise') { if (this.running.has(approval.thread_id)) await this.inbox.add({ threadId: approval.thread_id, text: 'Continue within the raised budget.', mode: 'queue', by: null, ownerId: (await this.thread(approval.thread_id))!.owner_id as string }); this.supervise(this.startNext(approval.thread_id, 'resume')); }
     return approval;
   }
 
   async startNext(threadId: string, trigger: string): Promise<void> {
     if (this.running.has(threadId)) return;
+    if ((await this.pool.query(`SELECT 1 FROM approvals WHERE thread_id=$1 AND gate='plan' AND state='open'`, [threadId])).rows[0]) return;
+    if (this.running.has(threadId)) return;
     const promise = this.run(threadId, trigger).catch(async (_err) => { await this.pool.query(`UPDATE threads SET status='failed' WHERE id=$1`, [threadId]); }).finally(() => this.running.delete(threadId));
     this.running.set(threadId, promise);
     await promise;
     const current = await this.thread(threadId);
-    const budgetNow=current?.budget as {maxUsd:number|null}|undefined;const spentNow=(current?.spent as {usd:number}|undefined)?.usd??0;if ((this.queued.get(threadId) ?? []).length && !this.cancelled.has(threadId) && (budgetNow?.maxUsd==null||spentNow<budgetNow.maxUsd)) void this.startNext(threadId, 'message');
+    const budgetNow=current?.budget as {maxUsd:number|null}|undefined;const spentNow=(current?.spent as {usd:number}|undefined)?.usd??0;if (current?.status !== 'failed' && current?.status !== 'paused' && !this.cancelled.has(threadId) && (budgetNow?.maxUsd==null||spentNow<budgetNow.maxUsd) && await this.inbox.hasPending(threadId)) this.kick(threadId);
   }
 
   private async thread(threadId: string): Promise<Row | null> { return (await this.pool.query('SELECT * FROM threads WHERE id=$1', [threadId])).rows[0] ?? null; }
@@ -92,7 +169,7 @@ export class ThreadRunner {
 
     const policy = thread.budget as { maxUsd: number | null; maxWallSec: number | null; maxTokens: number | null; warnAt: number };
     const reserveAmount = Math.min(20_000, Math.max(1, policy.maxUsd ?? 20_000));
-    if (policy.maxUsd !== null && (thread.spent as CostTotals).usd >= policy.maxUsd) return this.pauseBudget(threadId, runId, 'budget');
+    if (policy.maxUsd !== null && (thread.spent as CostTotals).usd >= policy.maxUsd) { await this.pool.query(`UPDATE runs SET state='paused_budget',ended_at=now() WHERE id=$1`, [runId]); await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'run.ended', source: 'kernel', trust: 'trusted', payload: { state: 'paused_budget', usage: zero } }] as never); return this.pauseBudget(threadId, runId, 'budget'); }
     let prepared: PreparedSecrets;
     try { prepared = await this.deps.vault?.prepare(threadId) ?? { env: {}, grants: [] }; } catch (err) { return this.failStart(threadId, runId, err); }
     if (policy.maxUsd !== null) {
@@ -122,18 +199,23 @@ export class ThreadRunner {
       }
     }
     if (runToken && 'copyIn' in this.deps.driver) await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', captainMcpTar(runToken.token)).catch(() => undefined);
-    const adapter = this.deps.adapters.get((thread.engine as Row).adapter as string) ?? [...this.deps.adapters.values()][0];
+    const adapter = this.adapterFor(thread);
     if (!adapter) { tokenService?.endRun(runId); throw new Error('adapter missing'); }
     let transport: ReturnType<Driver['transport']>;
     try { transport = this.deps.driver.transport(machine.containerId); } catch (err) { tokenService?.endRun(runId); throw err; }
-    let usage = { ...zero }; let state: 'completed' | 'cancelled' | 'failed' | 'paused_budget' = 'completed'; const started = Date.now();
+    let usage = { ...zero }; let state: 'completed' | 'cancelled' | 'failed' | 'paused_budget' = 'completed'; let error: AdapterError | null = null; const started = Date.now();
     const eventSecrets = { ...this.deps.secrets, ...prepared.env, ...(runToken ? { FLOTILLA_MCP_TOKEN: runToken.token } : {}) };
     const scrubber = createDeltaScrubber(eventSecrets);
+    const item = await this.inbox.claim(threadId, runId); const planRun = item?.plan === true || thread.plan_mode === true;
+    if (item?.plan && !thread.plan_mode) await this.pool.query('UPDATE threads SET plan_mode=true WHERE id=$1', [threadId]);
+    const prompt = item ? `${planRun ? PLAN_PROMPT : ''}${item.text}` : '';
+    this.live.set(threadId, { runId, adapter, sessionId: null });
     let stream: AsyncIterable<AdapterEvent>;
-    try { stream = adapter.start({ runId: runId as never, threadId: threadId as never, prompt: (this.queued.get(threadId) ?? []).shift() ?? '', cwd: project ? '/workspace/repo' : '/workspace', env: prepared.env, transport, resumeSessionId: null, vendorBudget: { maxMicroUsd: policy.maxUsd }, auth: { kind: 'none' }, mcpConfigPath: runToken ? '/run/flotilla/mcp.json' : null, images: [] } as never); } catch (err) { tokenService?.endRun(runId); throw err; }
+    try { stream = adapter.start({ runId: runId as never, threadId: threadId as never, prompt, cwd: project ? '/workspace/repo' : '/workspace', env: prepared.env, transport, resumeSessionId: null, vendorBudget: { maxMicroUsd: policy.maxUsd }, auth: { kind: 'none' }, mcpConfigPath: runToken ? '/run/flotilla/mcp.json' : null, images: [] } as never); } catch (err) { tokenService?.endRun(runId); throw err; }
     try {
       for await (const event of stream) {
         if (this.cancelled.has(threadId)) { state = 'cancelled'; await adapter.cancel(runId as never).catch(() => undefined); break; }
+        if (event.t === 'session') this.live.set(threadId, { runId, adapter, sessionId: event.adapterSessionId });
         await this.adapterEvent(threadId, runId, event, scrubber, eventSecrets);
         if (event.t === 'usage') {
           const m = meter({ threadId: threadId as never, runId: runId as never, at: new Date().toISOString() }, usage, event, null, placeholderPriceTable);
@@ -144,17 +226,19 @@ export class ThreadRunner {
           const fence = inRunFence({ estimate: usage, wallSec: (Date.now()-started)/1000, hold: { scope: 'thread', scopeId: threadId as never, runId: runId as never, amount: reserveAmount }, policy: policy as never });
           if (fence !== 'continue' || (policy.maxUsd !== null && usage.usd >= policy.maxUsd)) { state = 'paused_budget'; await adapter.cancel(runId as never).catch(() => undefined); await this.pauseBudget(threadId, runId, fence === 'continue' ? 'usd' : fence.stop); break; }
         }
-        if (event.t === 'done' && event.stopReason === 'error') state = 'failed';
+        if (event.t === 'done' && event.stopReason === 'error') { state = 'failed'; error = adapterError(scrub(event.error ?? '', eventSecrets) as string); }
         if (event.t === 'done' && event.stopReason === 'cancelled' && state === 'completed') state = 'cancelled';
       }
       const tail = scrubber.flush(); if (tail) await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'agent.delta', source: 'adapter', trust: 'trusted', payload: { text: tail } }] as never);
     } finally {
+      this.live.delete(threadId);
       tokenService?.endRun(runId);
       await this.pool.query('DELETE FROM budget_holds WHERE run_id=$1', [runId]);
-      await this.pool.query('UPDATE runs SET state=$2,ended_at=now(),usage=$3 WHERE id=$1', [runId, state, JSON.stringify(usage)]);
+      await this.pool.query('UPDATE runs SET state=$2,ended_at=now(),usage=$3,error=$4 WHERE id=$1', [runId, state, JSON.stringify(usage), error && JSON.stringify(error)]);
       await this.pool.query(`UPDATE threads SET status=$2,updated_at=now() WHERE id=$1`, [threadId, state === 'paused_budget' ? 'paused' : state === 'completed' ? 'waiting' : state === 'cancelled' ? 'idle' : 'failed']);
-      await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'run.ended', source: 'kernel', trust: 'trusted', payload: { state, usage } }] as never);
-      for (const hook of afterRunHooks) await hook({ thread, project, runId, state, containerId: machine.containerId, driver: this.deps.driver }).catch(() => undefined);
+      await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'run.ended', source: 'kernel', trust: 'trusted', payload: { state, usage, ...(error ? { error } : {}) } }] as never);
+      if (planRun && state === 'completed') await this.openPlanGate(thread, runId);
+      for (const hook of planRun ? [] : afterRunHooks) await hook({ thread, project, runId, state, containerId: machine.containerId, driver: this.deps.driver }).catch(() => undefined);
       await ((this.deps.driver as Driver & {remove?(id:string):Promise<void>}).remove?.(machine.containerId) ?? this.deps.driver.stop(machine.containerId)).catch(() => undefined);
       this.containers.delete(threadId);
       this.cancelled.delete(threadId);
@@ -165,8 +249,15 @@ export class ThreadRunner {
     const kind = event.t === 'tool_call' ? 'agent.tool_call' : event.t === 'tool_result' ? 'agent.tool_result' : event.t === 'done' ? null : null;
     if (kind) await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind, source: 'adapter', trust: 'trusted', payload: scrub(event, eventSecrets) }] as never);
   }
+  /** Plan mode ends every turn at a blocking gate; nothing else runs and no after-run hook (push, PR) fires until it is approved. */
+  private async openPlanGate(thread: Row, runId: string): Promise<void> {
+    const approvalId = id('apr');
+    await this.pool.query(`INSERT INTO approvals (id,thread_id,captain_id,kind,question,options,blocking,state,gate) VALUES ($1,$2,$3,'decision','Approve the plan?',$4,true,'open','plan')`, [approvalId, thread.id, thread.crew_of ?? null, JSON.stringify([{ id: 'approve', label: 'Approve plan' }, { id: 'revise', label: 'Keep planning' }])]);
+    await this.pool.query(`UPDATE threads SET status='paused',needs_you=$2 WHERE id=$1`, [thread.id, JSON.stringify([approvalId])]);
+    await this.deps.store.appendEvents(thread.id as Thread['id'], [{ runId: runId as never, kind: 'approval.requested', source: 'kernel', trust: 'trusted', payload: { approvalId, kind: 'decision', gate: 'plan' } }] as never);
+  }
   private async failStart(threadId: string, runId: string, err: unknown): Promise<never> {
-    this.queued.delete(threadId);
+    await this.inbox.cancelAll(threadId);
     await this.pool.query('DELETE FROM budget_holds WHERE run_id=$1', [runId]);
     await this.pool.query(`UPDATE runs SET state='failed',ended_at=now() WHERE id=$1`, [runId]);
     await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'run.ended', source: 'kernel', trust: 'trusted', payload: { state: 'failed', usage: zero } }] as never);

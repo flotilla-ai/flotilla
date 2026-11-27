@@ -1,11 +1,11 @@
 # Flotilla progress
 
-Current phase: phase 2, wave 1 (serialized foundations).
-Current `flotilla/p1` head at this branch start: `366c7bb46bf783fdb685c0e7e110d650eeb04df3`.
+Current phase: phase 2, wave 2 (phase2-05 runner queue in review).
+Current `flotilla/p1` head at this branch start: `8ada8c0` (repair-4 merged).
 
 ## Row counts
 
-Initialized in `docs/plan/PARITY.md`: P2/P3/P4 rows are pending; phase 1 rows are done except live vendor/GitHub rows marked `needs-human-login`; n/a rows carry Appendix A's reason.
+Counted in `docs/plan/PARITY.md` on this branch: done 71, pending 531, needs-human-login 8, n-a 22, blocked 0 (phase2-05 adds 14 done rows; the remaining P2/P3/P4 rows are pending); phase 1 rows are done except live vendor/GitHub rows marked `needs-human-login`; n/a rows carry Appendix A's reason.
 
 ## Unit table
 
@@ -20,12 +20,14 @@ Initialized in `docs/plan/PARITY.md`: P2/P3/P4 rows are pending; phase 1 rows ar
 | phase2-01-api-platform | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/25 | API platform foundation; 10 rows done |
 | repair-2-runner-authz | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/26 | runner ownership/idempotency security repair |
 | phase2-02-secrets | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/28 | secrets vault + env API; 12 rows done |
-| repair-4-secrets-hardening | in progress | 1 |  | persist vault key; keyed idempotency fingerprints |
+| repair-4-secrets-hardening | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/29 | persist vault key; keyed idempotency fingerprints |
 | phase2-03-models-catalog | in progress | 1 |  | child session implementing |
+| repair-5-runner-supervise | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/33 | runner background continuations drained before pool end |
+| phase2-05-runner-queue | in review | 1 |  | durable inbox, steer/queue, versions, retry, /plan gate; 14 rows |
 
 ## Next action
 
-1. Merge repair-4-secrets-hardening, then review the phase2-03 child PR.
+1. Merge repair-5, then merge `flotilla/p1` into phase2-05 and finish its review; review the phase2-03 child PR.
 2. Continue wave 1 serialized foundations in order with phase2-04 after phase2-03.
 3. Wave 2 units may start after wave 1 dependencies merge.
 
@@ -39,4 +41,4 @@ None.
 
 ## Unverified items
 
-See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. phase2-01 and phase2-02 unverified items are listed in `docs/runlog/phase2-01.md` and `docs/runlog/phase2-02.md`.
+See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. Unverified items for phase2-01, phase2-02 and phase2-05 are listed in `docs/runlog/phase2-01.md`, `docs/runlog/phase2-02.md` and `docs/runlog/phase2-05.md` (phase2-05 web UI display is not built).
