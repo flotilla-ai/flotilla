@@ -157,7 +157,7 @@ describe('thread runner',()=>{
   it('CAPY-192/197: thread boot uses the snapshot image and prepends the repair prompt',async()=>{
     await pool.query(`INSERT INTO projects (id,owner_id,name,repo,trust,budget) VALUES ('prj_snapboot','usr_test','snapboot',NULL,'untrusted','{}') ON CONFLICT (id) DO NOTHING`);
     const starts: Record<string, unknown>[] = []; let seenPrompt = '';
-    const capture = { ...fakeAdapter, start: (input: Parameters<typeof fakeAdapter.start>[0]) => { seenPrompt = input.prompt; return fakeAdapter.start(input); }, resume: (input: Parameters<typeof fakeAdapter.resume>[0]) => fakeAdapter.resume(input) };
+    const capture = { ...fakeAdapter, probe: (ctx: Parameters<typeof fakeAdapter.probe>[0]) => fakeAdapter.probe(ctx), cancel: (runId: Parameters<typeof fakeAdapter.cancel>[0]) => fakeAdapter.cancel(runId), start: (input: Parameters<typeof fakeAdapter.start>[0]) => { seenPrompt = input.prompt; return fakeAdapter.start(input); }, resume: (input: Parameters<typeof fakeAdapter.resume>[0]) => fakeAdapter.resume(input) };
     const snapDriver = { ...driver, startThreadContainer: async (input: Record<string, unknown>) => { starts.push(input); return { containerId: 'snapshot-fake' }; } };
     const snapRunner = new ThreadRunner({ store: runner.deps.store, driver: snapDriver as never, adapters: new Map([['fake', capture]]), snapshots: { bootPlan: async () => ({ image: 'snapshot:image', buildId: 'snb_good', repair: { buildId: 'snb_bad', prompt: 'Repair the failing environment build.' } }) } });
     const t = await snapRunner.createThread({ ownerId: 'usr_test', projectId: 'prj_snapboot', title: 'snapshot boot', prompt: 'hello', requestId: 'req-snapshot-boot' });
