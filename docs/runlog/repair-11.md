@@ -29,3 +29,5 @@ Review round 3: Stop on a plan gate stops without queueing another planning turn
 Review round 4: plan approval uses the user-authored `/plan` inbox item rather than the thread's first message; stopping a plan clears plan mode/needs-you and no longer leaves a stale cancellation that eats the next message. Focused runner proof passes 11/11.
 
 Review round 5: repeated `/plan` sessions now bind approval to the latest user-authored plan request at or before the current planning run, not the earliest plan in the thread. Focused runner proof passes 13/13.
+
+CI/typecheck fix: current-plan selection uses inbox `seq` rather than same-millisecond timestamps; focused runner proof passes 13/13 after merging Drive core.
