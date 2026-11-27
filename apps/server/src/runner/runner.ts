@@ -24,7 +24,7 @@ export type RunnerDeps = { store: EventStore; driver: Driver; adapters: Map<stri
 type AfterRun=(input:{thread:Row;project:Row|null;runId:string;state:string;containerId:string;driver:Driver})=>Promise<void>;
 const afterRunHooks:AfterRun[]=[];
 export function onAfterRun(fn:AfterRun):()=>void{afterRunHooks.push(fn);return()=>{const i=afterRunHooks.indexOf(fn);if(i>=0)afterRunHooks.splice(i,1)}}
-type BeforePrompt=(input:{thread:Row;project:Row|null;runId:string;containerId:string;driver:Driver;transport:ProcessTransport;cwd:string;prompt:string})=>Promise<string>;
+type BeforePrompt=(input:{thread:Row;project:Row|null;runId:string;containerId:string;driver:Driver;transport:ProcessTransport;cwd:string;prompt:string;text:string})=>Promise<string>;
 const beforePromptHooks:BeforePrompt[]=[];
 /** Runs after the machine and workspace are ready, before the adapter starts; may rewrite the prompt. Failures are logged and skipped. */
 export function onBeforePrompt(fn:BeforePrompt):()=>void{beforePromptHooks.push(fn);return()=>{const i=beforePromptHooks.indexOf(fn);if(i>=0)beforePromptHooks.splice(i,1)}}
@@ -222,7 +222,7 @@ export class ThreadRunner {
     const files = item?.attachments.length ? await this.copyAttachments(machine.containerId, item.attachments) : [];
     let prompt = item ? `${planRun ? PLAN_PROMPT : ''}${item.text}${files.length ? `\n\nAttached files:\n${files.map((f) => `- ${f}`).join('\n')}` : ''}` : '';
     const cwd = project ? '/workspace/repo' : '/workspace';
-    for (const hook of beforePromptHooks) prompt = await hook({ thread, project, runId, containerId: machine.containerId, driver: this.deps.driver, transport, cwd, prompt }).catch((err) => { console.warn('before-prompt hook', (err as Error).message); return prompt; });
+    for (const hook of beforePromptHooks) prompt = await hook({ thread, project, runId, containerId: machine.containerId, driver: this.deps.driver, transport, cwd, prompt, text: item?.text ?? '' }).catch((err) => { console.warn('before-prompt hook', (err as Error).message); return prompt; });
     const eng = thread.engine as { model?: string | null; effort?: string | null };
     this.live.set(threadId, { runId, adapter, sessionId: null });
     let stream: AsyncIterable<AdapterEvent>;

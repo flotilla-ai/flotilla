@@ -47,6 +47,7 @@ export class SkillStore {
   /** Copies skill folders from another tool's layout (`…/skills/<folder>/<file>` or `<folder>/<file>`) into Drive skills. */
   async import(userId: string, input: { from: string; projectId?: string | null; files: { path: string; content: string }[] }): Promise<Skill[]> {
     if (!IMPORT_ORIGINS.includes(input.from as never)) throw new ApiFailure('ValidationFailed', `from must be one of ${IMPORT_ORIGINS.join(', ')}`);
+    if (input.files.length > 200 || input.files.reduce((n, f) => n + (typeof f?.content === 'string' ? Buffer.byteLength(f.content) : 0), 0) > 2 * 1024 * 1024) throw new ApiFailure('ValidationFailed', 'import is limited to 200 files and 2 MB');
     const folders = new Map<string, Record<string, string>>();
     for (const f of input.files) {
       const segs = typeof f?.path === 'string' && typeof f.content === 'string' ? safeRel(f.path) : null;
@@ -94,14 +95,14 @@ export class SkillStore {
     } catch (err) { await client.query('ROLLBACK').catch(() => undefined); throw err; } finally { client.release(); }
   }
   /** Before each run: refresh repo skills, mount every loaded skill into the agent-native folders, and point the agent at invoked ones. */
-  async prepareRun(input: { thread: Row; project: Row | null; runId: string; containerId: string; driver: unknown; transport: ProcessTransport; cwd: string; prompt: string }): Promise<string> {
+  async prepareRun(input: { thread: Row; project: Row | null; runId: string; containerId: string; driver: unknown; transport: ProcessTransport; cwd: string; prompt: string; text: string }): Promise<string> {
     const projectId = (input.thread.project_id as string | null) ?? null;
     if (input.project && projectId) await this.scanRepo(projectId, input.transport, input.cwd).catch((err) => console.warn('skills repo scan', (err as Error).message));
     const loaded = (await this.list(input.thread.owner_id, projectId)).filter((s) => s.load.state === 'loaded');
     const driver = input.driver as CopyIn;
     if (driver.copyIn && loaded.length) await driver.copyIn.call(driver, input.containerId, SKILL_HOME, skillsTar(loaded));
     const by = new Map(loaded.map((s) => [s.name, s]));
-    const invs: SkillInvocation[] = parseInvocations(input.prompt, new Set(by.keys())).map((i) => ({ ...i, source: by.get(i.name)!.source.kind, path: skillPath(i.name) }));
+    const invs: SkillInvocation[] = parseInvocations(input.text, new Set(by.keys())).map((i) => ({ ...i, source: by.get(i.name)!.source.kind, path: skillPath(i.name) }));
     for (const i of invs) await this.q('INSERT INTO skill_invocations (thread_id,run_id,name,source,trigger) VALUES ($1,$2,$3,$4,$5)', [input.thread.id, input.runId, i.name, i.source, i.trigger]);
     return invocationNote(invs, loaded) + input.prompt;
   }
