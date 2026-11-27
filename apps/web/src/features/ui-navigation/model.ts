@@ -54,5 +54,5 @@ export function splitPane(panes: Pane[], id: string, direction: 'right' | 'down'
 export type OnboardingState = { steps: string[]; done: string[]; role: 'creator' | 'joiner' };
 export function onboardingSteps(role: 'creator' | 'joiner'): string[] { return role === 'creator' ? ['org-setup', 'connect-model', 'first-project', 'first-thread'] : ['connect-model', 'first-thread'] }
 export function completeOnboardingStep(state: OnboardingState, step: string): OnboardingState { return state.steps.includes(step) && !state.done.includes(step) ? { ...state, done: [...state.done, step] } : state }
-export function loadJson<T>(key: string, fallback: T, storage: Pick<Storage, 'getItem'> | undefined = globalThis.localStorage): T { try { const raw = storage?.getItem(key); return raw ? JSON.parse(raw) as T : fallback } catch { return fallback } }
-export function saveJson(key: string, value: unknown, storage: Pick<Storage, 'setItem'> | undefined = globalThis.localStorage) { try { storage?.setItem(key, JSON.stringify(value)) } catch { /* storage unavailable */ } }
+export function loadJson<T>(key: string, fallback: T, storage?: Pick<Storage, 'getItem'>): T { try { const raw = (storage ?? globalThis.localStorage)?.getItem(key); return raw ? JSON.parse(raw) as T : fallback } catch { return fallback } }
+export function saveJson(key: string, value: unknown, storage?: Pick<Storage, 'setItem'>) { try { (storage ?? globalThis.localStorage)?.setItem(key, JSON.stringify(value)) } catch { /* storage unavailable */ } }
