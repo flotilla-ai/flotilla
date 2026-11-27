@@ -227,6 +227,9 @@ describe('subagent core', () => {
     await exec('git', ['clone', '--bare', work, join(mirrors, 'prj_s.git')]);
     const diff = await call('GET', `/subagents/${s.id}/diff`);
     expect([diff.json.branch, diff.json.base]).toEqual([branch, 'main']); expect(diff.json.patch).toContain('+two');
+    process.env.FLOTILLA_ALLOW_LOCAL_GIT_REMOTES = '1'; onTestFinished(() => { delete process.env.FLOTILLA_ALLOW_LOCAL_GIT_REMOTES; });
+    await exec('sh', ['-c', 'echo three >> a.txt'], { cwd: work }); await g('commit', '-am', 'more');
+    expect((await call('GET', `/subagents/${s.id}/diff`)).json.patch).toContain('+three');
     await g('switch', 'main'); 
     const apply = execFile('git', ['apply', '-'], { cwd: work }); apply.stdin!.end(diff.json.patch); await new Promise((r) => apply.once('exit', r));
     expect((await exec('cat', ['a.txt'], { cwd: work })).stdout).toBe('one\ntwo\n');

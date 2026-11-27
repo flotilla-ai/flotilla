@@ -117,7 +117,7 @@ export class SubagentStore {
   async diff(id: string, userId: string): Promise<SubagentDiff> {
     const { s, project } = await this.branched(id, userId);
     const base = s.base_branch ?? project.repo.baseBranch;
-    const mirror = mirrorPath(this.deps.mirrorRoot ?? '/data/mirrors', project as never);
+    const mirror = await this.mirror(project).catch(() => mirrorPath(this.deps.mirrorRoot ?? '/data/mirrors', project as never));
     const out = await exec('git', ['--git-dir', mirror, 'diff', '--no-color', `${base}...${s.branch}`, '--'], { maxBuffer: 64 * 1024 * 1024 }).catch(() => { throw new ApiFailure('Conflict', 'subagent branch is not in the project mirror yet'); });
     return { branch: s.branch, base, patch: out.stdout };
   }
@@ -180,11 +180,13 @@ export class SubagentStore {
     if (!project || !s.branch) throw new ApiFailure('Conflict', 'subagent has no project branch');
     return { s, project };
   }
+  /** Fetches the project mirror so pushes and deletions on the remote are seen. */
+  private mirror(project: Row): Promise<string> { return ensureMirror({ id: project.id, repo: project.repo, trust: project.trust, token: process.env.GITHUB_TOKEN }, this.deps.mirrorRoot ?? '/data/mirrors'); }
   private async published(projectId: string | null, branch: string): Promise<boolean> {
     const project = projectId ? (await this.pool.query('SELECT * FROM projects WHERE id=$1', [projectId])).rows[0] : null;
     if (!project) return false;
     try {
-      const mirror = await ensureMirror({ id: project.id, repo: project.repo, trust: project.trust, token: process.env.GITHUB_TOKEN }, this.deps.mirrorRoot ?? '/data/mirrors');
+      const mirror = await this.mirror(project);
       await exec('git', ['--git-dir', mirror, 'rev-parse', '--verify', '--quiet', `refs/heads/${branch}`]);
       return true;
     } catch { return false; }
