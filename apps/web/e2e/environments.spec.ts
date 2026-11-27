@@ -8,7 +8,7 @@ test('CAPY-189 + menu lists services, commands and terminals with status dots; C
  await page.route('**/api/v1/threads/thr_1/environment/commands/*',r=>{runs.push(r.request().url().split('/').at(-1)!);commandState='passed';return r.fulfill({json:{state:'passed',exitCode:0,output:'ok'}})});
  await page.goto('/#/environments');await page.getByLabel('project id').fill('prj_1');
  await expect(page.getByText('v1 agent agent setup passed')).toBeVisible();
- await page.getByRole('button',{name:'Save environment'}).click();await expect(page.getByText('v2 user')).toBeVisible();expect(puts).toEqual([{spec}]);
+ await page.getByRole('button',{name:'Save environment'}).click();await expect(page.getByText('v2 user')).toBeVisible();expect(puts).toEqual([{spec,baseVersion:1}]);
  await page.getByLabel('thread id').fill('thr_1');await page.getByRole('button',{name:'environment menu'}).click();
  const menu=page.getByRole('menu');
  for(const t of ['Services','Commands','Terminals','web','db','preview'])await expect(menu.getByText(t,{exact:true}).first()).toBeVisible();
