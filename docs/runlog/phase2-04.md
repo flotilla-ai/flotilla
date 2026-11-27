@@ -161,3 +161,12 @@ apps/server test:  Test Files  20 passed (20)
 apps/server test:       Tests  118 passed | 1 skipped (119)
 exit=0
 ```
+
+## CI fix on `dfe3c68`
+
+CI `check` failed once in `runner-queue.test.ts` CAPY-469: the test read `run.ended` right after the `runs` row turned `failed`, but the runner writes that row before appending the event (5/5 local passes). The test now waits for the event.
+
+```text
+$ cd apps/server && npx vitest run src/runner/runner-queue.test.ts
+      Tests  12 passed (12)
+```
