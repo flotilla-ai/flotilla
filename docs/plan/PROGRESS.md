@@ -1,7 +1,7 @@
 # Flotilla progress
 
 Current phase: phase 2, wave 2 (phase2-05 runner queue in review).
-Current `flotilla/p1` head at this branch start: `8ada8c0` (repair-4 merged).
+Current `flotilla/p1` head: `4772b1c` (repair-5 merged; merged into phase2-05).
 
 ## Row counts
 
@@ -22,12 +22,12 @@ Counted in `docs/plan/PARITY.md` on this branch: done 71, pending 531, needs-hum
 | phase2-02-secrets | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/28 | secrets vault + env API; 12 rows done |
 | repair-4-secrets-hardening | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/29 | persist vault key; keyed idempotency fingerprints |
 | phase2-03-models-catalog | in progress | 1 |  | child session implementing |
-| repair-5-runner-supervise | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/33 | runner background continuations drained before pool end |
+| repair-5-runner-supervise | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/33 | runner background continuations drained before pool end |
 | phase2-05-runner-queue | in review | 1 |  | durable inbox, steer/queue, versions, retry, /plan gate; 14 rows |
 
 ## Next action
 
-1. Merge repair-5, then merge `flotilla/p1` into phase2-05 and finish its review; review the phase2-03 child PR.
+1. Finish phase2-05 review (flotilla/p1 with repair-5 already merged in); review the phase2-03 child PR.
 2. Continue wave 1 serialized foundations in order with phase2-04 after phase2-03.
 3. Wave 2 units may start after wave 1 dependencies merge.
 
