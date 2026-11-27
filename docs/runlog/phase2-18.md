@@ -83,24 +83,7 @@ EXIT=0
 Two-parent merge `faad190` (conflicts only in PROGRESS/DECISIONS-LOG ledgers, both sides kept).
 
 ```text
-$ make check
-apps/gate test:  Test Files  2 passed (2)
-apps/gate test:       Tests  5 passed (5)
-packages/core test:  Test Files  6 passed (6)
-packages/core test:       Tests  15 passed (15)
-apps/web test$ vitest run --passWithNoTests src
-packages/adapters/host test:  Test Files  1 passed (1)
-packages/adapters/host test:       Tests  3 passed (3)
-apps/web test:  Test Files  4 passed (4)
-apps/web test:       Tests  14 passed (14)
-packages/adapters/codex test:  Test Files  1 passed (1)
-packages/adapters/codex test:       Tests  5 passed (5)
-packages/adapters/claude-code test:  Test Files  1 passed (1)
-packages/adapters/claude-code test:       Tests  7 passed (7)
-packages/adapters/generic-cli test:  Test Files  1 passed (1)
-packages/adapters/generic-cli test:       Tests  4 passed (4)
-packages/adapters/fake test:  Test Files  1 passed (1)
-packages/adapters/fake test:       Tests  3 passed (3)
+$ make check   # other packages unchanged, all passed
 apps/server test:  Test Files  23 passed (23)
 apps/server test:       Tests  141 passed | 1 skipped (142)
 EXIT=0
