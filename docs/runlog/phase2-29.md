@@ -140,6 +140,7 @@ Expected: suggestions list the account's repos by `pushed_at`. The project's pri
 - In headless Chrome on this VM the emoji icon renders as a box (no emoji font). The DOM text is correct (`🛒 Shop`).
 
 ## Escalations (out of scope, not fixed)
+- Suggestions and clones use the server `GITHUB_TOKEN` without checking the member's GitHub access (pre-existing for clones; needs per-user GitHub identity, P3).
 - Teammates can see shared projects but cannot start threads in them, because `ThreadRunner.create` and Captain creation still require `projects.owner_id`. A P3 org/membership unit should decide this.
 - `apps/server/src/db/schema.ts` (Drizzle; not imported anywhere) does not list the new columns.
 
@@ -150,6 +151,40 @@ Conflicts were in docs only (`DECISIONS-LOG.md`, `PROGRESS.md`), and both sides'
 ```
 apps/server test:  Test Files  21 passed (21)
 apps/server test:       Tests  124 passed | 1 skipped (125)
+apps/server lint: Done
+exit=0
+```
+
+## Devin Review round 1 (on b6ae207)
+- Repoless threads started the agent in `/workspace/repo`, which is never created. The runner now seeds and uses `/workspace/repo` only when `project.repo` is set; otherwise it uses `/workspace`. New test in `runner.test.ts`. Fixed in e3c848e.
+- A reused project code could generate a thread code an older thread already holds (for example, after `WEB` is renamed and a new project takes `WEB`). The trigger now skips sequence numbers already used. The backfill uses `P00001...` by creation order instead of an md5 prefix, which could collide. Fixed in b1654a8. The backfill has no test (tests migrate an empty database).
+- A repo created without a base branch defaulted to `main` even when the remote only has `master`. When the requested branch is missing in the mirror, `materialize` now uses the mirror's default branch and stores it (also in `projects.repo` for the primary). Fixed in b1654a8.
+- Escalated (not fixed): suggestions and clones use the server's `GITHUB_TOKEN` without checking the member's GitHub access. Any member could already create a project from any repo the token can read before this unit. This needs per-user GitHub identity (P3 org/GitHub App).
+
+Red before the fixes (`npx vitest run src/projects/projects.test.ts`, `-t repoless` in runner):
+```
+   × projects (phase2-29) > CAPY-180: name, emoji icon and uppercase code; threads are numbered per project 25ms
+     → duplicate key value violates unique constraint "threads_code_key"
+   × projects (phase2-29) > CAPY-178/179/181: primary repo mirrors and is described at creation; lazy repos clone on demand 309ms
+     → expected [ 'main', 'main', …(1) ] to deeply equal [ 'master', 'master', …(1) ]
+   × thread runner > starts repoless project threads in /workspace without seeding a repo (CAPY-177) 135ms
+     → expected [ '/workspace/repo' ] to deeply equal [ '/workspace' ]
+```
+After (`npx vitest run src/projects src/runner`):
+```
+ ✓ src/projects/projects-read.test.ts (2 tests) 1544ms
+ ✓ src/projects/projects.test.ts (6 tests) 1958ms
+ ✓ src/runner/runner.test.ts (5 tests) 2178ms
+ ✓ src/runner/runner-queue.test.ts (12 tests) 5191ms
+ Test Files  4 passed (4)
+      Tests  25 passed (25)
+```
+`make check`:
+```
+apps/web test:  Test Files  3 passed (3)
+apps/web test:       Tests  6 passed (6)
+apps/server test:  Test Files  21 passed (21)
+apps/server test:       Tests  125 passed | 1 skipped (126)
 apps/server lint: Done
 exit=0
 ```
