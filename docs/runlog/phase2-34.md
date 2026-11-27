@@ -78,3 +78,9 @@ make check exit=0
 - Fixed: scrub before truncating Test/OAuth errors; 10 s deadline on token requests; proposals reject literal text beside `${VAR}` (only `Bearer`/`Basic`/`Token` prefixes allowed); Codex `enabled = false` kept on import; a failed MCP apply reopens its approval; a failed MCP file copy removes the machine and fails the start.
 - Escalated: Test/OAuth requests can reach private addresses from the server (SSRF). Self-hosted MCP servers on private networks are a real use, so an egress policy is an operator decision, not built here.
 - `make check` after fixes: exit 0 (server 154 passed, 1 skipped; web 19 passed).
+
+## Private-network egress (parent decision)
+- MCP Test and OAuth token/refresh requests from the server refuse loopback/private/link-local/metadata/CGNAT/multicast/IPv4-mapped addresses by default. The check runs on the resolved IP (DNS rebinding included), and redirects are not followed.
+- Opt-in: set `FLOTILLA_MCP_ALLOW_PRIVATE=1` on the server for self-hosted MCP servers on private networks.
+- Both paths tested in `mcp.test.ts` (`egress` case): with the variable unset, a literal IP, `localhost`, metadata and an OAuth token URL are blocked. With it set to `1`, the same local servers pass.
+- Accepted out of scope (parent): a failed run start still drops queued messages, which is a runner-queue follow-up.
