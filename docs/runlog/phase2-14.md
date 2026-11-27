@@ -25,3 +25,12 @@ The test proves pairing-code single use/expiry shape, hash-only device token sto
 ## Unverified
 
 No real desktop runner, OS power management, Tailscale transport, device-local execution, checkpoint capture, offline migration, or Google/GitHub OAuth flow exists in this unit.
+
+Full verification:
+
+```text
+Test Files  37 passed (37)
+Tests  243 passed | 1 skipped (244)
+apps/server lint: Done
+CHECK_RC=0
+```
