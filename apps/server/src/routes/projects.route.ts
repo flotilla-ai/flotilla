@@ -131,7 +131,11 @@ export function createProjectsRoute(pool = new pg.Pool({ connectionString: proce
       if (!trust) throw new Invalid('trusted requires confirm: private-and-mine');
       const code = body.code === undefined ? await freeCode(body.name) : codeOf(body.code);
       const rows = await pool.query('INSERT INTO projects (id,owner_id,name,repo,trust,egress_allow,budget,repos,source,icon,code,visibility) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *', [`prj_${hex(8)}`, userId(c), body.name.trim(), JSON.stringify(source ? primaryOf(primary) : body.repo), trust, JSON.stringify(body.egressAllow ?? []), JSON.stringify(body.budget ?? { maxUsd: null, maxTokens: null, maxWallSec: null, scope: 'project', onHit: 'pause-and-ask', warnAt: 0.8 }), JSON.stringify(repos), JSON.stringify(source), icon(body.icon), code, visibility(body.visibility)]);
-      if (source && primary && !primary.machineId) void materialize(rows.rows[0], primary).catch(() => undefined);
+      if (source && primary && !primary.machineId) {
+        const done = materialize(rows.rows[0], primary);
+        if (primary.branchPinned) await done.catch(async (err) => { if (!(err instanceof Invalid)) return; await pool.query('DELETE FROM projects WHERE id=$1', [rows.rows[0].id]); throw err; });
+        else void done.catch(() => undefined);
+      }
       return c.json(view(rows.rows[0]), 201);
     } catch (err) { return fail(c, err); }
   });
