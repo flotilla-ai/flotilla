@@ -119,4 +119,4 @@
 - 2026-11-27: capped threads (spent ≥ `budget.maxUsd` or an open budget approval) keep due timers active instead of firing them. Undo: fire and let the runner pause.
 - 2026-11-27: cross-thread reply = the target's next run completing after the send (`runs.started_at ≥ watch.created_at`); replies are its agent text. Peek saves to `api_files`. Undo: require an explicit reply tool.
 - 2026-11-27: background jobs run via an injectable `JobExecutor`; production has no executor yet, so `POST /threads/:id/jobs` returns Conflict until phase2-12 machine core provides a live-machine executor (a `docker exec` on an idle thread's removed container crashed the server via an unhandled transport rejection). Job $ cap is wall time × `usdPerSec` (default 0, i.e. off until machine pricing exists). Undo: remove `startJob`.
-
+- 2026-11-27: repair-10 makes generic `POST /approvals/:id/answer` reject approvals carrying `detail.feedback`; they must use the explicit feedback endpoint so Send/Discard semantics cannot be bypassed. Undo: remove the guard if generic answers learn feedback semantics.
