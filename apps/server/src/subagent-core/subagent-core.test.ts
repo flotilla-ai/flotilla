@@ -123,6 +123,15 @@ describe('subagent core', () => {
     expect([created[1].name, mount(created[2])]).toEqual([`vol:flt-workspace-${fresh.id}`, expect.objectContaining({ Source: `flt-workspace-${fresh.id}`, ReadOnly: false })]);
   }, 20_000);
 
+  it('CAPY-055: after a takeover the new owner cannot list the old subagents and an old shared subagent loses the workspace', async () => {
+    const root = await parent(); const s = (await call('POST', `/threads/${root}/subagents`, draft({ placement: 'shared' }))).json;
+    await pool.query(`UPDATE threads SET owner_id='usr_o' WHERE id=$1`, [root]);
+    expect((await call('GET', `/threads/${root}/subagents`, undefined, 'usr_o')).json.items).toEqual([]);
+    await call('POST', `/subagents/${s.id}/start`);
+    const runs = await until(() => pool.query('SELECT state FROM runs WHERE thread_id=$1', [s.id]).then((r) => r.rows), (r) => r[0]?.state === 'failed');
+    expect(runs[0].state).toBe('failed'); expect(starts.some((i) => i.threadId === s.id)).toBe(false);
+  }, 20_000);
+
   it('CAPY-056: parallel subagents must claim disjoint paths; a stacked subagent branches from the previous sibling branch', async () => {
     const root = await parent('plain', null, 'prj_s');
     const one = (await call('POST', `/threads/${root}/subagents`, draft({ paths: ['src/api/'] }))).json;

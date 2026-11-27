@@ -191,7 +191,7 @@ export class ThreadRunner {
 
     const adapter = this.adapterFor(thread);
     if (!adapter) return this.failStart(threadId, runId, new Error(`adapter ${(thread.engine as Row).adapter} is not installed`));
-    const place: RunPlacement = {}; for (const hook of placementHooks) Object.assign(place, await hook(thread));
+    const place: RunPlacement = {}; try { for (const hook of placementHooks) Object.assign(place, await hook(thread)); } catch (err) { return this.failStart(threadId, runId, err); }
     const base = await this.project(thread);
     const project = base && place.baseBranch ? { ...base, repo: { ...(base.repo as Row), baseBranch: place.baseBranch } } : base;
     const tokenService = thread.role === 'captain' ? getRunTokenService() : null;

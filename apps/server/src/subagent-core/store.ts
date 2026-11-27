@@ -99,7 +99,7 @@ export class SubagentStore {
   async get(id: string, userId: string): Promise<Subagent> { return this.view(await this.row(id, userId)); }
   async list(parentId: string, userId: string): Promise<Subagent[]> {
     await this.deps.runner.assertOwner(parentId, userId);
-    return (await this.pool.query(`${SELECT} WHERE s.parent_id=$1 ORDER BY s.ordinal`, [parentId])).rows.map((r) => this.view(r));
+    return (await this.pool.query(`${SELECT} WHERE s.parent_id=$1 AND t.owner_id=$2 ORDER BY s.ordinal`, [parentId, userId])).rows.map((r) => this.view(r));
   }
 
   async progress(id: string, userId: string): Promise<SubagentProgress> {
@@ -132,11 +132,13 @@ export class SubagentStore {
 
   /** Shared children run in the nearest non-shared ancestor's workspace, read-only; stacked children start from the previous sibling's branch. */
   async placement(threadId: string): Promise<RunPlacement | null> {
-    const s = (await this.pool.query('SELECT placement, parent_id, base_branch FROM subagents WHERE thread_id=$1', [threadId])).rows[0] as Row | undefined;
+    const s = (await this.pool.query('SELECT s.placement, s.parent_id, s.base_branch, t.owner_id FROM subagents s JOIN threads t ON t.id=s.thread_id WHERE s.thread_id=$1', [threadId])).rows[0] as Row | undefined;
     if (!s) return null;
     if (s.placement === 'fresh') return s.base_branch ? { baseBranch: s.base_branch } : null;
     let owner = s.parent_id as string;
     for (let up: Row | undefined; (up = (await this.pool.query(`SELECT parent_id FROM subagents WHERE thread_id=$1 AND placement='shared'`, [owner])).rows[0]);) owner = up.parent_id;
+    const host = (await this.pool.query('SELECT owner_id FROM threads WHERE id=$1', [owner])).rows[0] as Row | undefined;
+    if (host?.owner_id !== s.owner_id) throw new Error('the shared workspace now belongs to another owner');
     return { workspaceFrom: owner };
   }
 
