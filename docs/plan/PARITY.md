@@ -625,19 +625,19 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-619 | API: reviews | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-620 | API: reviews | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-621 | API: reviews | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-622 | API: reviewRules | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-623 | API: reviewRules | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-624 | API: reviewRules | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-625 | API: reviewRules | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-626 | API: reviewRules | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-627 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-628 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-629 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-630 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-631 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-632 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-633 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-634 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-622 | API: reviewRules | P3 | done | phase3-20 |  |  Get review rule returns one owner-scoped durable rule.  |
+| CAPY-623 | API: reviewRules | P3 | done | phase3-20 |  |  Delete review rule removes one owner-scoped durable rule.  |
+| CAPY-624 | API: reviewRules | P3 | done | phase3-20 |  |  Update review rule edits text and enabled state.  |
+| CAPY-625 | API: reviewRules | P3 | done | phase3-20 |  |  List review rules supports optional repo filtering.  |
+| CAPY-626 | API: reviewRules | P3 | done | phase3-20 |  |  Create review rule validates repo and text with duplicate conflicts.  |
+| CAPY-627 | API: reviewFilters | P3 | done | phase3-20 |  |  List review filter rules supports optional repo filtering.  |
+| CAPY-628 | API: reviewFilters | P3 | done | phase3-20 |  |  Create review filter rule validates scope, action and pattern.  |
+| CAPY-629 | API: reviewFilters | P3 | done | phase3-20 |  |  Delete review filter rule removes one owner-scoped row.  |
+| CAPY-630 | API: reviewFilters | P3 | done | phase3-20 |  |  Update review filter rule edits scope, action, pattern and enabled state.  |
+| CAPY-631 | API: reviewFilters | P3 | done | phase3-20 |  |  List review ignore paths supports optional repo filtering.  |
+| CAPY-632 | API: reviewFilters | P3 | done | phase3-20 |  |  Create review ignore path validates repo and path.  |
+| CAPY-633 | API: reviewFilters | P3 | done | phase3-20 |  |  Delete review ignore path removes one owner-scoped row.  |
+| CAPY-634 | API: reviewFilters | P3 | done | phase3-20 |  |  Update review ignore path edits path and enabled state.  |
 | CAPY-635 | API: usage | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `GET /api/v1/usage?from&to` returns `UsageReport` (totals + byMember/byModel/byThread/byItem + machine); session or API key. |
 | CAPY-636 | API: usage | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `GET /api/v1/usage/series` returns `UsageSeries` points per UTC hour/day bucket and group key. |
 | CAPY-637 | API: usage | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `GET /api/v1/usage/balance` returns `BudgetWindow[]` (spent, reserved holds, remaining, ok/warn/hit); works with an API key. |
