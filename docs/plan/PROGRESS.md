@@ -1,11 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 2, waves 3-6 continuing in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-Current `flotilla/p1` head before this PR: `d297bd5` (repair-16 progress).
+Current `flotilla/p1` head before this PR: `2c2e643` (phase2-35 GitHub integration).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` on this branch after machine UX/networking: done 213, pending 344, needs-human-login 18, n-a 22, blocked 39.
+Counted in `docs/plan/PARITY.md` on this branch after machine UX/networking: done 216, pending 336, needs-human-login 19, n-a 22, blocked 43.
 
 ## Unit table
 
@@ -46,6 +46,7 @@ Counted in `docs/plan/PARITY.md` on this branch after machine UX/networking: don
 | phase2-19-subagent-forks-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/60 | subagent list/get/messages plus subagent/task SSE APIs; 5 rows done, fork/side-chat rows blocked for missing workspace/session-copy primitive; see `docs/runlog/phase2-19.md` |
 | phase2-37-support-docs | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/58 | troubleshooting guide/index covering all 12 required operator topics; CAPY-464 done; see `docs/runlog/phase2-37.md` |
 | phase2-13-machine-ux-network | in review | 1 |  | network posture, resize/move, sleeping workspace reads, web shell auto-backgrounding; CAPY-214/477/478/479 done, CAPY-215 blocked for missing desktop server; see `docs/runlog/phase2-13.md` |
+| phase2-35-github-integration | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/64 | account/installation fixture store, permission floor, commit identity settings, admin unlink; review-hardened reconnect/repository/user scoping; CAPY-399/405/518 done, CAPY-400 needs-human-login, CAPY-401/402/403/404 blocked; see `docs/runlog/phase2-35.md` |
 
 ## Next action
 
