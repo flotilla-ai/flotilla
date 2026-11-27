@@ -1,0 +1,44 @@
+# phase2-19: Forks, side chats and subagent API
+
+GOAL: Fork/summary-fork/side-chat, passage fork, list/get/messages/stream endpoints. Prove the row-specific behaviors below with the fake adapter, local fixtures, or offline unit/API tests; vendor/live-service behavior is fixture-backed and marked `needs-human-login` where the run rules require a real login.
+
+BRANCH: flotilla/phase2-19-subagent-forks-api
+PR TARGET: flotilla/p1 (never main)
+DEPENDS ON: current `flotilla/p1` plus the wave dependencies in `docs/plan/handoffs/README-phase2.md`
+
+SCOPE:
+- `apps/server/src/**/subagent-forks-api*` or the smallest existing feature module needed for this unit
+- `apps/server/src/db/migrations/` (one new migration only when required)
+- `apps/web/src/**/subagent-forks-api*` only when this unit has UI rows
+- `packages/**/subagent-forks-api*` only when this unit owns adapter/package behavior
+- `scripts/test-subagent-forks-api*.sh` or focused `*.test.ts` files for this unit
+- `docs/plan/handoffs/phase2-19-subagent-forks-api.md`
+- `docs/runlog/phase2-19.md`
+- `docs/plan/PROGRESS.md`, `docs/plan/PARITY.md`, `docs/plan/DECISIONS-LOG.md`
+
+OUT OF SCOPE: `main`; direct pushes to `flotilla/p1`; real paid vendor calls; unrelated refactors; files owned by another phase 2 unit unless the wave README explicitly sequences the shared file.
+
+SHAPES: define types first, using SPEC section 4 naming where applicable: `ThreadFork`, `SideChat`, `SubagentSummary`, `SubagentStream`. Persist durable state in Postgres, expose UI/API behavior through the file-convention module/route extension points, and keep adapter differences behind capabilities rather than adapter-name checks.
+
+DONE SIGNAL:
+```sh
+pnpm --filter @flotilla/server test
+make check
+```
+
+EXPECTED: focused tests must prove every row below. Rows that inherently need a human vendor/login/live service must still have fake-adapter or fixture proof and end as `needs-human-login` with the exact operator command in the runlog.
+
+- `CAPY-063` — Side chat: full copy on same machine, opens as a tab, sees uncommitted changes (/side, Cmd+Shift+S). Flotilla equivalent: Child Thread (parentId) via adapter-native subagents or Flotilla delegate.
+- `CAPY-064` — Fork: full copy (/fork) or summary (/fork-summary) on a fresh machine; 'Fork of …'. Flotilla equivalent: Child Thread (parentId) via adapter-native subagents or Flotilla delegate; [ADP] fork needs session copy; summary-fork works with any adapter.
+- `CAPY-065` — Select text to fork or side-chat from that passage. Flotilla equivalent: Child Thread (parentId) via adapter-native subagents or Flotilla delegate.
+- `CAPY-593` — List subagents. Flotilla equivalent: Public REST + SSE API.
+- `CAPY-594` — Get subagent. Flotilla equivalent: Public REST + SSE API.
+- `CAPY-595` — List subagent messages. Flotilla equivalent: Public REST + SSE API.
+- `CAPY-609` — Stream subagent. Flotilla equivalent: Public REST + SSE API; [TX] served from Flotilla's own store.
+- `CAPY-610` — Stream task. Flotilla equivalent: Public REST + SSE API; [TX] served from Flotilla's own store.
+
+DIFF BUDGET: <= 15 files / <= 800 lines, excluding generated lockfile noise. If the behavior cannot fit, split implementation inside this unit into the smallest vertical slice and mark the unproven remainder `blocked` rather than widening scope.
+
+Context: read `docs/plan/DEVIN-GOAL-ALL.md` sections 3-6, this handoff, and only the SPEC sections for the rows above. Write the failing test first. Paste real outputs in the PR and `docs/runlog/phase2-19.md`; never claim unrun behavior.
+
+ROWS: CAPY-063, CAPY-064, CAPY-065, CAPY-593, CAPY-594, CAPY-595, CAPY-609, CAPY-610
