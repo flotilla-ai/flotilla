@@ -1,6 +1,10 @@
 import { createHash, createHmac, randomUUID } from 'node:crypto';
 import pg from 'pg';
+import { fakeAdapter } from '@flotilla/adapter-fake';
+import { claudeCodeAdapter } from '@flotilla/adapter-claude-code';
+import { codexAdapter } from '@flotilla/adapter-codex';
 import { ApiFailure } from '../api-platform/types.js';
+import { loadCatalog } from '../models-catalog/catalog.js';
 
 export type TriggerType = 'schedule' | 'github' | 'webhook' | 'manual';
 export interface AutomationTrigger { type: TriggerType; cron?: string; timezone?: string; event?: string; batch?: boolean; hmac?: boolean }
@@ -129,7 +133,7 @@ export class AutomationStore {
     if (!['new','standing','existing','private'].includes(mode)) throw new ApiFailure('ValidationFailed', 'threadMode must be new, standing, existing or private');
     if (!String(input.prompt ?? '').trim() || !String(input.name ?? '').trim()) throw new ApiFailure('ValidationFailed', 'name and prompt are required');
     if (mode === 'existing') {
-      const [t] = await this.q('SELECT id FROM threads WHERE id=$1 AND project_id=$2 AND owner_id=$3', [String(input.existingThreadId ?? ''), projectId, userId]);
+      const [t] = await this.q('SELECT id,engine FROM threads WHERE id=$1 AND project_id=$2 AND owner_id=$3', [String(input.existingThreadId ?? ''), projectId, userId]);
       if (!t) throw new ApiFailure('ValidationFailed', 'existingThreadId must be a thread in this project owned by you');
     }
     const modelInput = input.model as { name?: unknown; pinned?: unknown } | undefined;
@@ -137,6 +141,18 @@ export class AutomationStore {
     const resolved = await (this.deps.resolveModel ?? (async (x) => x ?? 'free-default'))(model.name, model.pinned);
     if (!resolved) throw new ApiFailure('Conflict', 'pinned model is unavailable; no substitution was made');
     model.name = resolved;
+    let adapter = 'fake';
+    if (model.pinned) {
+      const entries = loadCatalog([fakeAdapter.manifest, claudeCodeAdapter.manifest, codexAdapter.manifest]).models.filter((m) => m.model === model.name);
+      if (!entries.length) throw new ApiFailure('Conflict', 'pinned model is unavailable; no substitution was made');
+      adapter = entries[0].adapter;
+      if (mode === 'existing') {
+        const [t] = await this.q('SELECT engine FROM threads WHERE id=$1', [String(input.existingThreadId)]);
+        const engine = (t?.engine ?? {}) as Record<string, unknown>;
+        if (engine.adapter !== adapter || (engine.model ?? null) !== model.name) throw new ApiFailure('ValidationFailed', 'existing thread engine does not match the pinned automation model');
+      }
+    }
+    (model as Record<string, unknown>).adapter = adapter;
     const token = triggers.some((t) => t.type === 'webhook') ? randomUUID() + randomUUID() : null;
     const aid = id('aut');
     const [r] = await this.q(`INSERT INTO automations (id,project_id,owner_id,name,prompt,triggers,conditions,run_when,gate_model,model,thread_mode,existing_thread_id,webhook_hash,machine_size)
@@ -159,7 +175,7 @@ export class AutomationStore {
     const [project] = await this.q('SELECT visibility FROM projects WHERE id=$1', [a.projectId]);
     const visibility = a.threadMode === 'private' ? 'private' : String(project?.visibility ?? 'private');
     await this.q(`INSERT INTO threads (id,code,project_id,role,owner_id,title,status,engine,budget,spent,visibility) VALUES ($1,'',$2,'thread',$3,$4,'idle',$5,$6,$7,$8)`,
-      [tid, a.projectId, a.ownerId, `Automation: ${a.name}`, JSON.stringify({ adapter: 'fake', model: a.model.name, effort: null, connectionId: null }), JSON.stringify({ maxUsd: null, maxTokens: null, maxWallSec: null, scope: 'thread', onHit: 'pause-and-ask', warnAt: 0.8 }), JSON.stringify({ usd: 0, inputTokens: 0, outputTokens: 0, cacheTokens: 0, machineSec: 0 }), visibility]);
+      [tid, a.projectId, a.ownerId, `Automation: ${a.name}`, JSON.stringify({ adapter: (a.model as Record<string, unknown>).adapter ?? 'fake', model: a.model.name, effort: null, connectionId: null }), JSON.stringify({ maxUsd: null, maxTokens: null, maxWallSec: null, scope: 'thread', onHit: 'pause-and-ask', warnAt: 0.8 }), JSON.stringify({ usd: 0, inputTokens: 0, outputTokens: 0, cacheTokens: 0, machineSec: 0 }), visibility]);
     if (a.threadMode === 'standing') await this.q('UPDATE automations SET standing_thread_id=$1,updated_at=now() WHERE id=$2', [tid, a.id]);
     return tid;
   }

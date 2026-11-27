@@ -48,7 +48,7 @@ it('CAPY-152/154/155/159/160/161/162/163/164/165/166/500: automation triggers, c
 
   const created = await createAutomation({ name: 'Triage', prompt: 'triage the event', triggers: [manual, { type: 'webhook', hmac: true }, { type: 'github', event: 'pr-opened' }, { type: 'schedule', cron: '*/5 * * * *', timezone: 'UTC' }, { type: 'schedule', cron: '10 9 * * 1', timezone: 'America/New_York' }], conditions: { repo: 'acme/api', branch: { regex: '^main' }, labels: 'critical', text: { contains: 'urgent' }, author: ['alice', 'bob'] }, runWhen: 'critical production urgency', gateModel: { adapter: 'fake', model: 'free-fast' }, model: { pinned: false } });
   expect(created.status).toBe(201); const a = created.body;
-  expect(a.triggers).toHaveLength(5); expect(a.model).toEqual({ name: 'free-default', pinned: false }); expect(a.webhookToken).toBeTruthy();
+  expect(a.triggers).toHaveLength(5); expect(a.model).toEqual({ adapter: 'fake', name: 'free-default', pinned: false }); expect(a.webhookToken).toBeTruthy();
   const secretRows = await pool.query('SELECT webhook_hash FROM automations WHERE id=$1', [a.id]);
   expect(secretRows.rows[0].webhook_hash).not.toBe(a.webhookToken);
 
@@ -83,6 +83,11 @@ it('CAPY-152/154/155/159/160/161/162/163/164/165/166/500: automation triggers, c
   expect(duplicate.result).toBe('duplicate');
   expect((await (await request('/automation-webhooks/not-the-token', { method: 'POST', body: raw, headers: { 'content-type': 'application/json' } })).json() as any).result).toBe('no-match');
   expect((await request(`/automation-webhooks/${a.webhookToken}`, { method: 'POST', body: '{"x":"' + 'x'.repeat(300_000) + '"}', headers: { 'content-type': 'application/json' } })).status).toBe(413);
+
+  const pinned = await store.create('usr_a', 'prj_auto', { name: 'Pinned', prompt: 'x', triggers: [manual], model: { name: 'fake-large', pinned: true } });
+  expect((pinned.model as any).adapter).toBe('fake');
+  const pinnedRun = await store.trigger('usr_a', pinned.id, {});
+  expect((await pool.query('SELECT engine FROM threads WHERE id=$1', [pinnedRun.threadId])).rows[0].engine).toMatchObject({ adapter: 'fake', model: 'fake-large' });
 
   const batchedAutomation = await store.create('usr_a', 'prj_auto', { name: 'Batch', prompt: 'summarize batch', triggers: [{ type: 'webhook', batch: true }], model: { pinned: false } });
   const btoken = batchedAutomation.webhookToken!;
