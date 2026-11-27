@@ -13,8 +13,9 @@ export function createMachineCoreRoute(core: () => MachineCore = () => machineCo
   const app = new Hono();
   const thread = async (c: Context) => { const id = c.req.param('id')!; return { id, projectId: await core().ownedThread(userId(c), id) }; };
   const driver = () => runner().deps.driver as unknown as WorkspaceDriver;
+  const awakeLease = async (threadId: string) => (await core().pool.query('SELECT container_id FROM machine_leases WHERE thread_id=$1 AND state=\'awake\'', [threadId])).rows[0];
   const transportFor = async (threadId: string) => {
-    const [lease] = (await core().pool.query('SELECT container_id FROM machine_leases WHERE thread_id=$1 AND state=\'awake\'', [threadId])).rows;
+    const lease = await awakeLease(threadId);
     if (!lease?.container_id) throw new ApiFailure('Conflict', 'machine is not awake');
     return driver().transport(lease.container_id);
   };
@@ -36,7 +37,7 @@ export function createMachineCoreRoute(core: () => MachineCore = () => machineCo
     const t = await thread(c); const b = await body(c); await runner().wakeMachine(t.id);
     return c.json(await machineUxStore(core().databaseUrl).runCommand(t.id, await transportFor(t.id), String(b.command ?? ''), String(b.cwd ?? '/workspace'), Number(b.timeoutMs ?? 750)));
   });
-  app.get('/threads/:id/machine/background', async (c) => c.json({ items: await machineUxStore(core().databaseUrl).commands((await thread(c)).id) }));
+  app.get('/threads/:id/machine/background', async (c) => { const t = await thread(c); const lease = await awakeLease(t.id); return c.json({ items: await machineUxStore(core().databaseUrl).commands(t.id, lease?.container_id ? driver().transport(lease.container_id) : undefined) }); });
   app.post('/threads/:id/machine/background/:commandId/stop', async (c) => { const t = await thread(c); return c.json(await machineUxStore(core().databaseUrl).stopCommand(t.id, c.req.param('commandId'), await transportFor(t.id))); });
   app.post('/threads/:id/machine/desktop', async (c) => { await thread(c); throw new ApiFailure('Conflict', 'pool machines do not run a desktop server yet'); });
   app.put('/threads/:id/machine/keep-awake', async (c) => { const t = await thread(c); await runner().wakeMachine(t.id); return c.json(await core().keepAwake(t.id, true)); });

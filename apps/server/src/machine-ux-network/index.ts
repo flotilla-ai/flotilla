@@ -64,8 +64,8 @@ export class MachineUxStore {
     const rowId = id('bg'); const safe = rowId.replace(/[^a-zA-Z0-9_]/g, '');
     const dir = `/tmp/flotilla-bg/${safe}`; const encoded = Buffer.from(command).toString('base64');
     await this.q(`INSERT INTO machine_background_commands (id,thread_id,command,cwd,state) VALUES ($1,$2,$3,$4,'running')`, [rowId, threadId, command, cwd]);
-    const script = `mkdir -p '${dir}'; printf %s "$CMD_B64" | base64 -d > '${dir}/cmd'; (sh '${dir}/cmd' >'${dir}/out' 2>&1; echo $? >'${dir}/exit') </dev/null >/dev/null 2>&1 & echo $! >'${dir}/pid'`;
-    const launcher = transport.spawn(['sh', '-c', script], { cwd, env: { CMD_B64: encoded } });
+    const script = `mkdir -p '${dir}'; printf %s "$CMD_B64" | base64 -d > '${dir}/cmd'; setsid sh -c 'sh "$BGDIR/cmd" >"$BGDIR/out" 2>&1; echo $? >"$BGDIR/exit"' </dev/null >/dev/null 2>&1 & echo $! >'${dir}/pid'`;
+    const launcher = transport.spawn(['sh', '-c', script], { cwd, env: { CMD_B64: encoded, BGDIR: dir } });
     const launched = await output(launcher);
     if (launched.code !== 0) {
       await this.q(`UPDATE machine_background_commands SET state='exited',exit_code=coalesce($2,-1),output=$3,ended_at=now() WHERE id=$1`, [rowId, launched.code, launched.text.slice(-8192)]);
@@ -87,13 +87,26 @@ export class MachineUxStore {
       await new Promise((r) => setTimeout(r, 25));
     }
   }
-  async commands(threadId: string): Promise<BackgroundCommand[]> { return (await this.q('SELECT * FROM machine_background_commands WHERE thread_id=$1 ORDER BY created_at DESC LIMIT 50', [threadId])).map(rowToCommand); }
+  private async refreshRunning(threadId: string, transport: ProcessTransport): Promise<void> {
+    const rows = await this.q(`SELECT * FROM machine_background_commands WHERE thread_id=$1 AND state='running' ORDER BY created_at DESC LIMIT 50`, [threadId]);
+    for (const row of rows) {
+      const dir = `/tmp/flotilla-bg/${String(row.id).replace(/[^a-zA-Z0-9_]/g, '')}`;
+      const exitText = (await execText(transport, ['sh', '-c', `cat '${dir}/exit' 2>/dev/null`], row.cwd)).trim();
+      if (!/^-?\d+$/.test(exitText)) continue;
+      const out = (await execText(transport, ['sh', '-c', `tail -c 8192 '${dir}/out' 2>/dev/null`], row.cwd)).slice(-8192);
+      await this.q(`UPDATE machine_background_commands SET state='exited',exit_code=$2,output=$3,ended_at=now() WHERE id=$1`, [row.id, Number(exitText), out]);
+    }
+  }
+  async commands(threadId: string, transport?: ProcessTransport): Promise<BackgroundCommand[]> {
+    if (transport) await this.refreshRunning(threadId, transport).catch(() => undefined);
+    return (await this.q('SELECT * FROM machine_background_commands WHERE thread_id=$1 ORDER BY created_at DESC LIMIT 50', [threadId])).map(rowToCommand);
+  }
   async stopCommand(threadId: string, commandId: string, transport: ProcessTransport): Promise<BackgroundCommand> {
     const [r] = await this.q('SELECT * FROM machine_background_commands WHERE id=$1 AND thread_id=$2', [commandId, threadId]);
     if (!r) throw new ApiFailure('NotFound', 'background command not found');
     if (r.state === 'running') {
       const dir = `/tmp/flotilla-bg/${commandId.replace(/[^a-zA-Z0-9_]/g, '')}`;
-      await execText(transport, ['sh', '-c', `kill -TERM "$(cat '${dir}/pid' 2>/dev/null)" 2>/dev/null || true`], r.cwd).catch(() => '');
+      await execText(transport, ['sh', '-c', `pid="$(cat '${dir}/pid' 2>/dev/null)"; case "$pid" in ''|*[!0-9]*) exit 0;; esac; kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || true; sleep 0.1; kill -KILL -"$pid" 2>/dev/null || true`], r.cwd).catch(() => '');
       await this.q(`UPDATE machine_background_commands SET state='stopped',ended_at=now() WHERE id=$1`, [commandId]);
     }
     return rowToCommand((await this.q('SELECT * FROM machine_background_commands WHERE id=$1', [commandId]))[0]);

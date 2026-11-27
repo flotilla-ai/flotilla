@@ -74,9 +74,16 @@ it('CAPY-214/215/477/478/479: network posture, web shell semantics, resize, slee
 
   const quick = await json(await call('/threads/thr_mux/machine/shell', { method: 'POST', json: { command: 'printf quick-ok', timeoutMs: 1000 } }));
   expect(quick).toMatchObject({ state: 'exited', exitCode: 0, autoBackground: false }); expect(quick.output).toContain('quick-ok');
-  const long = await json(await call('/threads/thr_mux/machine/shell', { method: 'POST', json: { command: 'sleep 2; printf done', timeoutMs: 20 } }));
+  const finishing = await json(await call('/threads/thr_mux/machine/shell', { method: 'POST', json: { command: 'sleep 0.2; printf finished-output', timeoutMs: 20 } }));
+  expect(finishing).toMatchObject({ state: 'running', autoBackground: true });
+  await new Promise((r) => setTimeout(r, 500));
+  expect((await json(await call('/threads/thr_mux/machine/background'))).items.find((x: any) => x.id === finishing.id)).toMatchObject({ state: 'exited', exitCode: 0, output: expect.stringContaining('finished-output') });
+
+  const long = await json(await call('/threads/thr_mux/machine/shell', { method: 'POST', json: { command: 'sleep 17; printf done', timeoutMs: 20 } }));
   expect(long).toMatchObject({ state: 'running', autoBackground: true }); expect(long.pid).toBeGreaterThan(0);
-  expect((await json(await call('/threads/thr_mux/machine/background'))).items.map((x: any) => x.id)).toContain(long.id);
+  expect((await json(await call('/threads/thr_mux/machine/background'))).items.find((x: any) => x.id === long.id)).toMatchObject({ state: 'running' });
   expect((await json(await call(`/threads/thr_mux/machine/background/${long.id}/stop`, { method: 'POST' }))).state).toBe('stopped');
+  await new Promise((r) => setTimeout(r, 100));
+  expect((await exec('sh', ['-c', "ps -eo args | grep '^sleep 17$' || true"])).stdout.trim()).toBe('');
   expect((await call('/threads/thr_mux/machine/desktop', { method: 'POST', json: {} })).status).toBe(409);
 }, 30_000);
