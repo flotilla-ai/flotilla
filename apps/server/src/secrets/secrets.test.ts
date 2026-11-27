@@ -197,4 +197,11 @@ describe('secrets vault', () => {
     expect(refs).toMatchObject([{ name: 'RUN_ONLY', scope: 'thread', configured: true, updatedBy: owner }]);
     expect(JSON.stringify(refs)).not.toContain(VALUE.thread);
   }, 20_000);
+  it('rejects malformed env bodies instead of reporting success', async () => {
+    const path = `/api/v1/projects/${await project('malformed')}/environment-variables`;
+    expect((await call(path, { method: 'PUT', json: {} })).status).toBe(400);
+    expect((await call(path, { method: 'PUT', body: 'not json', headers: { 'content-type': 'application/json' } })).status).toBe(400);
+    expect((await call(path, { method: 'PUT', json: null })).status).toBe(400);
+    expect((await call(path, { method: 'DELETE', json: null })).status).toBe(400);
+  });
 });

@@ -1,4 +1,5 @@
 import { Hono, type Context } from 'hono';
+import { ApiFailure } from '../api-platform/types.js';
 import { parseNames, parseVariables, secretsStore } from '../secrets/store.js';
 import type { SecretScope } from '../secrets/types.js';
 
@@ -12,13 +13,14 @@ export function createSecretsRoute(store = () => secretsStore()) {
     const base = scope === 'project' ? '/projects/:id/environment-variables' : '/me/environment-variables';
     app.get(base, async (c) => c.json({ items: await store().list(scope, await scopeId(c)) }));
     app.put(base, async (c) => {
-      const body = (await c.req.json().catch(() => ({}))) as { variables?: unknown };
-      const mutations = parseVariables(body.variables ?? null);
+      const body = (await c.req.json().catch(() => null)) as { variables?: unknown } | null;
+      if (!Array.isArray(body?.variables)) throw new ApiFailure('ValidationFailed', 'variables must be an array of { name, value }');
+      const mutations = parseVariables(body.variables);
       return c.json({ items: await store().mutate(scope, await scopeId(c), mutations, userId(c)) });
     });
     app.delete(base, async (c) => {
-      const body = (await c.req.json().catch(() => ({}))) as { names?: unknown };
-      const mutations = parseNames(body.names ?? c.req.query('names'));
+      const body = (await c.req.json().catch(() => null)) as { names?: unknown } | null;
+      const mutations = parseNames(body?.names ?? c.req.query('names'));
       return c.json({ items: await store().mutate(scope, await scopeId(c), mutations, userId(c)) });
     });
   };
