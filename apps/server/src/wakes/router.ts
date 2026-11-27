@@ -56,7 +56,7 @@ export class WakeRouter {
       await this.deps.runner.deps.store.appendEvents(threadId as never, [{ runId: null, kind: 'wake.held', source: 'kernel', trust: 'trusted', payload: { kind, fromThread: from.threadId ?? null } }] as never);
       return 'held';
     }
-    if (response === 'context') { await row('context'); return 'context'; }
+    if (response === 'context' || (t.archived_at && from.userId !== t.owner_id)) { await row('context'); return 'context'; }
     if (kind === 'timer' && await this.capped(t)) return 'capped';
     const ctx = await this.q(`UPDATE wake_inbox SET state='delivered' WHERE thread_id=$1 AND state='context' RETURNING text, created_at`, [threadId]);
     const prefix = ctx.sort((a, b) => a.created_at - b.created_at).map((c) => `Context: ${c.text}\n`).join('');
