@@ -20,6 +20,7 @@ export function createApiFoldersFilesRoute(getStore = () => apiFoldersFilesStore
   app.post('/threads/:id/pin', async (c) => c.json(await getStore().setPinned(user(c), c.req.param('id'), true)));
   app.delete('/threads/:id/pin', async (c) => c.json(await getStore().setPinned(user(c), c.req.param('id'), false)));
   app.get('/users', async (c) => c.json(await getStore().listUsers()));
+  app.get('/threads/:id/attachments', async (c) => c.json(await getStore().threadAttachments(user(c), c.req.param('id'))));
   app.get('/files/:id/download', async (c) => {
     const f = await getStore().downloadFile(user(c), c.req.param('id'));
     if (!f) throw new ApiFailure('NotFound', 'file not found');

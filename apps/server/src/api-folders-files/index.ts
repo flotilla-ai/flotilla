@@ -22,7 +22,7 @@ export class ApiFoldersFilesStore {
     return { items: [...counts].sort(([a], [b]) => a.localeCompare(b)).map(([name, threadCount]) => ({ name, threadCount })) };
   }
   async folderThreads(userId: string, rawName: string): Promise<{ items: ThreadLifecycle[] }> {
-    const name = folderName(decodeURIComponent(rawName));
+    const name = folderName(rawName);
     return { items: (await this.lifecycle.list(userId)).filter((t) => t.folder === name) };
   }
   async fileThread(userId: string, threadId: string, input: Record<string, unknown>): Promise<ThreadLifecycle | null> {
@@ -37,6 +37,12 @@ export class ApiFoldersFilesStore {
   async listUsers(): Promise<{ items: OrgUser[] }> {
     const rows = (await this.pool.query(`SELECT id,email,role FROM users WHERE role<>'service' ORDER BY email,id LIMIT 500`)).rows;
     return { items: rows.map((r) => ({ id: r.id, email: r.email, role: r.role })) };
+  }
+
+  async threadAttachments(userId: string, threadId: string): Promise<{ items: unknown[] }> {
+    await this.lifecycle.view(threadId, userId);
+    const rows = (await this.pool.query(`SELECT DISTINCT f.id,f.name,f.content_type,f.size,f.uploaded_at,f.created_at FROM thread_inbox i JOIN LATERAL jsonb_array_elements_text(i.attachments) a(x) ON true JOIN api_files f ON f.id=a.x WHERE i.thread_id=$1 AND f.owner_id=$2 ORDER BY f.created_at,f.id`, [threadId, userId])).rows;
+    return { items: rows.map((r) => ({ id: r.id, name: r.name, contentType: r.content_type, size: Number(r.size), status: r.uploaded_at ? 'uploaded' : 'pending', createdAt: r.created_at.toISOString() })) };
   }
   async downloadFile(ownerId: string, id: string): Promise<DownloadedFile | null> {
     const meta = await this.files.getFile(ownerId, id);

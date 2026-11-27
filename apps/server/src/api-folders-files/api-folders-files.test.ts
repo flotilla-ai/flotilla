@@ -33,9 +33,12 @@ it('CAPY-562..567/605..607/638: public folders, pins, upload/list/download and o
   expect((await call('DELETE', '/threads/thr_af/pin')).json.pinned).toBe(false);
   expect((await call('DELETE', '/threads/thr_af/folder')).json.folder).toBeNull();
   expect((await call('GET', '/folders')).json.items).toEqual([]);
+  expect((await call('PUT', '/threads/thr_af/folder', { folder: 'Q1 100%' })).status).toBe(200);expect((await call('GET', '/folders/Q1%20100%25/threads')).json.items.map((x: any) => x.id)).toEqual(['thr_af']);
   const files = apiPlatformStore(url); const grant = await files.createUpload('usr_af', { name: 'hello.txt', contentType: 'text/plain', size: 5 }, 'http://x');
   const data = Buffer.from('hello'); await files.completeUpload(grant.fileId, new URL(grant.uploadUrl).searchParams.get('token')!, async () => data);
   expect((await files.listFiles('usr_af')).items[0]).toMatchObject({ id: grant.fileId, name: 'hello.txt', status: 'uploaded' });
   const dl = await app.request(`http://x/api/v1/files/${grant.fileId}/download`); expect(dl.status).toBe(200); expect(dl.headers.get('content-type')).toBe('text/plain'); expect(Buffer.from(await dl.arrayBuffer()).toString()).toBe('hello');
+  await pool.query(`INSERT INTO thread_inbox (id,thread_id,root_id,mode,state,text,attachments,by_user) VALUES ('inb_af','thr_af','inb_af','queue','pending','hello',$1::jsonb,'usr_af')`,[JSON.stringify([grant.fileId])]);
+  expect((await call('GET', '/threads/thr_af/attachments')).json.items).toEqual([expect.objectContaining({ id: grant.fileId, name: 'hello.txt', status: 'uploaded' })]);
   expect((await call('GET', '/users')).json.items).toEqual(expect.arrayContaining([expect.objectContaining({ id: 'usr_af', email: 'af@example.invalid' }), expect.objectContaining({ id: 'usr_af2', role: 'admin' })]));
 }, 30_000);
