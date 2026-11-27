@@ -20,14 +20,14 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-014 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-015 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-016 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-017 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-018 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-019 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-020 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-021 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-022 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-023 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-024 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-017 | Threads | P2 | done | phase2-07 |  | Rename/regenerate/heuristic <=50-char titles; org+personal instructions reach TitleGenerator; regenerateWhen setting. Model-backed generator unverified. |
+| CAPY-018 | Threads | P2 | done | phase2-07 |  | Archive keeps events; unarchive/Undo starts no run; a message unarchives and runs. |
+| CAPY-019 | Threads | P2 | done | phase2-07 |  | Bulk archive/tag/file/pin/delete with per-thread results; shift-click range in web. |
+| CAPY-020 | Threads | P2 | done | phase2-07 |  | Hard delete (cascade + thread secrets); private = owner-only. |
+| CAPY-021 | Threads | P2 | done | phase2-07 |  | Per-viewer read/unread and @mention badge count. |
+| CAPY-022 | Threads | P2 | done | phase2-07 |  | Join/leave/subscribe/unsubscribe on shared threads. |
+| CAPY-023 | Threads | P2 | done | phase2-07 |  | Takeover makes the actor owner; prior owner stays a member. |
+| CAPY-024 | Threads | P2 | done | phase2-07 |  | Transfer via share-dialog actions; connectionId reset, personal secrets never move. |
 | CAPY-025 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-026 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-027 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
@@ -476,9 +476,9 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-470 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-471 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-472 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-473 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-474 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-475 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-473 | Threads | P2 | done | phase2-07 |  | Idle auto-archive off by default; skips pinned/open-PR/active/needs-you. |
+| CAPY-474 | Threads | P2 | done | phase2-07 |  | Mark all read includes archived. |
+| CAPY-475 | Threads | P2 | done | phase2-07 |  | Cost by token kind, model and machine. |
 | CAPY-476 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-477 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-478 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
