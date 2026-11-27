@@ -143,3 +143,5 @@ Red test before the fix: `review: a stale sweep cannot sleep a re-held machine .
 - The `/machine` page was rendered server-side only; no browser run.
 - Prices are placeholders; no billing provider.
 - A container that dies while its lease is `awake` is not detected until the server restarts (`reset()`).
+
+Parent integration review fixes: machine charges are now atomically added to `threads.spent` so adapter usage cannot overwrite a charge incurred while rebooting for an egress-policy change; restart recovery reconciles `starting` leases with Docker by thread label and keeps live containers RAM-reserved; wake honors subagent placement and refuses shared per-run workspaces instead of replacing their container; network teardown leaves a network intact when a replacement container is already attached. Focused proof: machine-core/machines/runner tests 38 passed, 1 skipped.

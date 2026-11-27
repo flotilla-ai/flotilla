@@ -19,7 +19,6 @@ import { DELIVERY_MODES, PLAN_PROMPT, RunnerQueue, adapterError, parseCommand, t
 type Driver = GitDriver & { startThreadContainer(input: Record<string, unknown>): Promise<{ containerId: string }>; stop(id: string): Promise<void> };
 type Row = Record<string, unknown>;
 const zero = budgetZero;
-const add = (a: CostTotals, b: CostTotals): CostTotals => ({ usd: a.usd+b.usd, inputTokens: a.inputTokens+b.inputTokens, outputTokens: a.outputTokens+b.outputTokens, cacheTokens: a.cacheTokens+b.cacheTokens, machineSec: a.machineSec+b.machineSec });
 const id = (p: string) => `${p}_${randomBytes(10).toString('base64url')}`;
 const budget = (maxUsd: number | null = null) => ({ maxUsd, maxTokens: null, maxWallSec: null, scope: 'thread' as const, onHit: 'pause-and-ask' as const, warnAt: 0.8 });
 /** Pre-run budget checks beyond the thread's own cap (e.g. monthly org/project windows); the first reason found pauses the run. */
@@ -215,8 +214,9 @@ export class ThreadRunner {
   async wakeMachine(threadId: string): Promise<void> {
     const thread = await this.thread(threadId);
     if (!thread) throw new ApiFailure('NotFound', 'thread not found');
-    if (!this.pooled(thread)) throw new ApiFailure('Conflict', 'this thread has no pool machine');
-    await this.machineFor(thread, await this.project(thread), {});
+    const place: RunPlacement = {}; for (const hook of placementHooks) Object.assign(place, await hook(thread));
+    if (!this.pooled(thread, place)) throw new ApiFailure('Conflict', 'this thread has no pool machine');
+    await this.machineFor(thread, await this.project(thread), {}, place);
     await this.deps.machines!.release(threadId);
   }
 
@@ -289,7 +289,7 @@ export class ThreadRunner {
           usage = m.next;
           await this.pool.query('INSERT INTO cost_entries (thread_id,run_id,source,model,delta,price_table_version) VALUES ($1,$2,$3,$4,$5,$6)', [threadId, runId, m.entry.source, m.entry.model, JSON.stringify(m.entry.delta), m.entry.priceTableVersion]);
           await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'cost.entry', source: 'kernel', trust: 'trusted', payload: m.entry }] as never);
-          await this.pool.query(`UPDATE threads SET spent=$2,updated_at=now() WHERE id=$1`, [threadId, JSON.stringify(add(thread.spent as CostTotals, usage))]);
+          await this.pool.query(`UPDATE threads SET spent=jsonb_build_object('usd',(spent->>'usd')::numeric+$2::numeric,'inputTokens',(spent->>'inputTokens')::numeric+$3::numeric,'outputTokens',(spent->>'outputTokens')::numeric+$4::numeric,'cacheTokens',(spent->>'cacheTokens')::numeric+$5::numeric,'machineSec',(spent->>'machineSec')::numeric+$6::numeric),updated_at=now() WHERE id=$1`, [threadId, usage.usd, usage.inputTokens, usage.outputTokens, usage.cacheTokens, usage.machineSec]);
           const fence = inRunFence({ estimate: usage, wallSec: (Date.now()-started)/1000, hold: { scope: 'thread', scopeId: threadId as never, runId: runId as never, amount: reserveAmount }, policy: policy as never });
           if (fence !== 'continue' || (policy.maxUsd !== null && usage.usd >= policy.maxUsd)) { state = 'paused_budget'; await adapter.cancel(runId as never).catch(() => undefined); await this.pauseBudget(threadId, runId, fence === 'continue' ? 'usd' : fence.stop); break; }
         }

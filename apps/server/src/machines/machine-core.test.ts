@@ -10,7 +10,7 @@ import { fakeAdapter } from '@flotilla/adapter-fake';
 import type { ProcessHandle, ProcessTransport } from '@flotilla/core/types';
 import { migrate } from '../db/migrate.js';
 import { EventStore } from '../events/store.js';
-import { ThreadRunner } from '../runner/runner.js';
+import { ThreadRunner, onPlacement } from '../runner/runner.js';
 import { KERNEL_LIMITS, MACHINE_SIZES, MachineCore, machineCapFromEnv, machineCharge, nextStep, nodeVersionFrom } from './machine-core.js';
 
 const exec = promisify(execFile);
@@ -21,13 +21,14 @@ const repoDir = realpathSync(mkdtempSync(join(tmpdir(), 'flt-mc-')));
 function lines(stream: NodeJS.ReadableStream): AsyncIterable<string> { return (async function* () { let rest = ''; for await (const c of stream) { rest += c.toString(); const p = rest.split('\n'); rest = p.pop()!; for (const x of p) yield x; } if (rest) yield rest; })(); }
 const spawned: string[] = [];
 const local: ProcessTransport = { spawn(argv, opts) { spawned.push(argv.join(' ')); const child = spawn(argv[0], argv.slice(1), { cwd: repoDir, env: { PATH: process.env.PATH!, ...opts.env }, detached: true, stdio: ['ignore', 'pipe', 'pipe'] }); return { stdout: lines(child.stdout!), stderr: lines(child.stderr!), exit: new Promise((r) => child.once('exit', (code, signal) => r({ code, signal }))), signal: async (sig) => { try { if (child.pid) process.kill(-child.pid, sig); } catch { /* exited */ } } } satisfies ProcessHandle; } };
-const calls: string[] = []; let failNextStart = false; let n = 0;
+const calls: string[] = []; let failNextStart = false; let n = 0; let recoverId: string | null = null;
 const driver = {
   async startThreadContainer(i: Record<string, unknown>) { calls.push(`start ${i.memMb} ${i.cpus}`); if (failNextStart) { failNextStart = false; throw new Error('resume failed'); } return { containerId: `c${++n}` }; },
   transport: () => local, copyIn: async () => undefined, copyOut: async () => Buffer.from(''),
   async stop(id: string) { calls.push(`stop ${id}`); }, async remove(id: string) { calls.push(`remove ${id}`); },
   async isRunning(id: string) { return !calls.includes(`stop ${id}`) && !calls.includes(`remove ${id}`); },
-  async deleteWorkspace(t: string) { calls.push(`delete-workspace ${t}`); }
+  async deleteWorkspace(t: string) { calls.push(`delete-workspace ${t}`); },
+  async findContainer() { return recoverId; }
 };
 const pushed: string[] = [];
 let core: MachineCore; let runner: ThreadRunner;
@@ -161,6 +162,30 @@ describe('machine core', () => {
     expect((await boot('["example.org"]')).containerId).not.toBe(a.containerId); expect(calls).toContain(`remove ${a.containerId}`);
     await core.release(t); clock += 3 * MIN; await core.tick();
   });
+  it('review: restart recovery keeps a live starting machine reserved; wake refuses shared subagent placement', async () => {
+    const t = await thread(null);
+    await core.boot(t, null, () => driver.startThreadContainer({}), driver as never); await core.release(t);
+    recoverId = 'c-recovered';
+    await pool.query(`UPDATE machine_leases SET state='starting',container_id=NULL,holds=1,idle_since=NULL WHERE thread_id=$1`, [t]);
+    await core.reset();
+    expect((await lease(t))).toMatchObject({ state: 'awake', container_id: 'c-recovered', holds: 0 });
+    await pool.query('DELETE FROM machine_leases WHERE thread_id=$1', [t]); recoverId = null;
+
+    const shared = await thread(null);
+    const off = onPlacement(async (row) => row.id === shared ? { workspaceFrom: 'thr_parent' } : null);
+    await expect(runner.wakeMachine(shared)).rejects.toThrow('no pool machine');
+    off();
+  });
+  it('review: machine charges made during boot survive adapter usage writes', async () => {
+    const t = await thread(null); clock += HOUR;
+    await core.boot(t, null, () => driver.startThreadContainer({}), driver as never, undefined, 'old-policy');
+    await core.release(t); clock += 5 * MIN;
+    await runner.message(t, 'charge race', 'queue', owner);
+    await waitFor(async () => (await pool.query(`SELECT 1 FROM runs WHERE thread_id=$1 AND state='completed'`, [t])).rows.length > 0);
+    const spent = (await pool.query('SELECT spent FROM threads WHERE id=$1', [t])).rows[0].spent;
+    expect(spent.machineSec).toBe(300); expect(spent.usd).toBeGreaterThanOrEqual(machineCharge('small', 300).usd);
+    clock += 3 * MIN; await core.tick();
+  }, 20_000);
   it('CAPY-212: warns a day ahead, runs the pre-delete (WIP) hook, deletes after 14 sleeping days, rebuilds from the environment; failed resume rebuilds', async () => {
     const t = await thread(null);
     await core.boot(t, null, () => driver.startThreadContainer({}), driver as never); await core.release(t);

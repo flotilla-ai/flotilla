@@ -43,7 +43,7 @@ export function nextStep(l: LeaseView, cap: MachineCap, now: number, held: boole
 }
 
 type Row = Record<string, any>;
-export type MachineDriver = { transport(id: string): ProcessTransport; stop(id: string): Promise<void>; remove?(id: string): Promise<void>; deleteWorkspace?(threadId: string): Promise<void> };
+export type MachineDriver = { transport(id: string): ProcessTransport; stop(id: string): Promise<void>; remove?(id: string): Promise<void>; deleteWorkspace?(threadId: string): Promise<void>; findContainer?(threadId: string): Promise<string | null> };
 type Hooks = { driver?: MachineDriver; emit?(threadId: string, payload: Record<string, unknown>): Promise<void>; beforeDelete?(threadId: string): Promise<void> };
 const ms = (d: Date | null) => (d ? d.getTime() : null);
 const view = (r: Row): LeaseView => ({ state: r.state, busy: r.holds > 0, idleSince: ms(r.idle_since), keepAwakeUntil: ms(r.keep_awake_until), sleptAt: ms(r.slept_at), warnedAt: ms(r.warned_at) });
@@ -168,10 +168,14 @@ export class MachineCore {
   async release(threadId: string): Promise<void> {
     await this.q(`UPDATE machine_leases SET holds=greatest(holds-1,0),idle_since=CASE WHEN holds<=1 THEN $2::timestamptz ELSE idle_since END WHERE thread_id=$1 AND state='awake'`, [threadId, this.at()]);
   }
-  /** After a server restart no run holds a machine; start every awake machine's wind-down. */
+  /** After a server restart no run holds a machine; recover any container that crossed Docker creation before the crash so its RAM stays reserved. */
   async reset(): Promise<void> {
     await this.q(`UPDATE machine_leases SET holds=0,idle_since=$1 WHERE state='awake' AND holds>0`, [this.at()]);
-    await this.q(`UPDATE machine_leases SET state='sleeping',holds=0,container_id=NULL,slept_at=$1 WHERE state='starting'`, [this.at()]);
+    for (const r of await this.q(`SELECT thread_id FROM machine_leases WHERE state='starting'`)) {
+      const containerId = await this.hooks.driver?.findContainer?.(r.thread_id).catch(() => null) ?? null;
+      if (containerId) await this.q(`UPDATE machine_leases SET state='awake',container_id=$2,holds=0,idle_since=$3,awake_since=coalesce(awake_since,$3),updated_at=$3 WHERE thread_id=$1 AND state='starting'`, [r.thread_id, containerId, this.at()]);
+      else await this.q(`UPDATE machine_leases SET state='sleeping',holds=0,container_id=NULL,slept_at=$2,updated_at=$2 WHERE thread_id=$1 AND state='starting'`, [r.thread_id, this.at()]);
+    }
   }
   async keepAwake(threadId: string, on: boolean) {
     await this.q('UPDATE machine_leases SET keep_awake_until=$2 WHERE thread_id=$1 AND state=\'awake\'', [threadId, on ? this.at(this.now() + this.cap.keepAwakeMs) : null]);
