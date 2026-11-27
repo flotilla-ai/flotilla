@@ -54,4 +54,5 @@ export async function withIdempotency(c: Context, next: Next): Promise<Response 
   const ok = c.res.status >= 200 && c.res.status < 300 && !type.includes('event-stream');
   const responseBody = redactedBody(await c.res.clone().text(), type, c.res.headers.get('x-flotilla-redact-keys'));
   await store.finishRequest(principal.userId, requestId, ok ? { status: c.res.status, body: responseBody, contentType: type } : null);
+
 }

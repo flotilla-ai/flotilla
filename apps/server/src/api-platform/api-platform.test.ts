@@ -108,7 +108,8 @@ describe('api platform', () => {
     expect(second.headers.get('idempotent-replayed')).toBe('true');
     expect((await second.json() as { id: string }).id).toBe((await first.json() as { id: string }).id);
     expect((await pool.query(`SELECT count(*)::int n FROM projects WHERE name='idem'`)).rows[0].n).toBe(1);
-    const stored = (await pool.query(`SELECT fingerprint FROM api_idempotency WHERE request_id='req-idem-1'`)).rows[0];
+    const stored = (await pool.query(`SELECT fingerprint,body FROM api_idempotency WHERE request_id='req-idem-1'`)).rows[0];
+    expect(String(stored.body)).toMatch(/^enc:v1:/); expect(String(stored.body)).not.toContain('idem');
     expect(stored.fingerprint).toMatch(/^[0-9a-f]{64}$/);
     expect(stored.fingerprint).not.toBe(createHash('sha256').update(canonical(body)).digest('hex'));
     const { idempotencyFingerprint } = await import('./http.js');
