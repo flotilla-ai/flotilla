@@ -1,11 +1,12 @@
 # Flotilla progress
 
 Current phase: phase 3, wave 1 starting in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-Current `flotilla/p1` head before this PR: `17cef95` (phase3-20 merge).
+Current `flotilla/p1` head before this PR: `1d5434d` (phase3-07 merge).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after all phase-2 units: done 364, pending 147, needs-human-login 24, n-a 22, blocked 82.
+Counted in `docs/plan/PARITY.md` after this unit: done 375, pending 136, needs-human-login 24, n-a 22, blocked 82.
+
 
 ## Unit table
 
@@ -67,10 +68,11 @@ Counted in `docs/plan/PARITY.md` after all phase-2 units: done 364, pending 147,
 | phase3-20-api-review-rules | merged | 1 | #86 | public review rules API; see `docs/runlog/phase3-20.md` |
 | phase3-19-api-tasks-reviews | merged | 1 | #85 | tasks/reviews API; see `docs/runlog/phase3-19.md` |
 | phase3-09-billing-usage | merged | 1 | #87 | usage analytics; see `docs/runlog/phase3-09.md` |
-| phase3-07-mcp-plugins | in review | 1 |  | plugin lifecycle; see `docs/runlog/phase3-07.md` |
+| phase3-07-mcp-plugins | merged | 1 | #88 | plugin lifecycle; see `docs/runlog/phase3-07.md` |
+| phase3-14-ui-navigation | in review | 1 |  | navigation foundation; see `docs/runlog/phase3-14.md` |
 ## Next action
 
-1. Merge phase3-07 after its gate, then continue independent phase-3 units.
+1. Merge phase3-14 after its gate, then continue independent phase-3 units.
 2. Keep external/vendor integration rows fixture-backed and mark exact needs-human-login commands.
 3. Continue without child sessions in free-mode parent.
 
