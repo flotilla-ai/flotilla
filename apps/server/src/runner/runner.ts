@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import type { AdapterEvent, CostTotals, Thread } from '@flotilla/core/types';
+import type { AdapterEvent, CostTotals, ProcessTransport, Thread } from '@flotilla/core/types';
 import { meter, budgetZero, inRunFence } from '@flotilla/core/kernel/budget';
 import { placeholderPriceTable } from '@flotilla/core/kernel/priceTable';
 import { createDeltaScrubber, scrub } from '@flotilla/core/kernel/scrub';
@@ -26,8 +26,8 @@ export type RunnerDeps = { store: EventStore; driver: Driver; adapters: Map<stri
 type AfterRun=(input:{thread:Row;project:Row|null;runId:string;state:string;containerId:string;driver:Driver})=>Promise<void>;
 const afterRunHooks:AfterRun[]=[];
 export function onAfterRun(fn:AfterRun):()=>void{afterRunHooks.push(fn);return()=>{const i=afterRunHooks.indexOf(fn);if(i>=0)afterRunHooks.splice(i,1)}}
-/** Runs after the machine starts and before the agent; a returned note is appended to the prompt. */
-type BeforeRun=(input:{thread:Row;project:Row|null;runId:string;containerId:string;driver:Driver})=>Promise<string|void>;
+/** Runs after the machine starts and before the agent; returned notes are prepended to every run prompt. */
+type BeforeRun=(input:{thread:Row;project:Row|null;runId:string;transport:ProcessTransport;containerId:string;driver:Driver})=>Promise<string|void>;
 const beforeRunHooks:BeforeRun[]=[];
 export function onBeforeRun(fn:BeforeRun):()=>void{beforeRunHooks.push(fn);return()=>{const i=beforeRunHooks.indexOf(fn);if(i>=0)beforeRunHooks.splice(i,1)}}
 /** Where a run executes: `workspaceFrom` mounts another thread's workspace read-only (no seeding); `baseBranch` replaces the project base. */
@@ -241,8 +241,8 @@ export class ThreadRunner {
     const item = await this.inbox.claim(threadId, runId); const planRun = item?.plan === true || thread.plan_mode === true;
     if (item?.plan && !thread.plan_mode) await this.pool.query('UPDATE threads SET plan_mode=true WHERE id=$1', [threadId]);
     const files = item?.attachments.length ? await this.copyAttachments(machine.containerId, item.attachments) : [];
-    const notes: string[] = []; for (const hook of beforeRunHooks) { const note = await hook({ thread, project, runId, containerId: machine.containerId, driver: this.deps.driver }).catch(() => undefined); if (note) notes.push(note); }
-    const prompt = item ? `${planRun ? PLAN_PROMPT : ''}${item.text}${files.length ? `\n\nAttached files:\n${files.map((f) => `- ${f}`).join('\n')}` : ''}${notes.map((n) => `\n\n${n}`).join('')}` : '';
+    const notes: string[] = []; for (const hook of beforeRunHooks) { const note = await hook({ thread, project, runId, transport, containerId: machine.containerId, driver: this.deps.driver }).catch(() => undefined); if (note) notes.push(note); }
+    const prompt = item ? `${notes.length ? `${notes.join('\n\n')}\n\n` : ''}${planRun ? PLAN_PROMPT : ''}${item.text}${files.length ? `\n\nAttached files:\n${files.map((f) => `- ${f}`).join('\n')}` : ''}` : '';
     const eng = thread.engine as { model?: string | null; effort?: string | null };
     this.live.set(threadId, { runId, adapter, sessionId: null });
     let stream: AsyncIterable<AdapterEvent>;
