@@ -71,9 +71,12 @@ function cronJob(expr: string, timezone: string): Cron {
 function validateCron(expr: string, timezone: string): void {
   cronMatches(expr, timezone, new Date());
   const job = cronJob(expr, timezone);
-  const first = job.nextRun(new Date());
-  const second = first ? job.nextRun(first) : null;
-  if (first && second && second.getTime() - first.getTime() < 5 * 60_000) throw new ApiFailure('ValidationFailed', 'schedule frequency floor is 5 minutes');
+  let at = job.nextRun(new Date());
+  for (let i = 0; at && i < 20; i++) {
+    const next = job.nextRun(at);
+    if (next && next.getTime() - at.getTime() < 5 * 60_000) throw new ApiFailure('ValidationFailed', 'schedule frequency floor is 5 minutes');
+    at = next;
+  }
 }
 function valueMatch(rule: unknown, actual: unknown): boolean {
   if (Array.isArray(rule)) return rule.some((x) => valueMatch(x, actual));
