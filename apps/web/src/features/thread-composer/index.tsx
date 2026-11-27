@@ -2,6 +2,7 @@ import React,{useEffect,useRef,useState} from 'react';import {api} from '../../l
 import {deepLinkPrompt,fold,keyAction,loadKeymap,mentionQuery,quote,saveKeymap,sections,type ComposerKeymap,type Ev,type ThreadSection} from './thread-composer.js';
 import {keyEventAction,loadShortcuts} from '../keyboard-shortcuts/model.js';
 import './thread-composer.css';
+import {InlineVisuals} from '../thread-media/index.js';
 type Ref={id:string;code:string;title:string};type Attachment={fileId:string;name:string};
 type Card={id:string;title:string;inline:null|{kind:'env';name:string}|{kind:'desktop';url:string}|{kind:'feedback';title:string;body:string}};
 const text=(e:Ev)=>typeof e.payload==='string'?e.payload:e.payload?.text??e.payload?.delta??JSON.stringify(e.payload);
@@ -70,7 +71,7 @@ export function ThreadComposer({threadId,events:raw}:{threadId:string;events:Ev[
  return <>
   <nav className='ticks' aria-label='ticks'>{humans.map((e,i)=><button key={e.seq} aria-label={`Jump to ask ${i+1}`} onClick={()=>document.getElementById(`ev-${e.seq}`)?.scrollIntoView({block:'start'})}/>)}</nav>
   <section className='events'>{items.map(x=>x.kind==='work'?<details key={`w${x.seq}`} data-seq={x.seq}><summary>{x.label}</summary>{x.events.map(e=><small key={e.seq}>{e.kind}</small>)}</details>
-   :(x.event.kind==='agent.message'||x.event.kind==='agent.delta')?<article key={x.event.seq} id={`ev-${x.event.seq}`} data-seq={x.event.seq}>{sections(x.event.seq,text(x.event)).map(s=><section key={s.index}>{s.heading&&<h3>{s.heading}</h3>}<p>{s.text}</p><button onClick={()=>reply(s)}>Reply</button></section>)}</article>
+   :(x.event.kind==='agent.message'||x.event.kind==='agent.delta')?<article key={x.event.seq} id={`ev-${x.event.seq}`} data-seq={x.event.seq}>{sections(x.event.seq,text(x.event)).map(s=><section key={s.index}>{s.heading&&<h3>{s.heading}</h3>}<p>{s.text}</p><InlineVisuals markdown={s.text}/><button onClick={()=>reply(s)}>Reply</button></section>)}</article>
    :<article key={x.event.seq} id={`ev-${x.event.seq}`} data-seq={x.event.seq}><small>{x.event.kind}</small><p>{text(x.event)}</p></article>)}</section>
   <RequestCards threadId={threadId}/>
   <Composer threadId={threadId} value={draft} setValue={setDraft} onSend={send}/>
