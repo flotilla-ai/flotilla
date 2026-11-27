@@ -40,8 +40,10 @@ export class ThreadLifecycleStore {
   readonly pool: pg.Pool;
   private readonly events: EventStore;
   private ready?: Promise<unknown>;
+  private readonly deleteHooks: ((threadId: string) => Promise<void>)[] = [];
   titles: TitleGenerator = heuristicTitle;
   constructor(private readonly databaseUrl: string) { this.pool = new pg.Pool({ connectionString: databaseUrl, max: 3 }); this.events = new EventStore(databaseUrl, this.pool); }
+  onDelete(hook: (threadId: string) => Promise<void>): void { this.deleteHooks.push(hook); }
   private async q(sql: string, params: unknown[] = []): Promise<Row[]> {
     this.ready ??= migrate(this.databaseUrl).catch((err) => { this.ready = undefined; throw err; });
     await this.ready;
@@ -139,6 +141,7 @@ export class ThreadLifecycleStore {
   private async remove(threadId: string, v: ThreadLifecycle, owner: boolean) {
     if (!owner && (v.visibility === 'private' || !v.member?.joined)) throw new ApiFailure('Forbidden', v.visibility === 'private' ? 'only the owner can delete a private thread' : 'join the thread first');
     if (ACTIVE.includes(v.status)) throw new ApiFailure('Conflict', 'stop the thread before deleting it');
+    for (const hook of this.deleteHooks) await hook(threadId);
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');

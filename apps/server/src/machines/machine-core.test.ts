@@ -162,6 +162,19 @@ describe('machine core', () => {
     expect((await boot('["example.org"]')).containerId).not.toBe(a.containerId); expect(calls).toContain(`remove ${a.containerId}`);
     await core.release(t); clock += 3 * MIN; await core.tick();
   });
+  it('review: deleting a Captain disposes its pooled machine before the lease cascade', async () => {
+    const t = await thread(null);
+    const { threadLifecycle } = await import('../thread-lifecycle/store.js');
+    threadLifecycle(url).onDelete((threadId) => core.destroyThread(threadId));
+    await core.boot(t, null, () => driver.startThreadContainer({}), driver as never); await core.release(t);
+    await pool.query(`UPDATE threads SET role='captain' WHERE id=$1`, [t]);
+    calls.length = 0;
+    await threadLifecycle(url).apply(t, owner, { action: 'delete' });
+    expect(await lease(t)).toBeUndefined();
+    expect(calls.some((c) => c.startsWith('remove c'))).toBe(true);
+    expect(calls).toContain(`delete-workspace ${t}`);
+  });
+
   it('review: promotion to Captain preserves pool-machine wake and keep-awake behavior', async () => {
     const t = await thread(null);
     await core.boot(t, null, () => driver.startThreadContainer({}), driver as never); await core.release(t);
