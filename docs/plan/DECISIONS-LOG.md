@@ -16,3 +16,6 @@
 
 - 2026-11-27: phases 2-4 run overrides the prior direct-push exception: `flotilla/p1` may move only by squash-merging gated PRs; any post-merge repair uses a `flotilla/repair-N` PR. Undo: none during this run; mehdi can change merge policy after the run.
 - 2026-11-27: initial parity ledger treats merged phase-1 implementation rows as done except rows whose proof explicitly requires live vendor/GitHub services; the three phase1fix units provide stronger local end-to-end proof before phase 2. Undo: reclassify rows as blocked if a fix proves the implementation wrong.
+
+- 2026-11-27: phase1fix-01 makes wake delivery at-least-once by marking wake rows processed only after delivery; a crash can duplicate a wake but not lose it. Undo: move to transactional outbox delivery if duplicate wakes become harmful.
+- 2026-11-27: wake coalescing now delays a new event wake until the end of the 30 second window instead of dropping wake-worthy events that arrive just after a delivered wake. Undo: make the window configurable per captain wake policy.
