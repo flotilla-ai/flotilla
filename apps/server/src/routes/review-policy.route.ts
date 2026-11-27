@@ -1,5 +1,5 @@
-import {Hono,type Context} from 'hono';import pg from 'pg';import {ReviewPolicyStore,agentsRuleFindings,filterReviewFiles,retryOnTimeout,stackBadge} from '../review-policy/index.js';
-const userId=(c:Context)=>c.get('userId')as string;const body=async(c:Context)=>((await c.req.json().catch(()=>null))??{})as Record<string,unknown>;let one:ReviewPolicyStore|null=null;
+import {Hono,type Context} from 'hono';import pg from 'pg';import {ApiFailure} from '../api-platform/types.js';import {ReviewPolicyStore,agentsRuleFindings,filterReviewFiles,retryOnTimeout,stackBadge} from '../review-policy/index.js';
+const userId=(c:Context)=>c.get('userId')as string;const body=async(c:Context)=>{try{return ((await c.req.json())??{})as Record<string,unknown>}catch{throw new ApiFailure('ValidationFailed','request body must be valid JSON')}};let one:ReviewPolicyStore|null=null;
 export function reviewPolicyStore(databaseUrl=process.env.DATABASE_URL??'postgres://postgres@postgres:5432/flotilla'){one??=new ReviewPolicyStore(new pg.Pool({connectionString:databaseUrl}));return one}
 export function createReviewPolicyRoute(getStore=()=>reviewPolicyStore()){const app=new Hono();
  app.get('/review-policy/:owner/:repo',async c=>c.json({items:await getStore().policies(userId(c),`${c.req.param('owner')}/${c.req.param('repo')}`)}));
