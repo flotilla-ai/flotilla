@@ -24,6 +24,11 @@ export type RunnerDeps = { store: EventStore; driver: Driver; adapters: Map<stri
 type AfterRun=(input:{thread:Row;project:Row|null;runId:string;state:string;containerId:string;driver:Driver})=>Promise<void>;
 const afterRunHooks:AfterRun[]=[];
 export function onAfterRun(fn:AfterRun):()=>void{afterRunHooks.push(fn);return()=>{const i=afterRunHooks.indexOf(fn);if(i>=0)afterRunHooks.splice(i,1)}}
+/** Where a run executes: `workspaceFrom` mounts another thread's workspace read-only (no seeding); `baseBranch` replaces the project base. */
+export type RunPlacement = { workspaceFrom?: string; baseBranch?: string };
+type Placement=(thread:Row)=>Promise<RunPlacement|null>;
+const placementHooks:Placement[]=[];
+export function onPlacement(fn:Placement):()=>void{placementHooks.push(fn);return()=>{const i=placementHooks.indexOf(fn);if(i>=0)placementHooks.splice(i,1)}}
 
 export class ThreadRunner {
   readonly running = new Map<string, Promise<void>>();
@@ -47,7 +52,7 @@ export class ThreadRunner {
   private adapterFor(thread: Row): AgentAdapter | undefined { return this.deps.adapters.get((thread.engine as Row).adapter as string) ?? [...this.deps.adapters.values()][0]; }
 
   private async owned(threadId: string, userId?: string): Promise<boolean> { if (!userId) return true; const t=await this.thread(threadId); return t?.owner_id===userId; }
-  async createThread(input: { ownerId: string; projectId?: string | null; title: string; prompt: string; engine?: Thread['engine']; maxUsd?: number | null; requestId?: string; env?: EnvVarMutation[]; parentId?: string }): Promise<Row> {
+  async createThread(input: { ownerId: string; projectId?: string | null; title: string; prompt: string; engine?: Thread['engine']; maxUsd?: number | null; requestId?: string; env?: EnvVarMutation[]; parentId?: string; draft?: boolean }): Promise<Row> {
     if (input.requestId) {
       const prior = await this.pool.query(`SELECT e.thread_id FROM events e JOIN threads t ON t.id=e.thread_id WHERE e.request_id=$1 AND e.kind='thread.created' AND t.owner_id=$2 ORDER BY e.seq LIMIT 1`, [input.requestId, input.ownerId]);
       if (prior.rows[0]) { const row=(await this.pool.query('SELECT * FROM threads WHERE id=$1', [prior.rows[0].thread_id])).rows[0]; if(row?.owner_id!==input.ownerId) throw new Error('not found'); return row; }
@@ -56,10 +61,11 @@ export class ThreadRunner {
     const env = input.env ?? [];
     if (env.length && !this.deps.vault) throw new Error('secrets vault not configured');
     const threadId = id('thr'); const code = `FLO-${randomBytes(2).toString('hex').toUpperCase()}`;
-    const row = (await this.pool.query(`INSERT INTO threads (id,code,project_id,role,owner_id,title,status,engine,budget,spent,parent_id) VALUES ($1,$2,$3,'thread',$4,$5,'queued',$6,$7,$8,$9) RETURNING *`, [threadId, code, input.projectId ?? null, input.ownerId, input.title, JSON.stringify(input.engine ?? { adapter: 'fake', model: null, effort: null, connectionId: null }), JSON.stringify(budget(input.maxUsd ?? null)), JSON.stringify(zero), input.parentId ?? null])).rows[0];
+    const row = (await this.pool.query(`INSERT INTO threads (id,code,project_id,role,owner_id,title,status,engine,budget,spent,parent_id) VALUES ($1,$2,$3,'thread',$4,$5,$10,$6,$7,$8,$9) RETURNING *`, [threadId, code, input.projectId ?? null, input.ownerId, input.title, JSON.stringify(input.engine ?? { adapter: 'fake', model: null, effort: null, connectionId: null }), JSON.stringify(budget(input.maxUsd ?? null)), JSON.stringify(zero), input.parentId ?? null, input.draft ? 'idle' : 'queued'])).rows[0];
     if (env.length) await this.deps.vault!.mutate('thread', threadId, env, input.ownerId).catch(async (err) => { await this.pool.query('DELETE FROM threads WHERE id=$1', [threadId]); throw err; });
     const createSecrets = { ...this.deps.secrets, ...Object.fromEntries(env.flatMap((m) => m.op === 'set' ? [[m.name, m.value]] : [])) };
-    await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'thread.created', source: 'kernel', trust: 'trusted', payload: scrub({ title: input.title }, createSecrets) }, { runId: null, kind: 'user.message', source: 'user', trust: 'trusted', payload: scrub({ text: input.prompt }, createSecrets) }] as never, { requestId: input.requestId });
+    await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'thread.created', source: 'kernel', trust: 'trusted', payload: scrub({ title: input.title }, createSecrets) }, ...(input.draft ? [] : [{ runId: null, kind: 'user.message', source: 'user', trust: 'trusted', payload: scrub({ text: input.prompt }, createSecrets) }])] as never, { requestId: input.requestId });
+    if (input.draft) return row;
     const cmd = parseCommand(input.prompt);
     await this.inbox.add({ threadId, text: cmd.kind === 'plan' ? cmd.body : input.prompt, mode: 'queue', plan: cmd.kind === 'plan', by: input.ownerId, ownerId: input.ownerId });
     this.kick(threadId);
@@ -181,13 +187,15 @@ export class ThreadRunner {
       await this.pool.query('INSERT INTO budget_holds (scope,scope_id,run_id,amount) VALUES ($1,$2,$3,$4)', ['thread', threadId, runId, reserveAmount]);
     }
 
-    const project = await this.project(thread);
+    const place: RunPlacement = {}; for (const hook of placementHooks) Object.assign(place, await hook(thread));
+    const base = await this.project(thread);
+    const project = base && place.baseBranch ? { ...base, repo: { ...(base.repo as Row), baseBranch: place.baseBranch } } : base;
     const tokenService = thread.role === 'captain' ? getRunTokenService() : null;
     const runToken = tokenService?.issue(runId, threadId);
     let machine = { containerId: '' };
     {
-      machine = await this.deps.driver.startThreadContainer({ threadId, code: thread.code, image: process.env.FLOTILLA_THREAD_IMAGE ?? 'flotilla-thread:dev', cpus: 1, memMb: 512, env: runToken ? { FLOTILLA_MCP_TOKEN: runToken.token } : {}, roMounts: [], egressAllow: project?.egress_allow as string[] ?? [] }).catch((err) => { tokenService?.endRun(runId); throw err; });
-      if (project && !thread.branch) {
+      machine = await this.deps.driver.startThreadContainer({ threadId, code: thread.code, image: process.env.FLOTILLA_THREAD_IMAGE ?? 'flotilla-thread:dev', cpus: 1, memMb: 512, env: runToken ? { FLOTILLA_MCP_TOKEN: runToken.token } : {}, roMounts: [], egressAllow: project?.egress_allow as string[] ?? [], ...(place.workspaceFrom ? { workspaceFrom: place.workspaceFrom } : {}) }).catch((err) => { tokenService?.endRun(runId); throw err; });
+      if (project && !thread.branch && !place.workspaceFrom) {
         const seeded = await seedWorkspace({ id: threadId as never, code: thread.code as string, title: thread.title as string, branch: thread.branch as string | null, containerId: machine.containerId }, { id: project.id as never, repo: project.repo as never, trust: project.trust as never, token: process.env.GITHUB_TOKEN }, this.deps.driver).catch(() => ({ branch: null }));
         if (seeded.branch && seeded.branch !== thread.branch) await this.pool.query('UPDATE threads SET branch=$2 WHERE id=$1', [threadId, seeded.branch]);
         thread.branch = seeded.branch ?? thread.branch;
