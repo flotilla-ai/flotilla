@@ -109,7 +109,7 @@ export class SubagentStore {
 
   async messages(id: string, userId: string, after = 0, limit = 100): Promise<Record<string, unknown>[]> {
     await this.row(id, userId);
-    return (await this.pool.query('SELECT id,thread_id,seq,run_id,kind,at,source,trust,payload,request_id FROM events WHERE thread_id=$1 AND seq>$2 ORDER BY seq LIMIT $3', [id, after, Math.min(limit, 500)])).rows;
+    return (await this.pool.query('SELECT id,thread_id,seq,run_id,kind,at,source,trust,payload,request_id FROM events WHERE thread_id=$1 AND seq>$2 ORDER BY seq LIMIT $3', [id, after, Math.min(limit, 500)])).rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k.replace(/_([a-z])/g, (_, x) => x.toUpperCase()), v])));
   }
 
   async progress(id: string, userId: string): Promise<SubagentProgress> {

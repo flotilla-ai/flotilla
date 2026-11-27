@@ -261,7 +261,7 @@ describe('subagent core', () => {
     expect((await call('GET', `/threads/${root}/subagents`)).json.items.map((x: any) => x.id)).toContain(s.id);
     expect((await call('GET', `/subagents/${s.id}`)).json.id).toBe(s.id);
     const messages = await call('GET', `/subagents/${s.id}/messages`);
-    expect(messages.status).toBe(200); expect(messages.json.map((e: any) => e.kind)).toEqual(expect.arrayContaining(['user.message', 'agent.delta', 'run.ended']));
+    expect(messages.status).toBe(200); expect(messages.json[0]).toHaveProperty('threadId'); expect(messages.json[0]).not.toHaveProperty('thread_id'); expect(messages.json.map((e: any) => e.kind)).toEqual(expect.arrayContaining(['user.message', 'agent.delta', 'run.ended']));
     for (const path of [`/subagents/${s.id}/stream`, `/threads/${s.id}/stream`]) {
       const r = await api.request(`http://local/api/v1${path}`, { headers: { 'x-user': 'usr_s' } });
       expect(r.status).toBe(200); expect(r.headers.get('content-type')).toContain('text/event-stream');
