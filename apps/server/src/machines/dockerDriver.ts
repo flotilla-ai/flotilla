@@ -84,6 +84,43 @@ export class DockerMachineDriver {
     }
   }
 
+  /** Runs a bounded read-only helper against the persisted workspace volume. This never starts or wakes the thread machine. */
+  private async workspaceCapture(threadId: string, cmd: string[]): Promise<string> {
+    const container = await this.docker.createContainer({
+      Image: process.env.FLOTILLA_THREAD_IMAGE ?? 'flotilla-thread:dev', Cmd: cmd, User: 'node', Tty: false,
+      Labels: { 'flotilla.thread': threadId, 'flotilla.workspace-reader': '1' },
+      HostConfig: { NetworkMode: 'none', Mounts: [{ Type: 'volume', Source: `flt-workspace-${threadId}`, Target: '/workspace', ReadOnly: true }] }
+    });
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; void container.kill().catch(() => undefined); }, 10_000);
+    timer.unref();
+    try {
+      await container.start();
+      const stream = await container.logs({ stdout: true, stderr: true, follow: true });
+      const { PassThrough } = await import('node:stream');
+      const out = new PassThrough(); const err = new PassThrough();
+      this.docker.modem.demuxStream(stream, out, err);
+      stream.on('end', () => { out.end(); err.end(); });
+      stream.on('close', () => { out.end(); err.end(); });
+      const collect = async (s: NodeJS.ReadableStream) => { const chunks: Buffer[] = []; let size = 0; for await (const c of s) { const b = Buffer.from(c); size += b.length; if (size <= 300_000) chunks.push(b); } return Buffer.concat(chunks).toString('utf8'); };
+      const [text, errors] = await Promise.all([collect(out), collect(err)]);
+      const result = await container.wait();
+      if (timedOut) throw new Error('workspace read timed out');
+      if ((result as { StatusCode?: number }).StatusCode !== 0) throw new Error(errors.trim() || `workspace read failed with exit ${(result as { StatusCode?: number }).StatusCode}`);
+      return text;
+    } finally {
+      clearTimeout(timer);
+      await container.remove({ force: true }).catch(() => undefined);
+    }
+  }
+  async listWorkspaceFiles(threadId: string, path = ''): Promise<{ path: string; size: number }[]> {
+    const text = await this.workspaceCapture(threadId, ['sh', '-c', 'cd /workspace && cd -- "$1" && find . -maxdepth 3 -type f -printf "%p\\t%s\\n" | sort | head -200', 'sh', path || '.']);
+    return text.split('\n').filter(Boolean).map((line) => { const [p, size] = line.split('\t'); return { path: p.replace(/^\.\//, ''), size: Number(size) || 0 }; });
+  }
+  async readWorkspaceFile(threadId: string, path: string): Promise<string> {
+    return this.workspaceCapture(threadId, ['sh', '-c', 'cd /workspace && test -f "$1" && test "$(wc -c <"$1")" -le 262144 && cat -- "$1"', 'sh', path]);
+  }
+
   /** Removes the deterministic per-thread network even when the container record is already gone. */
   async removeThreadNetwork(threadId: string): Promise<void> {
     const name = `flt-${threadId}`;
