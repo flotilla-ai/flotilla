@@ -23,8 +23,8 @@ export function createThreadsRoute(runner = defaultRunner(), policy = modelPolic
     const body = await c.req.json().catch(() => ({}));
     if (!body.title || !body.prompt) return c.json({ error: 'title and prompt required' }, 400);
     const env = parseVariables(body.environmentVariables);
-    const resolved = body.engine === undefined ? undefined : await modelsCatalogStore().resolve(userId(c), body.engine);
-    const engine = resolved && { adapter: resolved.adapter, model: resolved.model, effort: resolved.effort, connectionId: resolved.connectionId, ...(resolved.contextWindow ? { contextWindow: resolved.contextWindow } : {}) };
+    const resolved = await modelsCatalogStore().resolve(userId(c), body.engine ?? { adapter: 'fake' });
+    const engine = { adapter: resolved.adapter, model: resolved.model, effort: resolved.effort, connectionId: resolved.connectionId, ...(resolved.contextWindow ? { contextWindow: resolved.contextWindow } : {}) };
     const row = await runner.createThread({ ownerId: userId(c), projectId: body.projectId ?? null, title: body.title, prompt: body.prompt, engine, maxUsd: body.maxUsd ?? null, requestId: body.requestId, env });
     return c.json(row, 201);
   });

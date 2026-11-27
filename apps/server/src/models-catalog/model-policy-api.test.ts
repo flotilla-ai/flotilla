@@ -160,6 +160,7 @@ describe('model policy and model API', () => {
     const t = (await thread({ adapter: 'claude-code', model: 'claude-fixture', connectionId: key }, 'exhaust')).body;
     expect((await openCard(t.id)).options).toEqual([{ id: 'wait', label: 'Wait' }]);
     expect((await say(t.id, '/continue')).status).toBe(400);
+    expect((await thread(undefined)).body.error).toMatch(/never uses the free models|offers/);
     expect((await put('/api/v1/me/model-policy', { excludedAdapters: ['nope'] })).status).toBe(400);
   });
 
