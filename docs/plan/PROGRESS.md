@@ -1,11 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 2, wave 1 (serialized foundations) and wave 2 (core threads and runner).
-Current `flotilla/p1` head: `9fc248b` (phase2-10 environments, repair-8 and repair-9 merged; phase2-12 branched from it).
+Current `flotilla/p1` head: `0662ec8` (phase2-06, phase2-10 environments, repair-8 and repair-9 merged; phase2-12 branched from `9fc248b` and merged `0662ec8`).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` on this branch: done 106, pending 466, needs-human-login 16, n-a 22, blocked 22 (phase2-12 adds 9 done machine rows (CAPY-201..205, 209..211, 213), 3 blocked (206, 207, 212) and moves CAPY-186 to done; phase2-05 adds 4 done rows and 10 blocked web-UI rows; phase2-08 adds 11 done rows; the remaining P2/P3/P4 rows are pending); phase 1 rows are done except live vendor/GitHub rows marked `needs-human-login`; n/a rows carry Appendix A's reason.
+Counted in `docs/plan/PARITY.md` on this branch: done 116, pending 456, needs-human-login 16, n-a 22, blocked 22 (phase2-12 adds 9 done machine rows (CAPY-201..205, 209..211, 213), 3 blocked (206, 207, 212) and moves CAPY-186 to done; phase2-05 adds 4 done rows and 10 blocked web-UI rows; phase2-08 adds 11 done rows; the remaining P2/P3/P4 rows are pending); phase 1 rows are done except live vendor/GitHub rows marked `needs-human-login`; n/a rows carry Appendix A's reason.
 
 ## Unit table
 
@@ -32,7 +32,7 @@ Counted in `docs/plan/PARITY.md` on this branch: done 106, pending 466, needs-hu
 | phase2-10-environments | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/39 | environments model/store/executor seams; 2 rows done, 7 blocked on phase2-11/phase2-12 wiring; see `docs/runlog/phase2-10.md` |
 | phase2-12-machine-core | in review | 1 | (this PR) | pool machine sizes, RAM cap, sleep/wake/keep-awake/14-day delete, environment boot wiring; 9 rows done, 3 blocked; see `docs/runlog/phase2-12.md` |
 
-| phase2-06-thread-composer | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/40 | composer keymap/attachments, request cards + Undo, thread codes, sections/ticks/reading place, deep link, owner-approved feedback; 10 rows done; see `docs/runlog/phase2-06.md` |
+| phase2-06-thread-composer | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/40 | composer keymap/attachments, request cards + Undo, thread codes, sections/ticks/reading place, deep link, owner-approved feedback; 10 rows done; see `docs/runlog/phase2-06.md` |
 
 ## Next action
 
