@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { randomBytes } from 'node:crypto';
+import { rm } from 'node:fs/promises';
 import pg from 'pg';
 import { ensureMirror, isGitHubRemote, mirrorDefaultBranch, remoteAllowed, type GitProject } from '../git/mirror.js';
 import { describeMirror, hasBranch } from '../projects/describe.js';
@@ -100,6 +101,7 @@ export function createProjectsRoute(pool = new pg.Pool({ connectionString: proce
   async function materialize(row: Row, repo: ProjectRepository): Promise<ProjectRepository> {
     const path = await mirror({ id: (repo.role === 'primary' ? row.id : `${row.id as string}--${repo.id}`) as never, repo: primaryOf(repo) as never, trust: row.trust as never, token: process.env.GITHUB_TOKEN }, root);
     const found = await hasBranch(path, repo.baseBranch);
+    if (!found && repo.branchPinned) await rm(path, { recursive: true, force: true });
     if (!found && repo.branchPinned) throw new Invalid(`base branch ${repo.baseBranch} not found`, 409);
     const baseBranch = found ? repo.baseBranch : await mirrorDefaultBranch(path, repo.baseBranch, process.env);
     const patch = { baseBranch, description: await describeMirror(path, baseBranch), clonedAt: new Date().toISOString() };
@@ -131,12 +133,13 @@ export function createProjectsRoute(pool = new pg.Pool({ connectionString: proce
       if (!trust) throw new Invalid('trusted requires confirm: private-and-mine');
       const code = body.code === undefined ? await freeCode(body.name) : codeOf(body.code);
       const rows = await pool.query('INSERT INTO projects (id,owner_id,name,repo,trust,egress_allow,budget,repos,source,icon,code,visibility) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *', [`prj_${hex(8)}`, userId(c), body.name.trim(), JSON.stringify(source ? primaryOf(primary) : body.repo), trust, JSON.stringify(body.egressAllow ?? []), JSON.stringify(body.budget ?? { maxUsd: null, maxTokens: null, maxWallSec: null, scope: 'project', onHit: 'pause-and-ask', warnAt: 0.8 }), JSON.stringify(repos), JSON.stringify(source), icon(body.icon), code, visibility(body.visibility)]);
+      let row = rows.rows[0];
       if (source && primary && !primary.machineId) {
-        const done = materialize(rows.rows[0], primary);
-        if (primary.branchPinned) await done.catch(async (err) => { if (!(err instanceof Invalid)) return; await pool.query('DELETE FROM projects WHERE id=$1', [rows.rows[0].id]); throw err; });
-        else void done.catch(() => undefined);
+        const done = materialize(row, primary);
+        if (!primary.branchPinned) void done.catch(() => undefined);
+        else if (await done.then(() => true, async (err) => { if (!(err instanceof Invalid)) return false; await pool.query('DELETE FROM projects WHERE id=$1', [row.id]); throw err; })) row = (await pool.query('SELECT * FROM projects WHERE id=$1', [row.id])).rows[0];
       }
-      return c.json(view(rows.rows[0]), 201);
+      return c.json(view(row), 201);
     } catch (err) { return fail(c, err); }
   });
   app.get('/:id', async (c) => {

@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -133,16 +133,19 @@ describe('projects (phase2-29)', () => {
     const old = await create({ name: 'Billing', source: { kind: 'github', fullName: 'acme/billing' } });
     const oldReady = await untilCloned(old.body.id, old.body.repos[0].id);
     expect([oldReady.repo?.baseBranch, oldReady.repos[0].baseBranch, oldReady.repos[0].description]).toEqual(['master', 'master', 'Legacy billing service.']);
+    const mirrorsBefore = readdirSync(root).sort();
     const badPrimary = await create({ name: 'Bad Branch', source: { kind: 'git-url', url: `file://${fixtures.engine}`, baseBranch: 'release' } });
     expect([badPrimary.status, badPrimary.body]).toEqual([409, { error: 'base branch release not found' }]);
     expect((await pool.query("SELECT 1 FROM projects WHERE name='Bad Branch'")).rows).toEqual([]);
     const goodPrimary = await create({ name: 'Main Branch', source: { kind: 'git-url', url: `file://${fixtures.engine}`, baseBranch: 'main' } });
-    expect([goodPrimary.status, goodPrimary.body.repos[0].baseBranch]).toEqual([201, 'main']);
+    expect(readdirSync(root).sort()).toEqual([...mirrorsBefore, `${goodPrimary.body.id}.git`].sort());
+    expect([goodPrimary.status, goodPrimary.body.repos[0].baseBranch, goodPrimary.body.repos[0].description, Boolean(goodPrimary.body.repos[0].clonedAt)]).toEqual([201, 'main', 'Fast pricing engine.', true]);
     const pinned = await create({ name: 'Pinned', source: { kind: 'empty' }, lazy: [{ kind: 'git-url', url: `file://${fixtures.engine}`, baseBranch: 'release' }] });
     const miss = await app.request(`http://local/api/v1/projects/${pinned.body.id}/repos/${pinned.body.repos[0].id}/clone`, json({}));
     expect([miss.status, await miss.json()]).toEqual([409, { error: 'base branch release not found' }]);
     const kept = await (await app.request(`http://local/api/v1/projects/${pinned.body.id}`, as('usr_a'))).json() as { repos: { baseBranch: string; clonedAt: string | null }[] };
     expect([kept.repos[0].baseBranch, kept.repos[0].clonedAt]).toEqual(['release', null]);
+    expect(existsSync(join(root, `${pinned.body.id}--${pinned.body.repos[0].id}.git`))).toBe(false);
   });
 
   it('CAPY-181: validates GitHub, git URL and folder sources and suggests recently pushed repos', async () => {
