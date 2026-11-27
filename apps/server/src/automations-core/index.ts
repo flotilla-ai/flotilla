@@ -298,6 +298,25 @@ export class AutomationStore {
     }
     return out;
   }
+  /** Re-dispatch queued runs whose runner handoff was interrupted. Handoff is at-least-once; five failures fail the run closed. */
+  async recoverDispatches(limit = 25): Promise<number> {
+    if (!this.deps.startRun) return 0;
+    const rows = await this.q(`SELECT r.*,a.prompt,a.owner_id,a.project_id,a.name,a.triggers,a.conditions,a.run_when,a.gate_model,a.model,a.thread_mode,a.existing_thread_id,a.standing_thread_id,a.webhook_hash,a.machine_size,a.state,a.created_at automation_created_at,a.updated_at automation_updated_at
+      FROM automation_runs r JOIN automations a ON a.id=r.automation_id
+      WHERE r.status='queued' AND r.dispatched_at IS NULL AND r.dispatch_attempts<5 AND r.created_at < now() - interval '10 seconds' ORDER BY r.created_at LIMIT $1`, [limit]);
+    let recovered = 0;
+    for (const row of rows) {
+      const a = toAutomation({ ...row, id: row.automation_id, created_at: row.automation_created_at, updated_at: row.automation_updated_at });
+      try {
+        await this.deps.startRun({ threadId: String(row.thread_id), prompt: a.prompt, automationId: a.id, runId: String(row.id) });
+        await this.q('UPDATE automation_runs SET dispatched_at=now(),dispatch_attempts=dispatch_attempts+1,updated_at=now() WHERE id=$1', [row.id]);
+        recovered++;
+      } catch {
+        await this.q(`UPDATE automation_runs SET dispatch_attempts=dispatch_attempts+1,status=CASE WHEN dispatch_attempts+1>=5 THEN 'failed' ELSE status END,updated_at=now() WHERE id=$1`, [row.id]);
+      }
+    }
+    return recovered;
+  }
   async close(): Promise<void> { await this.pool.end(); }
 }
 const stores = new Map<string, AutomationStore>();

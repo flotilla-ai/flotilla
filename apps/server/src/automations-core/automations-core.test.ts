@@ -107,6 +107,12 @@ it('CAPY-152/154/155/159/160/161/162/163/164/165/166/500: automation triggers, c
   expect((await store.trigger('usr_a', existing.id, {})).threadId).toBe('thr_existing');
   expect((await store.create('usr_a', 'prj_auto', { name: 'Private', prompt: 'x', triggers: [manual], threadMode: 'private', model: { pinned: false } })).threadMode).toBe('private');
 
+  const beforeRecovery = starts.length;
+  await pool.query(`INSERT INTO automation_runs (id,automation_id,trigger_type,trigger_key,status,thread_id,payload,created_at) VALUES ('arun_lost',$1,'manual','manual','queued',$2,'{}',now() - interval '1 minute')`, [standing.id, s1.threadId]);
+  expect(await store.recoverDispatches()).toBe(1);
+  expect(starts.length).toBe(beforeRecovery + 1);
+  expect((await pool.query('SELECT dispatched_at FROM automation_runs WHERE id=$1', ['arun_lost'])).rows[0].dispatched_at).toBeTruthy();
+
   const scheduled = await store.create('usr_a', 'prj_auto', { name: 'Schedules', prompt: 'run schedule', triggers: [{ type: 'schedule', cron: '*/5 * * * *', timezone: 'UTC' }, { type: 'schedule', cron: '10 9 * * 1', timezone: 'America/New_York' }], model: { pinned: false } });
   const minute = new Date(Math.ceil(Date.now() / 300_000) * 300_000);
   const due = await store.dueSchedules(minute);

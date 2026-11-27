@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS automation_runs (
   thread_id text REFERENCES threads(id) ON DELETE SET NULL,
   payload jsonb NOT NULL DEFAULT '{}'::jsonb,
   skip_reason text,
+  dispatched_at timestamptz,
+  dispatch_attempts integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (automation_id, idempotency_key)
