@@ -1,11 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 2, waves 3-6 continuing in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-Current `flotilla/p1` head before this PR: `d655831` (repair-18 progress).
+Current `flotilla/p1` head before this PR: `128f4c5` (phase2-26 automations core).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` on this branch after devices pairing: done 219, pending 326, needs-human-login 19, n-a 22, blocked 50.
+Counted in `docs/plan/PARITY.md` on this branch after automations core plus devices pairing: done 230, pending 313, needs-human-login 19, n-a 22, blocked 52.
 
 ## Unit table
 
@@ -48,9 +48,8 @@ Counted in `docs/plan/PARITY.md` on this branch after devices pairing: done 219,
 | phase2-13-machine-ux-network | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/66 | network posture, resize/move, sleeping workspace reads, durable background commands; review-hardened workspace helper/process lifecycle; CAPY-214/477/478/479 done, CAPY-215 blocked for missing desktop server; see `docs/runlog/phase2-13.md` |
 | phase2-35-github-integration | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/64 | account/installation fixture store, permission floor, commit identity settings, admin unlink; review-hardened reconnect/repository/user scoping; CAPY-399/405/518 done, CAPY-400 needs-human-login, CAPY-401/402/403/404 blocked; see `docs/runlog/phase2-35.md` |
 
-| phase2-14-devices-pairing | in review | 1 |  | Pairing codes, device trust/status/heartbeat, machine picker, workspace policy, folder scan; 3 rows done, 7 device-execution rows blocked; see `docs/runlog/phase2-14.md` |
-
-
+| phase2-26-automations-core | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/68 | durable automation definitions, cron/webhook/GitHub/manual triggers, batches, conditions, model pinning and thread modes; 11 rows done, CAPY-153/163 blocked; see `docs/runlog/phase2-26.md` |
+| phase2-14-devices-pairing | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/70 | Pairing codes, device trust/status/heartbeat, machine picker, workspace policy, folder scan; 3 rows done, 7 device-execution rows blocked; see `docs/runlog/phase2-14.md` |
 ## Next action
 
 1. Continue machine UX/devices/dock and Captain/work-surface units directly in the parent session. CAPY-061/062 need a paired-device target and an agent-callable subagent tool.

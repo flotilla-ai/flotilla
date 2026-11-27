@@ -7,7 +7,7 @@ const body = async (c: Context) => ((await c.req.json().catch(() => null)) ?? {}
 /** Owner-facing paired-device management. */
 export function createDevicesPairingRoute(store = devicesPairingStore()) {
   const app = new Hono();
-  app.post('/pairing-codes', async (c) => { c.header('x-flotilla-no-replay', 'true'); return c.json(await store.createPairing(userId(c)), 201); });
+  app.post('/pairing-codes', async (c) => c.json(await store.createPairing(userId(c)), 201));
   app.get('/', async (c) => c.json({ items: await store.list(userId(c)) }));
   app.get('/machine-picker', async (c) => c.json(await store.machinePicker(userId(c))));
   app.patch('/:id', async (c) => c.json(await store.update(userId(c), c.req.param('id'), await body(c))));
