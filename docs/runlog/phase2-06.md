@@ -100,3 +100,4 @@ EXIT 0
 - Escalated: a feedback draft also shows on Needs you, and its generic Approve (`POST /approvals/:id/answer`) closes the draft without sending it. The fix belongs in the runner's generic answer path or the Needs-you filter (outside this unit).
 - Escalated: to attach files to a thread's first prompt, `ThreadRunner.createThread` and `POST /threads` need to accept attachment ids (outside this unit).
 - `make check` after round-1 fixes: exit 0; server 21 files, 123 passed, 1 skipped; web unit 5/5 composer; Playwright 16 passed.
+- Round 2: `sections()` skips `#` lines inside ``` / ~~~ fences (unit test added); composer unit 6/6, composer Playwright 6/6. Feedback-on-Needs-you finding stays escalated.

@@ -28,4 +28,8 @@ describe('thread composer helpers',()=>{
   expect(f.map(x=>x.kind)).toEqual(['event','work','event']);
   const e=f[0].kind==='event'?f[0].event:null;expect(sections(e!.seq,e!.payload.text).map(s=>s.heading)).toEqual(['A','B']);
  });
+ it('CAPY-027: # comments inside fenced code are not section headings',()=>{
+  const s=sections(1,'# Fix\n```sh\n# install\npnpm i\n```\n# Done\nok');
+  expect(s.map(x=>x.heading)).toEqual(['Fix','Done']);expect(s[0].text).toBe('```sh\n# install\npnpm i\n```');
+ });
 });

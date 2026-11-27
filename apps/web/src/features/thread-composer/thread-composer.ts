@@ -13,7 +13,8 @@ export function keyAction(k:ComposerKeymap,e:{key:string;shiftKey?:boolean;metaK
 export function sections(seq:number,text:string):ThreadSection[]{
  const out:ThreadSection[]=[];let heading:string|null=null;let buf:string[]=[];
  const flush=()=>{const t=buf.join('\n').trim();if(t||heading)out.push({seq,index:out.length,heading,text:t});buf=[]};
- for(const line of text.split('\n')){const m=/^#{1,6}\s+(.*)$/.exec(line);if(m){flush();heading=m[1].trim()}else buf.push(line)}
+ let fence=false;
+ for(const line of text.split('\n')){if(/^\s*(```|~~~)/.test(line))fence=!fence;const m=fence?null:/^#{1,6}\s+(.*)$/.exec(line);if(m){flush();heading=m[1].trim()}else buf.push(line)}
  flush();return out;
 }
 export const quote=(s:ThreadSection)=>[...(s.heading?[`**${s.heading}**`]:[]),...s.text.split('\n')].map(l=>`> ${l}`).join('\n')+'\n\n';
