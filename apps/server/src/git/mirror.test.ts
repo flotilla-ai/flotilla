@@ -60,12 +60,15 @@ describe('git mirror', () => {
     await seedWorkspace(thread,project,driver,mirrors);
     const repo=join(root,'repo');
     sh('git config user.email a@x && git config user.name a && echo change >> README.md && git add . && git commit -m work',repo);
-    writeFileSync(join(repo,'.git/hooks/pre-push'),`#!/bin/sh\ntouch ${base}/flotilla-hook-ran\n`);
-    sh(`chmod +x .git/hooks/pre-push && git config core.sshCommand "touch ${base}/flotilla-ssh-ran" && git config core.fsmonitor "touch ${base}/flotilla-fs-ran" && git config credential.helper "touch ${base}/flotilla-cred-ran"`,repo);
-    const out=await collectAndPush(thread,project,driver,mirrors);
+    for (const f of ['hook','ssh','fs','cred']) writeFileSync(join(base,`${f}.sh`),`#!/bin/sh\n[ -z "$FLOTILLA_UNDER_TEST" ] || touch ${base}/flotilla-${f}-ran\n`);
+    sh(`chmod +x ${base}/hook.sh ${base}/ssh.sh ${base}/fs.sh ${base}/cred.sh && cp ${base}/hook.sh ${repo}/.git/hooks/pre-push`);
+    writeFileSync(join(repo,'.git/config'),`\n[core]\n\tsshCommand = ${base}/ssh.sh\n\tfsmonitor = ${base}/fs.sh\n[credential]\n\thelper = ${base}/cred.sh\n`,{flag:'a'});
+    process.env.FLOTILLA_UNDER_TEST='1';
+    let out: Awaited<ReturnType<typeof collectAndPush>>;
+    try { out = await collectAndPush(thread,project,driver,mirrors); } finally { delete process.env.FLOTILLA_UNDER_TEST; }
     expect(out.pushedSha).toMatch(/^[0-9a-f]{40}$/);
     expect(sh(`git --git-dir ${remote} rev-parse refs/heads/flotilla/FLO-1-test-work`).trim()).toBe(out.pushedSha);
-    for (const f of ['hook','ssh','fs','cred']) expect(existsSync(join(base,`flotilla-${f}-ran`))).toBe(false);
+    expect(['hook','ssh','fs','cred'].map((f)=>[f,existsSync(join(base,`flotilla-${f}-ran`))])).toEqual([['hook',false],['ssh',false],['fs',false],['cred',false]]);
     expect(readFileSync(join(mirrors,'prj_t.git/config'),'utf8')).not.toContain('secret-token');
   },30_000);
 
