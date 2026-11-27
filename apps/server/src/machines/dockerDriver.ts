@@ -57,10 +57,10 @@ export class DockerMachineDriver {
     await this.docker.getContainer(containerId).putArchive(tar, { path: dir });
   }
 
-  async copyOut(containerId: string, path: string): Promise<Buffer> {
+  async copyOut(containerId: string, path: string, maxBytes = Infinity): Promise<Buffer> {
     const stream = await this.docker.getContainer(containerId).getArchive({ path });
-    const chunks: Buffer[] = [];
-    for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+    const chunks: Buffer[] = []; let size = 0;
+    for await (const chunk of stream) { size += chunk.length; if (size > maxBytes) { (stream as NodeJS.ReadableStream & { destroy(): void }).destroy(); throw new Error(`${path} is larger than ${maxBytes} bytes`); } chunks.push(Buffer.from(chunk)); }
     return Buffer.concat(chunks);
   }
 

@@ -1,11 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 2, waves 3-6 running in parallel through child sessions.
-Current `flotilla/p1` head before this PR: `2aefb24` (phase2-18; phase2-17, repair-10 and repair-12 already merged).
+Current `flotilla/p1` head before this PR: `4888dfa` (repair-11; Drive core already merged).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` on this branch after repair of seven malformed phase1fix ledger rows and merging phase2-18: done 135, pending 438, needs-human-login 17, n-a 22, blocked 27 (CAPY-050/051 kept `blocked` from phase2-17; the phase2-18 ledger had reset them to pending).
+Counted in `docs/plan/PARITY.md` on this branch after merging Drive core and phase2-32 rules: done 155, pending 417, needs-human-login 17, n-a 22, blocked 28 (CAPY-277 remains blocked on BYOM copy).
 
 ## Unit table
 
@@ -36,6 +36,7 @@ Counted in `docs/plan/PARITY.md` on this branch after repair of seven malformed 
 | phase2-18-subagent-core | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/44 | subagent drafts, placement, modes, budget slice, parent wake; 9 rows done (052-060), 2 blocked (061 no paired-device driver, 062 no agent-callable tool for non-Captain threads); see `docs/runlog/phase2-18.md` |
 | phase2-12-machine-core | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/48 | machine leases/sleep/wake under review |
 | phase2-11-snapshots | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/50 | snapshots under implementation/review |
+| phase2-30-drive-core | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/51 | Drive store, versions, quota, thread mount/write-back, failure cards, `/drive` page; 9 rows done, 1 blocked (CAPY-277 BYOM); see `docs/runlog/phase2-30.md` |
 | phase2-32-rules | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/53 | layered rules loader, shared context budget, kernel rules, context breakdown, Memory/Captain experiments; 11 rows done; see `docs/runlog/phase2-32.md` |
 
 ## Next action
