@@ -74,6 +74,8 @@ export class SubagentStore {
   async start(id: string, userId: string): Promise<Subagent> {
     const s = await this.row(id, userId);
     if (s.started_at) throw new ApiFailure('Conflict', 'subagent already started');
+    const up = (await this.pool.query('SELECT started_at FROM subagents WHERE thread_id=$1', [s.parent_id])).rows[0] as Row | undefined;
+    if (up && !up.started_at) throw new ApiFailure('Conflict', 'start the parent subagent first');
     const base = s.stacked_on ? (await this.pool.query('SELECT branch FROM threads WHERE id=$1', [s.stacked_on])).rows[0]?.branch as string | null : null;
     if (s.stacked_on && !base) throw new ApiFailure('Conflict', 'the previous subagent has no branch to stack on yet');
     const claimed = await this.pool.query('UPDATE subagents SET started_at=now(), base_branch=$2 WHERE thread_id=$1 AND started_at IS NULL RETURNING 1', [id, base]);

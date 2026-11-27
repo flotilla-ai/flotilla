@@ -77,7 +77,9 @@ describe('subagent core', () => {
     const deep = await call('POST', `/threads/${d.json.id}/subagents`, draft());
     expect(deep.status).toBe(403); expect(deep.json.error).toMatch(/at most 3 levels/);
     expect((await call('POST', `/threads/${root}/subagents`, draft(), 'usr_o')).status).toBe(404);
-    await call('POST', `/subagents/${d.json.id}/start`); await settled(d.json.id, 'done');
+    expect((await call('POST', `/subagents/${d.json.id}/start`)).status).toBe(409);
+    for (const x of [b.json, c.json, d.json]) expect((await call('POST', `/subagents/${x.id}/start`)).status).toBe(200);
+    await settled(d.json.id, 'done');
     const ev = (await pool.query(`SELECT kind FROM events WHERE thread_id=$1 ORDER BY seq`, [d.json.id])).rows.map((r) => r.kind);
     expect(ev).toEqual(expect.arrayContaining(['thread.created', 'user.message', 'run.started', 'agent.delta', 'run.ended']));
     expect((await pool.query('SELECT parent_id FROM threads WHERE id=$1', [d.json.id])).rows[0].parent_id).toBe(c.json.id);
