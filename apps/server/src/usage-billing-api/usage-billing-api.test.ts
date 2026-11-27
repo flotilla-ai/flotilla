@@ -8,6 +8,7 @@ import type { AdapterEvent, AgentAdapter, StartInput } from '@flotilla/core/type
 import { migrate } from '../db/migrate.js';
 import { EventStore } from '../events/store.js';
 import { ThreadRunner } from '../runner/runner.js';
+import { usageStore } from './store.js';
 
 const exec = promisify(execFile);
 process.env.FLOTILLA_MASTER_KEY = 'test-master-key-for-usage-billing';
@@ -82,6 +83,10 @@ describe('usage, budgets and API models', () => {
     const report = (await get('/api/v1/usage')).body;
     expect(report.byItem.find((r: any) => r.key === 'machine').totals).toMatchObject({ usd: 20_000, machineSec: 20 });
     expect(report.machine).toEqual([{ runnerType: 'pool', minutes: 20 / 60, usdMicroPerMinute: 60_000, usd: 20_000 }]);
+    // the thread's own cap counts priced machine time from the ledger (threads.spent is not updated by the ticker)
+    const row = (await pool.query(`UPDATE threads SET budget='{"maxUsd":15000}' WHERE id=$1 RETURNING *`, [t])).rows[0];
+    expect(await usageStore().gate(row)).toEqual({ why: 'budget', shared: false });
+    await pool.query(`UPDATE threads SET budget='{"maxUsd":null}' WHERE id=$1`, [t]);
   });
 
   it('CAPY-352/353/635: usage report over a window by member, model, thread and billing item, with tokens; members see only their own', async () => {
@@ -93,12 +98,15 @@ describe('usage, budgets and API models', () => {
     expect(r.totals).toMatchObject({ usd: 520_000, inputTokens: 200, outputTokens: 100, machineSec: 20 });
     expect(r.byMember).toEqual(expect.arrayContaining([expect.objectContaining({ key: admin, label: 'admin@x', totals: expect.objectContaining({ usd: 320_000 }) }), expect.objectContaining({ key: member, label: 'member@x', totals: expect.objectContaining({ usd: 200_000 }) })]));
     expect(r.byModel.find((x: any) => x.key === 'claude-opus').totals.usd).toBe(300_000);
-    expect(r.byThread.find((x: any) => x.key === 'thr_memberwork')).toMatchObject({ label: 'memberwork', totals: { usd: 200_000, inputTokens: 100, outputTokens: 50 } });
+    // a private thread's title is shown only to its current owner (shared threads also to admins)
+    expect(r.byThread.find((x: any) => x.key === 'thr_memberwork')).toMatchObject({ label: 'thr_memberwork', totals: { usd: 200_000, inputTokens: 100, outputTokens: 50 } });
+    expect(r.byThread.find((x: any) => x.key === 'thr_adminwork').label).toBe('adminwork');
     expect(r.byItem.map((x: any) => x.key).sort()).toEqual(['free', 'machine']);
     const all = (await get('/api/v1/usage?from=2000-01-01T00:00:00Z&to=2100-01-01T00:00:00Z')).body;
     expect(all.totals.usd).toBe(520_001);
     const mine = (await get('/api/v1/usage', 'member')).body;
     expect(mine.totals.usd).toBe(200_000); expect(mine.byMember.map((x: any) => x.key)).toEqual([member]);
+    expect(mine.byThread[0].label).toBe('memberwork');
     expect((await get('/api/v1/usage?from=nope')).status).toBe(400);
   });
 
@@ -118,6 +126,7 @@ describe('usage, budgets and API models', () => {
     expect((await put('/api/v1/usage/budgets', [{ scope: 'global', scopeId: 'global', window: 'month', maxUsd: 500_000, warnAt: 0.8 }], 'member')).status).toBe(403);
     expect((await put('/api/v1/usage/budgets', [{ scope: 'global', scopeId: 'global', window: 'weekly', maxUsd: 1 }])).status).toBe(400);
     await put('/api/v1/usage/budgets', [{ scope: 'global', scopeId: 'global', window: 'month', maxUsd: 500_000, warnAt: 0.8 }]);
+    await pool.query(`DELETE FROM threads WHERE id='thr_memberwork'`); // hard delete cascades the ledger; the window keeps the spend
     const bal = (await get('/api/v1/usage/balance', 'member')).body.windows.find((w: any) => w.scope === 'global');
     expect(bal).toMatchObject({ window: 'month', maxUsd: 500_000, spent: 520_000, reserved: 0, remaining: 0, state: 'hit' });
     expect(new Date(bal.start).getUTCDate()).toBe(1);
@@ -128,8 +137,10 @@ describe('usage, budgets and API models', () => {
     expect(card.question).toMatch(/monthly global budget/);
     await put('/api/v1/usage/budgets', [{ scope: 'global', scopeId: 'global', window: 'month', maxUsd: 2_000_000, warnAt: 0.8 }]);
     expect((await get('/api/v1/usage/balance')).body.windows[0]).toMatchObject({ remaining: 1_480_000, state: 'ok' });
+    expect(card.detail).toEqual({ shared: true });
     await runner.answerApproval(card.id, 'raise', 1_000_000, admin);
     await settled(t.id, 2);
+    expect((await pool.query('SELECT budget FROM threads WHERE id=$1', [t.id])).rows[0].budget.maxUsd).toBeNull();
     expect(await runs(t.id)).toEqual(['paused_budget', 'completed']);
     await put('/api/v1/usage/budgets', [{ scope: 'global', scopeId: 'global', window: 'month', maxUsd: null, warnAt: 0.8 }]);
   });
@@ -142,6 +153,8 @@ describe('usage, budgets and API models', () => {
     expect(card.options.map((o: any) => o.label)).toEqual(['Wait', 'Use Flotilla free models']);
     expect((await pool.query('SELECT engine FROM threads WHERE id=$1', [a.id])).rows[0].engine.adapter).toBe('claude-code');
     expect((await put('/api/v1/usage/settings', { runOutFree: 'never' })).body.runOutFree).toBe('never');
+    await runner.answerApproval(card.id, 'use', undefined, admin); // an offer made before the ban no longer moves the thread to free
+    expect((await pool.query('SELECT engine FROM threads WHERE id=$1', [a.id])).rows[0].engine.adapter).toBe('claude-code');
     const b = (await call('/api/v1/threads', { method: 'POST', json: { title: 'sub2', prompt: 'go', engine: { adapter: 'claude-code' } } }, threadsApp)).body;
     const card2 = await until(async () => (await pool.query(`SELECT * FROM approvals WHERE thread_id=$1 AND kind='run-out' AND state='open'`, [b.id])).rows[0]);
     expect(card2.options.map((o: any) => o.label)).toEqual(['Wait']);

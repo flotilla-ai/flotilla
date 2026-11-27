@@ -44,6 +44,16 @@ END $$;
 DROP TRIGGER IF EXISTS cost_entries_usage_stamp ON cost_entries;
 CREATE TRIGGER cost_entries_usage_stamp BEFORE INSERT ON cost_entries FOR EACH ROW EXECUTE FUNCTION usage_stamp_cost_entry();
 
+-- Hard-deleting a thread cascades its ledger rows; keep their spend so budget windows still count it.
+CREATE TABLE IF NOT EXISTS usage_tombstones (at timestamptz NOT NULL, owner_id text, project_id text, usd bigint NOT NULL);
+CREATE OR REPLACE FUNCTION usage_keep_deleted_spend() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  INSERT INTO usage_tombstones (at, owner_id, project_id, usd) VALUES (OLD.at, OLD.owner_id, OLD.project_id, COALESCE((OLD.delta->>'usd')::bigint, 0));
+  RETURN OLD;
+END $$;
+DROP TRIGGER IF EXISTS cost_entries_usage_keep ON cost_entries;
+CREATE TRIGGER cost_entries_usage_keep AFTER DELETE ON cost_entries FOR EACH ROW EXECUTE FUNCTION usage_keep_deleted_spend();
+
 UPDATE cost_entries c SET owner_id = t.owner_id, project_id = t.project_id, connection_id = t.engine->>'connectionId',
   item = CASE WHEN c.source = 'machine-estimate' THEN 'machine' ELSE 'unattributed' END,
   runner_type = CASE WHEN c.source = 'machine-estimate' THEN 'pool' END

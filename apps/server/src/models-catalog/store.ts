@@ -327,6 +327,7 @@ export class ModelPolicyApi {
     if (optionId !== 'use') return;
     const opt = (approval.options as PolicyRow[]).find((o) => o.id === 'use');
     if (!opt) throw new ApiFailure('ValidationFailed', 'no connection to continue on');
+    if (opt.engine?.connectionId === 'free' && (await this.store.q(`SELECT run_out_free FROM usage_settings WHERE id='org'`).catch(() => []))[0]?.run_out_free === 'never') return;
     const [t] = await this.store.q('SELECT owner_id FROM threads WHERE id=$1', [approval.thread_id]);
     const r = await this.store.resolve(t.owner_id, opt.engine);
     await this.store.q('UPDATE threads SET engine=$2 WHERE id=$1', [approval.thread_id, JSON.stringify({ adapter: r.adapter, model: r.model, effort: r.effort, connectionId: r.connectionId, ...(r.contextWindow ? { contextWindow: r.contextWindow } : {}) })]);

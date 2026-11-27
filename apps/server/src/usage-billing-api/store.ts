@@ -39,7 +39,7 @@ export class UsageStore {
     return { window: from || to ? 'custom' as const : 'month' as const, from: start, to: end };
   }
   /** Admins see the whole org; members see only their own usage. */
-  private async scope(userId: string) { const admin = await this.isAdmin(userId); return { admin, where: admin ? 'TRUE' : 'c.owner_id=$3' as string, params: admin ? [] : [userId] }; }
+  private async scope(userId: string) { const admin = await this.isAdmin(userId); return { admin, where: admin ? '$3::text IS NOT NULL' : 'c.owner_id=$3', params: [userId] }; }
 
   async report(userId: string, query: Record<string, string | undefined>): Promise<UsageReport> {
     const r = this.range(query); const s = await this.scope(userId);
@@ -52,7 +52,7 @@ export class UsageStore {
       .map((x) => ({ runnerType: x.runner_type, minutes: x.machineSec / 60, usdMicroPerMinute: rates[x.runner_type] ?? null, usd: x.usd }));
     return { window: r.window, from: r.from.toISOString(), to: r.to.toISOString(), scope: s.admin ? 'org' : 'member', totals: totals(all),
       byMember: await group('c.owner_id', 'COALESCE(u.email, c.owner_id)', 'LEFT JOIN users u ON u.id=c.owner_id'),
-      byModel: await group(KEYS.model, KEYS.model), byThread: await group('c.thread_id', 'COALESCE(t.title, c.thread_id)', 'LEFT JOIN threads t ON t.id=c.thread_id'),
+      byModel: await group(KEYS.model, KEYS.model), byThread: await group('c.thread_id', `CASE WHEN t.owner_id=$3 OR ${s.admin ? "t.visibility='shared'" : 'FALSE'} THEN t.title ELSE c.thread_id END`, 'LEFT JOIN threads t ON t.id=c.thread_id'),
       byItem: await group('c.item', 'c.item'), machine };
   }
 
@@ -73,7 +73,8 @@ export class UsageStore {
   private async window(b: Row): Promise<BudgetWindow> {
     const start = b.budget_window === 'month' ? monthStart() : new Date(0); const end = b.budget_window === 'month' ? nextMonth(start) : null;
     const project = b.scope === 'project';
-    const [{ spent }] = await this.q(`SELECT COALESCE(sum((delta->>'usd')::float8),0) spent FROM cost_entries WHERE at >= $1 AND ($2::text IS NULL OR project_id=$2)`, [start, project ? b.scope_id : null]);
+    const [{ spent }] = await this.q(`SELECT (SELECT COALESCE(sum((delta->>'usd')::float8),0) FROM cost_entries WHERE at >= $1 AND ($2::text IS NULL OR project_id=$2))
+      + (SELECT COALESCE(sum(usd),0)::float8 FROM usage_tombstones WHERE at >= $1 AND ($2::text IS NULL OR project_id=$2)) spent`, [start, project ? b.scope_id : null]);
     const [{ reserved }] = await this.q(`SELECT COALESCE(sum(h.amount),0)::float8 reserved FROM budget_holds h JOIN runs r ON r.id=h.run_id JOIN threads t ON t.id=r.thread_id
       WHERE r.state IN ('starting','running') AND ($1::text IS NULL OR t.project_id=$1)`, [project ? b.scope_id : null]);
     const max = b.max_usd === null ? null : Number(b.max_usd); const warnAt = Number(b.warn_at);
@@ -100,11 +101,13 @@ export class UsageStore {
     } catch (err) { await client.query('ROLLBACK'); throw err; } finally { client.release(); }
     return this.balance();
   }
-  /** Before every run: the first org or project window that is already spent pauses the thread. */
-  async gate(thread: Row): Promise<string | null> {
+  /** Before every run: the thread's own cap against its ledger (incl. priced machine time), then org/project windows. */
+  async gate(thread: Row): Promise<{ why: string; shared: boolean } | null> {
+    const cap = thread.budget?.maxUsd ?? null;
+    if (cap !== null && (await this.q(`SELECT COALESCE(sum((delta->>'usd')::float8),0) n FROM cost_entries WHERE thread_id=$1`, [thread.id]))[0].n >= cap) return { why: 'budget', shared: false };
     for (const w of (await this.balance()).windows) {
       if (w.scope === 'project' && w.scopeId !== thread.project_id) continue;
-      if (w.maxUsd !== null && w.spent >= w.maxUsd) return `${w.window === 'month' ? 'monthly' : 'lifetime'} ${w.scope} budget`;
+      if (w.maxUsd !== null && w.spent >= w.maxUsd) return { why: `${w.window === 'month' ? 'monthly' : 'lifetime'} ${w.scope} budget`, shared: true };
     }
     return null;
   }
