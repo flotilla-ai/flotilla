@@ -5,7 +5,7 @@ import { ApiFailure } from '../api-platform/types.js';
 import { modelsCatalogStore } from '../models-catalog/store.js';
 
 export type TriggerType = 'schedule' | 'github' | 'webhook' | 'manual';
-export interface AutomationTrigger { type: TriggerType; cron?: string; timezone?: string; event?: string; batch?: boolean; hmac?: boolean }
+export interface AutomationTrigger { type: TriggerType; cron?: string; timezone?: string; event?: string; batch?: boolean; hmac?: boolean; since?: string }
 export interface Automation {
   id: string; projectId: string; ownerId: string; name: string; prompt: string;
   triggers: AutomationTrigger[]; conditions: Record<string, unknown>; runWhen: string | null;
@@ -264,7 +264,15 @@ export class AutomationStore {
     if (input.prompt !== undefined) { if (typeof input.prompt !== 'string' || !input.prompt.trim()) throw new ApiFailure('ValidationFailed', 'prompt is required'); set('prompt', input.prompt); }
     let mintedWebhookToken: string | undefined;
     if (input.triggers !== undefined) {
-      const triggers = triggerList(input.triggers);
+      const triggerInputs = triggerList(input.triggers);
+      const priorSchedules = new Map(existing.triggers.filter((t) => t.type === 'schedule').map((t) => [`${t.cron}:${t.timezone}`, t.since]));
+      const editTime = new Date().toISOString();
+      const triggers = triggerInputs.map((t) => {
+        if (t.type !== 'schedule') return t;
+        const key = `${t.cron}:${t.timezone}`;
+        const since = priorSchedules.has(key) ? priorSchedules.get(key) : editTime;
+        return since ? { ...t, since } : t;
+      });
       const hasWebhook = triggers.some((t) => t.type === 'webhook');
       set('triggers', JSON.stringify(triggers));
       if (!hasWebhook) set('webhook_hash', null);
@@ -381,7 +389,7 @@ export class AutomationStore {
       for (const t of a.triggers.filter((x) => x.type === 'schedule')) {
         const key = `${t.cron}:${t.timezone}`;
         const [last] = await this.q("SELECT max(created_at) AS at FROM automation_runs WHERE automation_id=$1 AND trigger_type='schedule' AND trigger_key=$2", [a.id, key]);
-        const base = Math.max(new Date(a.createdAt).getTime(), new Date(a.updatedAt).getTime(), last?.at ? new Date(last.at as string).getTime() : 0);
+        const base = Math.max(new Date(a.createdAt).getTime(), t.since ? new Date(t.since).getTime() : 0, last?.at ? new Date(last.at as string).getTime() : 0);
         let latest: Date | null = null;
         const end = Math.floor(now.getTime() / 60_000) * 60_000;
         // Croner calculates the next occurrence directly, so even a months-old missed schedule is

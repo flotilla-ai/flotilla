@@ -37,6 +37,11 @@ it('CAPY-169/170/171/172/173/175/501: automation control, caps, state, rotation,
  await pool.query(`UPDATE automations SET created_at='2020-01-01T00:00:00Z',updated_at='2020-01-01T00:00:00Z' WHERE id=$1`,[scheduleAutomation.json.id]);
  expect((await call('PUT',`/automations/${scheduleAutomation.json.id}`,{triggers:[{type:'schedule',cron:'0 0 1 1 *',timezone:'UTC'}]})).status).toBe(200);
  expect((await store.dueSchedules(new Date('2026-11-27T17:00:00Z'))).filter((x)=>x.automationId===scheduleAutomation.json.id)).toHaveLength(0);
+ const existingSchedule=await call('POST','/projects/prj_ctl/automations',{name:'Existing schedule',prompt:'existing schedule prompt',triggers:[{type:'schedule',cron:'0 0 1 1 *',timezone:'UTC'}],model:{pinned:false}});
+ await pool.query(`UPDATE automations SET created_at='2020-01-01T00:00:00Z',updated_at='2020-01-01T00:00:00Z' WHERE id=$1`,[existingSchedule.json.id]);
+ expect((await call('PUT',`/automations/${existingSchedule.json.id}`,{name:'Renamed only'})).status).toBe(200);
+ expect((await store.dueSchedules(new Date('2026-11-27T17:00:00Z'))).some((x)=>x.automationId===existingSchedule.json.id)).toBe(true);
+
 
  const batchAutomation=await call('POST','/projects/prj_ctl/automations',{name:'Batch API',prompt:'batch prompt',triggers:[{type:'webhook',batch:true}],model:{pinned:false}});
  await pool.query(`INSERT INTO automation_batches (id,automation_id) VALUES ('bat_api1','${batchAutomation.json.id}'),('bat_api2','${batchAutomation.json.id}')`);
