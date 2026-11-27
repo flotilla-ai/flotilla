@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { randomBytes } from 'node:crypto';
 import pg from 'pg';
-import { ensureMirror, remoteAllowed, type GitProject } from '../git/mirror.js';
-import { describeMirror } from '../projects/describe.js';
+import { ensureMirror, mirrorDefaultBranch, remoteAllowed, type GitProject } from '../git/mirror.js';
+import { describeMirror, hasBranch } from '../projects/describe.js';
 import type { Project, ProjectRepoRole, ProjectRepository, ProjectSource, ProjectVisibility, RepoSuggestion } from '../projects/types.js';
 
 type Row = Record<string, unknown>;
@@ -94,7 +94,9 @@ export function createProjectsRoute(pool = new pg.Pool({ connectionString: proce
   }
   async function materialize(row: Row, repo: ProjectRepository): Promise<ProjectRepository> {
     const path = await mirror({ id: (repo.role === 'primary' ? row.id : `${row.id as string}--${repo.id}`) as never, repo: primaryOf(repo) as never, trust: row.trust as never, token: process.env.GITHUB_TOKEN }, root);
-    const patch = { description: await describeMirror(path, repo.baseBranch), clonedAt: new Date().toISOString() };
+    const baseBranch = await hasBranch(path, repo.baseBranch) ? repo.baseBranch : await mirrorDefaultBranch(path, repo.baseBranch, process.env);
+    const patch = { baseBranch, description: await describeMirror(path, baseBranch), clonedAt: new Date().toISOString() };
+    if (repo.role === 'primary') await pool.query("UPDATE projects SET repo = repo || jsonb_build_object('baseBranch', $2::text) WHERE id=$1 AND repo IS NOT NULL", [row.id, baseBranch]);
     await pool.query("UPDATE projects SET repos=(SELECT jsonb_agg(CASE WHEN r->>'id'=$2 THEN r || $3::jsonb ELSE r END ORDER BY o) FROM jsonb_array_elements(repos) WITH ORDINALITY t(r,o)) WHERE id=$1", [row.id, repo.id, JSON.stringify(patch)]);
     return { ...repo, ...patch };
   }

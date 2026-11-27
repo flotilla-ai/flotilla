@@ -34,9 +34,14 @@ export function describeRepo(files: Record<string, string>): string | null {
   return prose ? sentence(prose) : null;
 }
 
+const mirrorGit = (mirror: string, args: string[]) => exec('git', ['--git-dir', mirror, '-c', 'core.fsmonitor=false', ...args], { maxBuffer: 4 * 1024 * 1024, env: { ...process.env, GIT_CONFIG_NOSYSTEM: '1' } });
+export async function hasBranch(mirror: string, branch: string): Promise<boolean> {
+  return mirrorGit(mirror, ['rev-parse', '--verify', '--quiet', `refs/heads/${branch}`]).then(() => true, () => false);
+}
+
 export async function describeMirror(mirror: string, branch: string): Promise<string | null> {
-  const git = (args: string[]) => exec('git', ['--git-dir', mirror, '-c', 'core.fsmonitor=false', ...args], { maxBuffer: 4 * 1024 * 1024, env: { ...process.env, GIT_CONFIG_NOSYSTEM: '1' } });
-  const ref = await git(['rev-parse', '--verify', '--quiet', `refs/heads/${branch}`]).then(() => `refs/heads/${branch}`, () => 'HEAD');
+  const git = (args: string[]) => mirrorGit(mirror, args);
+  const ref = await hasBranch(mirror, branch) ? `refs/heads/${branch}` : 'HEAD';
   const names = (await git(['ls-tree', '--name-only', ref])).stdout.split('\n').filter((n) => WANTED.has(n) || README.test(n));
   const files: Record<string, string> = {};
   for (const name of names) files[name] = (await git(['show', `${ref}:${name}`])).stdout.slice(0, 64 * 1024);

@@ -87,7 +87,7 @@ export async function seedWorkspace(thread: GitThread, project: GitProject, driv
 function branchOwnedByThread(branch: string, thread: GitThread): boolean {
   return branch.startsWith(`flotilla/${thread.code}-`);
 }
-async function mirrorDefaultBranch(mirror: string, fallback: string, env: NodeJS.ProcessEnv): Promise<string> {
+export async function mirrorDefaultBranch(mirror: string, fallback: string, env: NodeJS.ProcessEnv): Promise<string> {
   try {
     const head = (await git(['--git-dir', mirror, 'symbolic-ref', '--short', 'HEAD'], { env })).stdout.trim();
     return head.replace(/^refs\/heads\//, '') || fallback;

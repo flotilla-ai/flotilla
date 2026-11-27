@@ -18,11 +18,11 @@ const fixtures: Record<string, string> = {};
 const mirrorCalls: string[] = [];
 const json = (body: unknown, method = 'POST', user = 'usr_a') => ({ method, body: JSON.stringify(body), headers: { 'content-type': 'application/json', 'x-user': user } });
 const as = (user: string) => ({ headers: { 'x-user': user } });
-async function repo(name: string, files: Record<string, string>): Promise<string> {
+async function repo(name: string, files: Record<string, string>, branch = 'main'): Promise<string> {
   const dir = join(tmp, name); mkdirSync(dir);
   for (const [f, body] of Object.entries(files)) writeFileSync(join(dir, f), body);
   const env = { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@x', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@x' };
-  for (const args of [['init', '-q', '-b', 'main'], ['add', '.'], ['commit', '-qm', 'init']]) await exec('git', args, { cwd: dir, env });
+  for (const args of [['init', '-q', '-b', branch], ['add', '.'], ['commit', '-qm', 'init']]) await exec('git', args, { cwd: dir, env });
   return dir;
 }
 async function create(body: unknown, user = 'usr_a'): Promise<{ status: number; body: Project & { error?: string } }> {
@@ -39,6 +39,7 @@ beforeAll(async () => {
   tmp = mkdtempSync(join(tmpdir(), 'flt-projects-')); root = join(tmp, 'mirrors'); mkdirSync(root);
   fixtures['acme/api'] = await repo('api', { 'package.json': JSON.stringify({ name: 'api', description: 'HTTP API for the Acme storefront' }), 'README.md': '# api\n\nIgnored because the manifest wins.\n' });
   fixtures.docs = await repo('docs', { 'README.md': '# Docs\n\n[![ci](https://x/badge.svg)](https://x)\n\n<p align="center"><img src="logo.png"></p>\n\nThe **Acme** handbook site, built with Astro. It has many pages.\n' });
+  fixtures['acme/billing'] = await repo('billing', { 'README.md': '# old\n\nLegacy billing service.\n' }, 'master');
   fixtures.engine = await repo('engine', { 'Cargo.toml': '[package]\nname = "engine"\ndescription = "Fast pricing engine"\n' });
   container = (await exec('docker', ['run', '-d', '--rm', '-p', '127.0.0.1::5432', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', 'postgres:16'])).stdout.trim();
   const port = (await exec('docker', ['port', container, '5432/tcp'])).stdout.trim().split(':').pop();
@@ -104,6 +105,8 @@ describe('projects (phase2-29)', () => {
     const patched = await (await app.request(`http://local/api/v1/projects/${web.body.id}`, json({ name: 'Site', icon: '🌐', code: 'site' }, 'PATCH'))).json() as Project;
     expect(patched).toMatchObject({ name: 'Site', icon: '🌐', code: 'SITE' });
     expect(await threadCode(web.body.id, 'thr_w3')).toBe('SITE-3');
+    const reused = await create({ name: 'Web Again', code: 'WEB', source: { kind: 'empty' } });
+    expect(await threadCode(reused.body.id, 'thr_r1')).toBe('WEB-3');
   });
 
   it('CAPY-178/179/181: primary repo mirrors and is described at creation; lazy repos clone on demand', async () => {
@@ -127,6 +130,9 @@ describe('projects (phase2-29)', () => {
     expect(eng.clonedAt).toBeTruthy();
     expect((await app.request(`http://local/api/v1/projects/${body.id}/repos/nope/clone`, json({}))).status).toBe(404);
     expect((await app.request(`http://local/api/v1/projects/${body.id}/repos/${docs.id}/clone`, json({}, 'POST', 'usr_b'))).status).toBe(404);
+    const old = await create({ name: 'Billing', source: { kind: 'github', fullName: 'acme/billing' } });
+    const oldReady = await untilCloned(old.body.id, old.body.repos[0].id);
+    expect([oldReady.repo?.baseBranch, oldReady.repos[0].baseBranch, oldReady.repos[0].description]).toEqual(['master', 'master', 'Legacy billing service.']);
   });
 
   it('CAPY-181: validates GitHub, git URL and folder sources and suggests recently pushed repos', async () => {
