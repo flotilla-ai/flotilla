@@ -1,0 +1,220 @@
+import { randomBytes } from 'node:crypto';
+import pg from 'pg';
+import { claudeCodeAdapter } from '@flotilla/adapter-claude-code';
+import { codexAdapter } from '@flotilla/adapter-codex';
+import { fakeAdapter } from '@flotilla/adapter-fake';
+import type { AgentAdapterManifest } from '@flotilla/core/types';
+import { migrate } from '../db/migrate.js';
+import { ApiFailure } from '../api-platform/types.js';
+import { localKms, type Kms } from '../secrets/vault.js';
+import type { SecretsStore } from '../secrets/store.js';
+import { FREE_CONNECTION, checkAccess, loadCatalog, parseEffort, type Catalog } from './catalog.js';
+import type { AccessCheck, Connection, ModelBadge, ModelSelection, PickerItem, Provider, ResolvedSelection } from './types.js';
+
+type Row = Record<string, any>;
+export type ConnectionInput = { provider: string; scope?: 'user' | 'org'; adapter?: string; label?: string; apiKey?: string; baseUrl?: string; excludedModels?: unknown; customModels?: unknown };
+export type ConnectionPatchInput = { label?: unknown; enabled?: unknown; apiKey?: unknown; baseUrl?: unknown; excludedModels?: unknown; customModels?: unknown };
+
+const MODEL_ID = /^[\w.:/@+-]{1,200}$/;
+function modelIds(raw: unknown, field: string): string[] {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw) || raw.length > 500 || raw.some((m) => typeof m !== 'string' || !MODEL_ID.test(m))) throw new ApiFailure('ValidationFailed', `${field} must be an array of model ids`);
+  return [...new Set(raw as string[])];
+}
+const optString = (raw: unknown, field: string): string | null => {
+  if (raw === undefined || raw === null) return null;
+  if (typeof raw !== 'string' || !raw || raw.length > 4096) throw new ApiFailure('ValidationFailed', `${field} must be a non-empty string`);
+  return raw;
+};
+const badgeOf = (kind: Connection['kind']): ModelBadge => kind === 'subscription' ? 'subscription' : kind === 'free' ? 'free' : 'key';
+const badgeLabel: Record<ModelBadge, string> = { subscription: 'Subscription', key: 'API key', free: 'Free' };
+const aad = (id: string) => `model-connection:${id}`;
+
+export class ModelsCatalogStore {
+  readonly pool: pg.Pool;
+  private ready?: Promise<unknown>;
+  private kmsInstance?: Kms;
+  private catalogInstance?: Catalog;
+  constructor(private readonly databaseUrl: string, private readonly manifests: AgentAdapterManifest[], private readonly fetchImpl: typeof fetch = fetch) { this.pool = new pg.Pool({ connectionString: databaseUrl, max: 3 }); }
+  private get kms(): Kms { return (this.kmsInstance ??= localKms()); }
+  get catalog(): Catalog { return (this.catalogInstance ??= loadCatalog(this.manifests)); }
+  private async q(sql: string, params: unknown[] = []): Promise<Row[]> {
+    this.ready ??= migrate(this.databaseUrl).catch((err) => { this.ready = undefined; throw err; });
+    await this.ready;
+    return (await this.pool.query(sql, params)).rows;
+  }
+
+  providers(q = ''): Provider[] {
+    const needle = q.trim().toLowerCase();
+    return this.catalog.providers.filter((p) => !needle || `${p.id} ${p.name} ${p.kind}`.toLowerCase().includes(needle));
+  }
+  private provider(id: string): Provider {
+    const p = this.catalog.providers.find((x) => x.id === id);
+    if (!p) throw new ApiFailure('NotFound', 'provider not found');
+    return p;
+  }
+  /** Adapter + env var for a provider; a custom endpoint borrows the chosen adapter's API-key env var. */
+  private target(p: Provider, adapter?: string): { adapter: string; envVar: string | null } {
+    const id = p.adapter ?? adapter;
+    const m = this.manifests.find((x) => x.id === id);
+    if (!m) throw new ApiFailure('ValidationFailed', 'adapter must name an installed adapter');
+    const key = m.auth.find((a) => a.kind === 'api-key');
+    if (p.kind !== 'subscription' && !key) throw new ApiFailure('ValidationFailed', `${m.displayName} cannot use an API key`);
+    return { adapter: m.id, envVar: p.kind === 'subscription' ? null : key && key.kind === 'api-key' ? key.envVar : null };
+  }
+  async check(input: ConnectionInput): Promise<AccessCheck> {
+    const p = this.provider(input.provider); this.target(p, input.adapter);
+    return checkAccess(p, { apiKey: optString(input.apiKey, 'apiKey'), baseUrl: optString(input.baseUrl, 'baseUrl') }, this.catalog, this.fetchImpl);
+  }
+
+  private toConnection(r: Row): Connection {
+    const available = r.available_models as string[]; const excluded = r.excluded_models as string[]; const customs = r.custom_models as string[];
+    const p = this.catalog.providers.find((x) => x.id === r.provider);
+    return {
+      id: r.id, scope: r.scope, provider: r.provider, kind: r.kind, adapter: r.adapter, label: r.label, position: r.position, enabled: r.enabled, status: r.status,
+      baseUrl: r.base_url, hasKey: !!r.sealed_key, loginCommand: p?.auth.kind === 'vendor-login' ? p.auth.command : null,
+      models: [...new Set([...available, ...customs])].filter((m) => !excluded.includes(m)), availableModels: available, excludedModels: excluded, customModels: customs,
+      checkedAt: r.checked_at?.toISOString() ?? null
+    };
+  }
+  private free(): Connection {
+    const models = this.catalog.models.filter((m) => m.free && m.adapter === FREE_CONNECTION.adapter).map((m) => m.model);
+    return { id: FREE_CONNECTION.id, scope: 'free', provider: 'flotilla-free', kind: 'free', adapter: FREE_CONNECTION.adapter, label: FREE_CONNECTION.label, position: 0, enabled: true, status: 'connected', baseUrl: null, hasKey: false, loginCommand: null, models, availableModels: models, excludedModels: [], customModels: [], checkedAt: null };
+  }
+  private async isAdmin(userId: string): Promise<boolean> {
+    return (await this.q('SELECT role FROM users WHERE id=$1', [userId]))[0]?.role === 'admin';
+  }
+  /** Owner's connections in their order, then org connections, then the free models. */
+  async list(userId: string): Promise<Connection[]> {
+    const rows = await this.q(`SELECT * FROM model_connections WHERE owner_id=$1 OR scope='org' ORDER BY (scope='org'), position, created_at`, [userId]);
+    return [...rows.map((r) => this.toConnection(r)), this.free()];
+  }
+  private async owned(userId: string, id: string): Promise<Row> {
+    const [r] = await this.q(`SELECT * FROM model_connections WHERE id=$1 AND (owner_id=$2 OR scope='org')`, [id, userId]);
+    if (!r) throw new ApiFailure('NotFound', 'connection not found');
+    if (r.scope === 'org' && !(await this.isAdmin(userId))) throw new ApiFailure('Forbidden', 'only an admin can change org connections');
+    return r;
+  }
+
+  async create(userId: string, input: ConnectionInput): Promise<Connection> {
+    const scope = input.scope ?? 'user';
+    if (scope !== 'user' && scope !== 'org') throw new ApiFailure('ValidationFailed', 'scope must be user or org');
+    if (scope === 'org' && !(await this.isAdmin(userId))) throw new ApiFailure('Forbidden', 'only an admin can add org connections');
+    const p = this.provider(input.provider); const { adapter, envVar } = this.target(p, input.adapter);
+    const excluded = modelIds(input.excludedModels, 'excludedModels'); const customs = modelIds(input.customModels, 'customModels');
+    const label = optString(input.label, 'label') ?? p.name; const baseUrl = optString(input.baseUrl, 'baseUrl') ?? p.baseUrl; const apiKey = optString(input.apiKey, 'apiKey');
+    const access = await checkAccess(p, { apiKey, baseUrl }, this.catalog, this.fetchImpl);
+    const id = `mcn_${randomBytes(8).toString('hex')}`; const owner = scope === 'org' ? null : userId;
+    const [r] = await this.q(`INSERT INTO model_connections (id,scope,owner_id,provider,kind,adapter,label,position,status,base_url,env_var,sealed_key,key_id,available_models,excluded_models,custom_models,checked_at,created_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,(SELECT COALESCE(MAX(position)+1,0) FROM model_connections WHERE scope=$2 AND owner_id IS NOT DISTINCT FROM $3),$8,$9,$10,$11,$12,$13,$14,$15,now(),$16) RETURNING *`,
+    [id, scope, owner, p.id, p.kind, adapter, label, access.status, baseUrl, envVar, apiKey ? this.kms.seal(Buffer.from(apiKey), aad(id)) : null, apiKey ? this.kms.keyId : null, JSON.stringify(access.models), JSON.stringify(excluded), JSON.stringify(customs), userId]);
+    return this.toConnection(r);
+  }
+  /** Edit, disable, exclude/add models; a new key or base URL reconnects (re-checks access). */
+  async patch(userId: string, id: string, input: ConnectionPatchInput): Promise<Connection> {
+    const r = await this.owned(userId, id);
+    if (input.enabled !== undefined && typeof input.enabled !== 'boolean') throw new ApiFailure('ValidationFailed', 'enabled must be a boolean');
+    const label = optString(input.label, 'label') ?? r.label;
+    const apiKey = optString(input.apiKey, 'apiKey'); const baseUrl = optString(input.baseUrl, 'baseUrl');
+    const excluded = input.excludedModels === undefined ? r.excluded_models : modelIds(input.excludedModels, 'excludedModels');
+    const customs = input.customModels === undefined ? r.custom_models : modelIds(input.customModels, 'customModels');
+    await this.q(`UPDATE model_connections SET label=$2, enabled=COALESCE($3,enabled), excluded_models=$4, custom_models=$5, base_url=COALESCE($6,base_url),
+      sealed_key=COALESCE($7,sealed_key), key_id=COALESCE($8,key_id) WHERE id=$1`,
+    [id, label, input.enabled ?? null, JSON.stringify(excluded), JSON.stringify(customs), baseUrl, apiKey ? this.kms.seal(Buffer.from(apiKey), aad(id)) : null, apiKey ? this.kms.keyId : null]);
+    return apiKey || baseUrl ? this.test(userId, id) : this.toConnection((await this.q('SELECT * FROM model_connections WHERE id=$1', [id]))[0]);
+  }
+  async test(userId: string, id: string): Promise<Connection> {
+    const r = await this.owned(userId, id);
+    const apiKey = r.sealed_key ? this.kms.open(r.sealed_key, aad(id)).toString('utf8') : null;
+    const access = await checkAccess(this.provider(r.provider), { apiKey, baseUrl: r.base_url }, this.catalog, this.fetchImpl);
+    const [row] = await this.q('UPDATE model_connections SET status=$2, available_models=$3, checked_at=now() WHERE id=$1 RETURNING *', [id, access.status, JSON.stringify(access.models)]);
+    return this.toConnection(row);
+  }
+  async remove(userId: string, id: string): Promise<void> {
+    await this.owned(userId, id);
+    await this.q('DELETE FROM model_connections WHERE id=$1', [id]);
+  }
+  /** `ids` must list every connection in that scope exactly once. */
+  async reorder(userId: string, scope: unknown, ids: unknown): Promise<Connection[]> {
+    if (scope !== undefined && scope !== 'user' && scope !== 'org') throw new ApiFailure('ValidationFailed', 'scope must be user or org');
+    if (scope === 'org' && !(await this.isAdmin(userId))) throw new ApiFailure('Forbidden', 'only an admin can reorder org connections');
+    const current = (await this.q(`SELECT id FROM model_connections WHERE ${scope === 'org' ? `scope='org'` : 'owner_id=$1'}`, scope === 'org' ? [] : [userId])).map((r) => r.id as string);
+    if (!Array.isArray(ids) || ids.length !== current.length || new Set(ids).size !== ids.length || ids.some((id) => !current.includes(id))) throw new ApiFailure('ValidationFailed', 'ids must list every connection in the scope once');
+    for (const [i, id] of ids.entries()) await this.q('UPDATE model_connections SET position=$2 WHERE id=$1', [id, i]);
+    return this.list(userId);
+  }
+  async findModels(userId: string, id: string, q = ''): Promise<string[]> {
+    const c = (await this.list(userId)).find((x) => x.id === id);
+    if (!c) throw new ApiFailure('NotFound', 'connection not found');
+    return c.models.filter((m) => m.toLowerCase().includes(q.toLowerCase()));
+  }
+
+  /** CAPY-331: a pinned connection never falls back; unpinned picks the first enabled connection in order offering the model. Unsupported effort fails. */
+  async resolve(userId: string, raw: unknown): Promise<ResolvedSelection> {
+    const s = (typeof raw === 'string' ? { adapter: raw } : raw ?? {}) as Partial<Record<keyof ModelSelection, unknown>>;
+    if (typeof s.adapter !== 'string' || !s.adapter) throw new ApiFailure('ValidationFailed', 'engine.adapter is required');
+    if (s.model !== undefined && s.model !== null && (typeof s.model !== 'string' || !MODEL_ID.test(s.model))) throw new ApiFailure('ValidationFailed', 'engine.model must be a model id');
+    if (s.connectionId !== undefined && s.connectionId !== null && typeof s.connectionId !== 'string') throw new ApiFailure('ValidationFailed', 'engine.connectionId must be a string');
+    const sel: ModelSelection = { adapter: s.adapter as ModelSelection['adapter'], model: (s.model as string | null | undefined) ?? null, effort: parseEffort(s.effort), connectionId: (s.connectionId as string | null | undefined) ?? null };
+    const offers = (c: Connection) => c.adapter === sel.adapter && (!sel.model || c.models.includes(sel.model));
+    const all = await this.list(userId);
+    let conn: Connection | undefined;
+    if (sel.connectionId) {
+      conn = all.find((c) => c.id === sel.connectionId);
+      if (!conn) throw new ApiFailure('NotFound', 'connection not found');
+      if (!conn.enabled || conn.status === 'failed') throw new ApiFailure('ValidationFailed', `${conn.label} is ${conn.enabled ? 'failing its access check' : 'disabled'}; no fallback`);
+      if (!offers(conn)) throw new ApiFailure('ValidationFailed', `${sel.model ?? sel.adapter} is not available on ${conn.label}; no fallback`);
+    } else {
+      conn = all.find((c) => c.enabled && c.status !== 'failed' && offers(c));
+      if (!conn) throw new ApiFailure('ValidationFailed', `no enabled connection offers ${sel.adapter}${sel.model ? `:${sel.model}` : ''}`);
+    }
+    if (sel.effort) {
+      const entry = sel.model ? this.catalog.models.find((m) => m.adapter === sel.adapter && m.model === sel.model) : undefined;
+      if (!entry?.efforts.includes(sel.effort)) throw new ApiFailure('ValidationFailed', `${sel.model ?? `${sel.adapter} default model`} does not support effort ${sel.effort}; no fallback`);
+    }
+    return { ...sel, connectionId: conn.id, badge: badgeOf(conn.kind), connectionLabel: conn.label };
+  }
+
+  async picker(userId: string): Promise<PickerItem[]> {
+    const favorites = ((await this.q('SELECT models FROM model_favorites WHERE user_id=$1', [userId]))[0]?.models ?? []) as string[];
+    const seen = new Map<string, PickerItem>();
+    for (const c of (await this.list(userId)).filter((x) => x.enabled && x.status !== 'failed')) for (const model of c.models) {
+      const key = `${c.adapter}:${model}`;
+      if (seen.has(key)) continue;
+      const entry = this.catalog.models.find((m) => m.adapter === c.adapter && m.model === model);
+      const badge = badgeOf(c.kind); const fav = favorites.indexOf(key);
+      seen.set(key, { key, adapter: c.adapter, model, displayName: entry?.displayName ?? model, efforts: entry?.efforts ?? [], badge, connectionId: c.id, tooltip: `${badgeLabel[badge]} via ${c.label}`, favorite: fav < 0 ? null : fav + 1, shortcut: fav < 0 ? null : `Alt+${fav + 1}` });
+    }
+    return [...seen.values()];
+  }
+  /** Up to nine `adapter:model` keys; position n is bound to Alt+n (⌥n on macOS). */
+  async setFavorites(userId: string, models: unknown): Promise<PickerItem[]> {
+    const available = new Set((await this.picker(userId)).map((i) => i.key));
+    if (!Array.isArray(models) || models.length > 9 || new Set(models).size !== models.length || models.some((m) => typeof m !== 'string' || !available.has(m))) throw new ApiFailure('ValidationFailed', 'models must list up to 9 distinct picker keys (adapter:model)');
+    await this.q('INSERT INTO model_favorites (user_id,models) VALUES ($1,$2) ON CONFLICT (user_id) DO UPDATE SET models=EXCLUDED.models', [userId, JSON.stringify(models)]);
+    return (await this.picker(userId)).filter((i) => i.favorite).sort((a, b) => a.favorite! - b.favorite!);
+  }
+
+  /** The pinned connection's key for the thread's machine; only the runner's vault path calls this. */
+  async connectionEnv(threadId: string): Promise<Record<string, string>> {
+    const [r] = await this.q(`SELECT c.id, c.env_var, c.sealed_key FROM threads t JOIN model_connections c ON c.id = t.engine->>'connectionId'
+      WHERE t.id=$1 AND c.enabled AND c.adapter = t.engine->>'adapter' AND (c.owner_id = t.owner_id OR c.scope='org')`, [threadId]);
+    if (!r?.sealed_key || !r.env_var) return {};
+    return { [r.env_var]: this.kms.open(r.sealed_key, aad(r.id)).toString('utf8') };
+  }
+}
+
+/** Adds the thread's pinned connection key to the secrets the runner prepares (and scrubs). */
+export function withConnectionKeys(vault: Pick<SecretsStore, 'mutate' | 'prepare'>, store = modelsCatalogStore()): Pick<SecretsStore, 'mutate' | 'prepare'> {
+  return {
+    mutate: (...args) => vault.mutate(...args),
+    prepare: async (threadId) => { const p = await vault.prepare(threadId); return { ...p, env: { ...p.env, ...(await store.connectionEnv(threadId)) } }; }
+  };
+}
+
+const stores = new Map<string, ModelsCatalogStore>();
+export function modelsCatalogStore(databaseUrl = process.env.DATABASE_URL ?? 'postgres://postgres@postgres:5432/flotilla'): ModelsCatalogStore {
+  let store = stores.get(databaseUrl);
+  if (!store) stores.set(databaseUrl, (store = new ModelsCatalogStore(databaseUrl, [fakeAdapter.manifest, claudeCodeAdapter.manifest, codexAdapter.manifest])));
+  return store;
+}
