@@ -174,8 +174,9 @@ describe('thread lifecycle', () => {
     const ev = (await pool.query(`SELECT payload FROM events WHERE thread_id=$1 AND kind='thread.status' ORDER BY seq DESC LIMIT 1`, [id])).rows[0].payload;
     expect(ev).toMatchObject({ action: 'takeover', from: users.owner.id, to: users.bob.id });
     const left = await thread({ visibility: 'shared' });
-    await act('carol', left, { action: 'join' }); await act('carol', left, { action: 'leave' });
+    await act('carol', left, { action: 'join' });
     await act('owner', left, { action: 'visibility', visibility: 'private' });
+    expect((await act('carol', left, { action: 'leave' })).status).toBe(204);
     expect((await act('carol', left, { action: 'takeover' })).status).toBe(404);
     await act('owner', left, { action: 'visibility', visibility: 'shared' });
     await pool.query(`INSERT INTO projects (id,owner_id,name,repo,trust,budget) VALUES ('prj_own',$1,'p','{}','trusted','{}')`, [users.owner.id]);

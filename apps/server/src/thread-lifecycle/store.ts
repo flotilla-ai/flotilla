@@ -85,6 +85,7 @@ export class ThreadLifecycleStore {
       case 'leave':
         if (owner) throw new ApiFailure('Conflict', 'transfer ownership before leaving');
         if (v.member?.joined) await this.emit(threadId, { action: 'left', ...by }, (tx) => this.member(threadId, userId, 'joined=false, subscribed=false', [], tx));
+        if (v.visibility === 'private') return null;
         break;
       case 'takeover': if (!owner && v.visibility !== 'shared') throw new ApiFailure('Forbidden', 'only shared threads can be taken over');
         if (!owner) await this.transfer({ threadId: v.id, from: v.ownerId, to: userId as never, via: 'takeover' }); break;
