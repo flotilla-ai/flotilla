@@ -154,7 +154,8 @@ export class ThreadLifecycleStore {
     const ok = await this.q('SELECT 1 FROM threads t LEFT JOIN projects p ON p.id=t.project_id WHERE t.id=$1 AND (t.project_id IS NULL OR p.owner_id=$2)', [t.threadId, t.to]);
     if (!ok[0]) throw new ApiFailure('Conflict', 'the new owner must own the thread project');
     await this.emit(t.threadId, { action: t.via, from: t.from, to: t.to, by: t.via === 'takeover' ? t.to : t.from }, async (tx) => {
-      await tx.query(`UPDATE threads SET owner_id=$2, engine=engine || '{"connectionId":null}'::jsonb, updated_at=now() WHERE id=$1`, [t.threadId, t.to]);
+      await tx.query(`UPDATE threads SET owner_id=$2, engine=engine || '{"connectionId":null}'::jsonb, crew_of=NULL, updated_at=now() WHERE id=$1`, [t.threadId, t.to]);
+      await tx.query('UPDATE threads SET crew_of=NULL, updated_at=now() WHERE crew_of=$1', [t.threadId]);
       for (const u of [t.from, t.to]) await this.member(t.threadId, u, 'joined=true, subscribed=true', [], tx);
     });
   }

@@ -190,7 +190,14 @@ describe('thread lifecycle', () => {
     expect((await act('owner', id, { action: 'visibility', visibility: 'shared' })).body).toMatchObject({ visibility: 'shared' });
     expect((await act('bob', id, { action: 'transfer', toUserId: users.carol.id })).status).toBe(403);
     expect((await act('owner', id, { action: 'transfer', toUserId: 'usr_nobody' })).status).toBe(404);
+    await pool.query(`UPDATE threads SET role='captain' WHERE id=$1`, [id]);
+    const crew = await thread(); await pool.query(`UPDATE threads SET crew_of=$1 WHERE id=$2`, [id, crew]);
     expect((await act('owner', id, { action: 'transfer', toUserId: users.carol.id })).body).toMatchObject({ ownerId: users.carol.id });
+    expect((await pool.query('SELECT crew_of FROM threads WHERE id=$1', [crew])).rows[0].crew_of).toBeNull();
+    const attached = await thread(); await pool.query(`UPDATE threads SET crew_of=$1 WHERE id=$2`, [id, attached]);
+    await act('owner', attached, { action: 'visibility', visibility: 'shared' });
+    await act('bob', attached, { action: 'takeover' });
+    expect((await pool.query('SELECT crew_of FROM threads WHERE id=$1', [attached])).rows[0].crew_of).toBeNull();
     expect((await row(id)).engine).toMatchObject({ adapter: 'fake', connectionId: null });
     expect((await pool.query(`SELECT scope_id FROM secrets WHERE scope='personal'`)).rows.map((r) => r.scope_id)).toEqual([users.owner.id]);
     expect((await act('owner', id, { action: 'transfer', toUserId: users.bob.id })).status).toBe(403);
