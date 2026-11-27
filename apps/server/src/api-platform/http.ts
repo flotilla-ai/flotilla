@@ -1,4 +1,4 @@
-import { createHmac, randomBytes } from 'node:crypto';
+import { createHash, createHmac, randomBytes } from 'node:crypto';
 import type { Context, Next } from 'hono';
 import { masterKey } from '../secrets/vault.js';
 import { apiPlatformStore } from './store.js';
@@ -11,8 +11,11 @@ function idempotencyKey(): Buffer {
   try { return (processKey = masterKey()); } catch { return (processKey = randomBytes(32)); }
 }
 /** Keyed so a database reader cannot brute-force low-entropy request fields (notably env values) from the fingerprint. */
-export function idempotencyFingerprint(body: unknown): string {
-  return createHmac('sha256', idempotencyKey()).update(canonical(body)).digest('hex');
+export function idempotencyFingerprint(principalId: string, body: unknown): string {
+  return createHmac('sha256', idempotencyKey()).update(`${principalId}\n${canonical(body)}`).digest('hex');
+}
+export function legacyIdempotencyFingerprint(body: unknown): string {
+  return createHash('sha256').update(canonical(body)).digest('hex');
 }
 
 /** Replays a create with the same requestId (body) or Idempotency-Key (header) for the same principal. */
@@ -25,8 +28,8 @@ export async function withIdempotency(c: Context, next: Next): Promise<Response 
   if (requestId.length > 200) return apiError(c, 'ValidationFailed', 'requestId too long');
   const principal = c.get('principal') as ApiPrincipal;
   const store = apiPlatformStore();
-  const fingerprint = idempotencyFingerprint(body);
-  const begun = await store.beginRequest(principal.userId, requestId, c.req.method, c.req.path, fingerprint);
+  const fingerprint = idempotencyFingerprint(principal.userId, body);
+  const begun = await store.beginRequest(principal.userId, requestId, c.req.method, c.req.path, fingerprint, legacyIdempotencyFingerprint(body));
   if (begun.state === 'conflict') return apiError(c, 'Conflict', 'requestId was already used for a different request');
   if (begun.state === 'pending') return apiError(c, 'RequestInProgress', 'a request with this requestId is still in progress');
   if (begun.state === 'replay') return new Response(begun.body, { status: begun.status, headers: { 'content-type': begun.contentType, 'idempotent-replayed': 'true' } });

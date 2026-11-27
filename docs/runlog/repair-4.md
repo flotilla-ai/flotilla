@@ -12,7 +12,7 @@ Explicitly not changed: short/user-repeated secrets in prompts. The decision is 
 ## Changes
 
 - `docker-compose.yml`: added named volume `secrets` mounted at `/run/secrets`; `FLOTILLA_MASTER_KEY_FILE` already points to `/run/secrets/master_key`.
-- `apps/server/src/api-platform/http.ts`: fingerprints are HMAC-SHA256 keyed by the vault master key when configured, otherwise a process-local random key.
+- `apps/server/src/api-platform/http.ts`: fingerprints are principal-scoped HMAC-SHA256 keyed by the vault master key when configured, otherwise a process-local random key; raw-SHA256 fingerprints from the pre-repair implementation are accepted only for replaying rows already inside their 24-hour idempotency window.
 - `apps/server/src/api-platform/api-platform.test.ts`: proves stored fingerprints are not raw SHA-256 canonical-body hashes while replay/conflict behavior still works.
 - `docs/plan/PROGRESS.md`: records PR #28 merged and this repair.
 
@@ -23,6 +23,8 @@ $ cd apps/server && npx vitest run src/api-platform --reporter=dot
  Test Files  1 passed (1)
       Tests  9 passed (9)
 ```
+
+The same focused test was rerun after review hardening and passed again (9/9); it now proves principal-scoped fingerprints and replay of a legacy raw-SHA256 fingerprint row.
 
 ```text
 $ docker compose config
