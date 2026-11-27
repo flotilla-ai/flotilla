@@ -1,11 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 2, waves 3-6 running in parallel through child sessions.
-Current `flotilla/p1` head before this PR: `6b5546a` (repair-10; phase2-17 and repair-12 already merged).
+Current `flotilla/p1` head before this PR: `2aefb24` (phase2-18; phase2-17, repair-10 and repair-12 already merged).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` on this branch after repair of seven malformed phase1fix ledger rows: done 126, pending 449, needs-human-login 17, n-a 22, blocked 25.
+Counted in `docs/plan/PARITY.md` on this branch after repair of seven malformed phase1fix ledger rows and merging phase2-18: done 135, pending 438, needs-human-login 17, n-a 22, blocked 27 (CAPY-050/051 kept `blocked` from phase2-17; the phase2-18 ledger had reset them to pending).
 
 ## Unit table
 
@@ -33,14 +33,14 @@ Counted in `docs/plan/PARITY.md` on this branch after repair of seven malformed 
 | repair-12 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/49 | archived timer regression synchronization |
 | phase2-29-projects | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/42 | repoless/lazy projects, descriptions, codes, sources; CAPY-181 needs-human-login, CAPY-182 blocked |
 | repair-11-first-attachments | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/47 | first-prompt attachment plumbing and validation |
-| phase2-18-subagent-core | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/44 | subagent core under review |
+| phase2-18-subagent-core | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/44 | subagent drafts, placement, modes, budget slice, parent wake; 9 rows done (052-060), 2 blocked (061 no paired-device driver, 062 no agent-callable tool for non-Captain threads); see `docs/runlog/phase2-18.md` |
 | phase2-12-machine-core | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/48 | machine leases/sleep/wake under review |
 | phase2-11-snapshots | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/50 | snapshots under implementation/review |
 
 ## Next action
 
 1. Merge repair-11 when green, then phase2-29 after CI/review rerun on this integration merge.
-2. Merge phase2-18 and phase2-12 only after their review findings are triaged; phase2-11 follows machine core.
+2. Merge phase2-12 only after its review findings are triaged; phase2-11 follows machine core. CAPY-061/062 (phase2-18) need a paired-device target and an agent-callable subagent tool.
 3. Continue Captain/work-surface units after subagent and machine dependencies settle.
 
 ## Phase 1 summary (preserved)

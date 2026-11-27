@@ -231,3 +231,6 @@ exit=0
 - The parent's merge dropped six phase2-29 lines from DECISIONS-LOG. Restored in 0c1b74e, with the visibility and CAPY-181 lines updated to match the gate.
 - Fixed in 3f42346: a missing pinned branch now deletes the bare mirror it just fetched (primary or lazy), so rejected projects leave no orphan mirrors. A pinned primary's 201 now returns the row after cloning (`clonedAt` and description set), so idempotent replays match.
 - `make check` on 3f42346: server `Test Files 24 passed (24)`, `Tests 155 passed | 1 skipped (156)`; web `Test Files 6 passed (6)`, `Tests 16 passed (16)`; exit 0.
+
+## Merge of p1 2aefb24 (phase2-18)
+- Real merge. There were conflicts in `runner.ts`: p1's `workspaceFrom` placement is kept together with this unit's repoless guard (`project?.repo && !thread.branch && !place.workspaceFrom`). PROGRESS conflicts were resolved keeping both sides, with phase2-18 now merged. The phase2-18 PARITY change had reset CAPY-050/051 (phase2-17 `blocked`) to pending, so those two rows were restored.
