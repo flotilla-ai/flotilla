@@ -1,7 +1,7 @@
 # Flotilla progress
 
 Current phase: phase 2, wave 1 (serialized foundations) and wave 2 (core threads and runner).
-Current `flotilla/p1` head: `eba906f` (phase2-03 to phase2-10, phase2-17 and repair-7/8/9 merged; merged into phase2-18).
+Current `flotilla/p1` head: `6b5546a` (phase2-03 to phase2-10, phase2-17 and repair-7/8/9/10/12 merged; merged into phase2-18).
 
 ## Row counts
 
@@ -37,7 +37,7 @@ Counted in `docs/plan/PARITY.md` on this branch: done 124, pending 446, needs-hu
 
 ## Next action
 
-1. Review and merge phase2-18-subagent-core (branched from `flotilla/p1` `ea9ec15`, merged with `eba906f`).
+1. Review and merge phase2-18-subagent-core (branched from `flotilla/p1` `ea9ec15`, merged with `6b5546a`).
 2. CAPY-061 needs a paired-device placement target; CAPY-062 needs an agent-callable subagent tool for non-Captain threads.
 
 ## Phase 1 summary (preserved)

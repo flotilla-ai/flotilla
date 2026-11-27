@@ -177,3 +177,19 @@ apps/server test:  Test Files  24 passed (24)
 apps/server test:       Tests  156 passed | 1 skipped (157)
 EXIT=0
 ```
+
+## Third review round (`1496855`) and merge of `6b5546a`
+
+- Subagent wakes bypassed owner holds, and phase2-17's `WakeRouter.onEvent` sent duplicate completion and approval wakes. Fixed in `df29eac`: `finished()` records the summary or question; wakes go through `WakeRouter.deliver`, and only for Captain parents (the router skips them) and failures. Before the fix the new hold test and the single-wake assertions failed.
+- Stacked starts used a stale mirror ref. Reverted `b307961` (`bb552de`); `published()` now runs `ensureMirror` (fetch --prune) first (`daf7829`). Before the fix, the upstream-deleted-branch assertion failed.
+- Double-spend stays escalated.
+- Real merge of `flotilla/p1` `6b5546a` (repair-10/12), with no conflicts.
+
+```text
+$ make check
+apps/web test:  Test Files  6 passed (6)
+apps/web test:       Tests  16 passed (16)
+apps/server test:  Test Files  24 passed (24)
+apps/server test:       Tests  158 passed | 1 skipped (159)
+EXIT=0
+```
