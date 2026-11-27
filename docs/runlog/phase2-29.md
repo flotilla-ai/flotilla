@@ -142,3 +142,14 @@ Expected: suggestions list the account's repos by `pushed_at`. The project's pri
 ## Escalations (out of scope, not fixed)
 - Teammates can see shared projects but cannot start threads in them, because `ThreadRunner.create` and Captain creation still require `projects.owner_id`. A P3 org/membership unit should decide this.
 - `apps/server/src/db/schema.ts` (Drizzle; not imported anywhere) does not list the new columns.
+
+## Merge of `origin/flotilla/p1` 4c8a0ed (phase2-04, phase2-09)
+Conflicts were in docs only (`DECISIONS-LOG.md`, `PROGRESS.md`), and both sides' entries are kept. Row counts were recounted from `PARITY.md`: done 99, pending 481, needs-human-login 17, n-a 22, blocked 13. Migration `0014_projects.sql` now runs after `0010_model_policy.sql`.
+
+`make check`:
+```
+apps/server test:  Test Files  21 passed (21)
+apps/server test:       Tests  124 passed | 1 skipped (125)
+apps/server lint: Done
+exit=0
+```

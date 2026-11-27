@@ -1,11 +1,11 @@
 # Flotilla progress
 
-Current phase: phase 2, wave 6 (knowledge and integrations) in parallel with earlier waves.
-Current `flotilla/p1` head: `505d663` (phase2-08 merged).
+Current phase: phase 2, wave 2 (core threads and runner) in parallel with later waves.
+Current `flotilla/p1` head: `4c8a0ed` (phase2-04 and phase2-09 merged; merged into phase2-29).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` on this branch: done 90, pending 495, needs-human-login 14, n-a 22, blocked 11 (phase2-29 adds 5 done rows and CAPY-181 needs-human-login; phase2-05 adds 4 done rows and 10 blocked web-UI rows; phase2-08 adds 11 done rows; the remaining P2/P3/P4 rows are pending); phase 1 rows are done except live vendor/GitHub rows marked `needs-human-login`; n/a rows carry Appendix A's reason.
+Counted in `docs/plan/PARITY.md` on this branch: done 99, pending 481, needs-human-login 17, n-a 22, blocked 13 (recounted after merging phase2-04 and phase2-09; phase2-29 adds 5 done rows and CAPY-181 needs-human-login; phase2-05 adds 4 done rows and 10 blocked web-UI rows; phase2-08 adds 11 done rows; the remaining P2/P3/P4 rows are pending); phase 1 rows are done except live vendor/GitHub rows marked `needs-human-login`; n/a rows carry Appendix A's reason.
 
 ## Unit table
 
@@ -24,15 +24,17 @@ Counted in `docs/plan/PARITY.md` on this branch: done 90, pending 495, needs-hum
 | phase2-03-models-catalog | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/30 | model catalog + connections; 2 rows done, 5 needs-human-login, 1 blocked (CAPY-332 web picker) |
 | phase2-07-thread-lifecycle | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/31 | thread lifecycle and collaboration; 11 rows done; see `docs/runlog/phase2-07.md` |
 | repair-5-runner-supervise | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/33 | runner background continuations drained before pool end |
-| phase2-05-runner-queue | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/34 | durable inbox, steer/queue, versions, retry, /plan gate; 4 rows done, 10 web-UI rows blocked |
 | repair-6-git-hook-test | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/35 | isolate git hook test from external scans |
+| phase2-05-runner-queue | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/34 | durable inbox, steer/queue, versions, retry, /plan gate; 4 rows done, 10 web-UI rows blocked |
 | phase2-08-thread-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/37 | public REST verbs + status frames for 11 lifecycle rows; collaborator read access; see `docs/runlog/phase2-08.md` |
+| phase2-09-previews | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/32 | preview lifecycle and sharing; 7 rows done |
+| phase2-04-model-policy-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/36 | model policy + model API; 2 rows done (335, 336), 3 needs-human-login (333, 337, 484), 2 blocked (338 no model-backed title/summary generator, 485 no web connections editor) |
 | phase2-29-projects | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/42 | repoless/lazy/multi-repo projects, descriptions, codes, sources, private; 5 rows done, CAPY-181 needs-human-login; see `docs/runlog/phase2-29.md` |
 
 ## Next action
 
-1. Finish phase2-29 review.
-2. Continue wave 1 serialized foundations in order with phase2-04 after phase2-03.
+1. Finish phase2-29 review (current `flotilla/p1` `4c8a0ed` merged in).
+2. Wave 1 serialized foundations are complete.
 3. Wave 2 units may start after wave 1 dependencies merge.
 
 ## Phase 1 summary (preserved)
@@ -45,4 +47,4 @@ None.
 
 ## Unverified items
 
-See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. Unverified items for phase2-01, phase2-02, phase2-05, phase2-07, phase2-08 and phase2-29 are listed in `docs/runlog/phase2-01.md`, `docs/runlog/phase2-02.md`, `docs/runlog/phase2-05.md`, `docs/runlog/phase2-07.md`, `docs/runlog/phase2-08.md` and `docs/runlog/phase2-29.md` (phase2-05 web UI display is not built).
+See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. Unverified items for phase2-01 through phase2-05 and phase2-07 through phase2-09 and phase2-29 are listed in `docs/runlog/phase2-0{1,2,3,4,5,7,8,9}.md` and `docs/runlog/phase2-29.md` (phase2-05 web UI display is not built); phase2-04 live commands (`claude auth login`, `codex login`, GPT-6 context window, Base URL gateways) are in `docs/runlog/phase2-04.md`.

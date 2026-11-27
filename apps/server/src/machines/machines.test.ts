@@ -52,6 +52,21 @@ describe('reaper reconciliation', () => {
   });
 });
 
+describe('pool machine limits', () => {
+  const created: Docker.ContainerCreateOptions[] = [];
+  const fake = { listContainers: async () => [], listNetworks: async () => [], createNetwork: async () => ({ id: 'net' }), createVolume: async () => ({}),
+    createContainer: async (o: Docker.ContainerCreateOptions) => { created.push(o); return { id: 'c1', start: async () => undefined }; } } as unknown as Docker;
+  it('CAPY-218: memory limit has no swap headroom and the kernel OOM killer stays on, so the largest process is killed instead of the machine freezing', async () => {
+    await new DockerMachineDriver(fake).startThreadContainer({ threadId: 'thr_oom', code: 'OOM-1', image: 'img', cpus: 1, memMb: 512, env: {} });
+    expect(created[0].HostConfig).toMatchObject({ Memory: 512 * 1024 * 1024, MemorySwap: 512 * 1024 * 1024, OomKillDisable: false, Init: true });
+  });
+  it('CAPY-219: the pool only runs Linux; macOS/iOS requests are refused and pointed at a paired device', async () => {
+    expect(DockerMachineDriver.platforms).toEqual(['linux']);
+    await expect(new DockerMachineDriver(fake).startThreadContainer({ threadId: 'thr_mac', code: 'MAC-1', image: 'img', cpus: 1, memMb: 512, env: {}, platform: 'macos' })).rejects.toThrow('paired device (BYOM)');
+    expect(created).toHaveLength(1);
+  });
+});
+
 const itDocker = process.env.FLOTILLA_DOCKER_IT === '1' ? it : it.skip;
 describe('docker integration', () => {
   const docker = new Docker();
