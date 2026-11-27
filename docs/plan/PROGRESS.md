@@ -19,11 +19,11 @@ Initialized in `docs/plan/PARITY.md`: P2/P3/P4 rows are pending; phase 1 rows ar
 | plan2 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/23 | 37 phase-2 handoffs covering 353 P2 rows exactly once |
 | phase2-01-api-platform | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/25 | API platform foundation; 10 rows done |
 | repair-2-runner-authz | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/26 | runner ownership/idempotency security repair |
-| phase2-02-secrets | pending | 0 |  | next wave-1 unit |
+| phase2-02-secrets | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/28 | secrets vault + env API; 12 rows done |
 
 ## Next action
 
-1. Start phase2-02-secrets from `flotilla/p1` head `daad0c8f1b76dd3424552802b69d837813658662`.
+1. Review and merge phase2-02-secrets (branched from `flotilla/p1` head `daad0c8f1b76dd3424552802b69d837813658662`).
 2. Continue wave 1 serialized foundations in order.
 3. Wave 2 units may start after wave 1 dependencies merge.
 
@@ -37,4 +37,4 @@ None.
 
 ## Unverified items
 
-See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. phase2-01 unverified items are listed in `docs/runlog/phase2-01.md`.
+See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. phase2-01 and phase2-02 unverified items are listed in `docs/runlog/phase2-01.md` and `docs/runlog/phase2-02.md`.
