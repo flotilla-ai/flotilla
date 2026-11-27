@@ -222,3 +222,7 @@ exit=0
 
 ## Devin Review round 3 (f27e78d)
 - Fixed in 5869f88: when a user chose a branch the repo doesn't have, `materialize` saved the mirror default instead. A user-chosen branch is now marked `branchPinned`, and a missing pinned branch returns 409 `base branch <name> not found`. Only an unspecified branch falls back to the mirror default (as with master-only repos). Test: `CAPY-178/179/181` in `projects.test.ts`.
+
+## Devin Review round 4 (f7d068)
+- Fixed in 33e21e9: creating a project whose primary branch was chosen but doesn't exist used to return 201, and threads then used the missing branch. A pinned primary is now mirrored before responding. A missing branch returns 409 `base branch <name> not found` and the project row is deleted. A primary with no chosen branch still mirrors in the background.
+- Fixed in ccaedec: a failed lazy clone used to fail silently in the UI. It now shows `Could not clone <repo> on branch <branch> (<status>)`. Browser proof: `npx playwright test e2e/projects.spec.ts` gives `2 passed (3.2s)`.
