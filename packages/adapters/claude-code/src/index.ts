@@ -9,6 +9,7 @@ const usageOf = (u: Json | undefined, cumulative: boolean): AdapterEvent | null 
 
 export function argvFor(input: StartInput | ResumeInput): string[] {
   const argv = ['claude', '-p', input.prompt, '--output-format', 'stream-json', '--verbose'];
+  if (input.model) argv.push('--model', input.model);
   if (input.vendorBudget.maxMicroUsd !== null) argv.push('--max-budget-usd', (input.vendorBudget.maxMicroUsd / 1e6).toString());
   if (input.auth === 'api-key') argv.push('--bare');
   else argv.push('--strict-mcp-config', '--setting-sources', 'user');
