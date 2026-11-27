@@ -5,9 +5,7 @@ Current `flotilla/p1` head before this PR: `b7b1615` (phase3-16 merge).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after this unit: done 385, pending 122, needs-human-login 24, n-a 22, blocked 86.
-
-
+Counted in `docs/plan/PARITY.md` after this unit: done 391, pending 107, needs-human-login 24, n-a 22, blocked 95.
 
 ## Unit table
 
@@ -72,7 +70,8 @@ Counted in `docs/plan/PARITY.md` after this unit: done 385, pending 122, needs-h
 | phase3-07-mcp-plugins | merged | 1 | #88 | plugin lifecycle; see `docs/runlog/phase3-07.md` |
 | phase3-14-ui-navigation | merged | 1 | #89 | navigation foundation; see `docs/runlog/phase3-14.md` |
 | phase3-16-keyboard-notifications | merged | 1 | #90 | shortcuts and notifications; see `docs/runlog/phase3-16.md` |
-| phase3-01-thread-media | in review | 1 |  | thread media/annotations; see `docs/runlog/phase3-01.md` |
+| phase3-15-ui-viewers | merged | 1 | #91 | viewer/explore web foundation; see `docs/runlog/phase3-15.md` |
+| phase3-01-thread-media | in review | 1 | #92 | thread media/annotations; see `docs/runlog/phase3-01.md` |
 
 ## Next action
 
