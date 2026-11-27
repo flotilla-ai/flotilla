@@ -56,6 +56,7 @@ beforeAll(async () => {
   await pool.query(`INSERT INTO projects (id,owner_id,name,repo,trust,budget) VALUES ('prj_sk',$1,'sk',$2,'untrusted','{}')`, [owner, JSON.stringify({ fullName: 'example.invalid/o/r' })]);
   for (const [dir, name, text] of [['.agents/skills', 'deploy', md('deploy', 'Deploy the app.')], ['.claude/skills', 'lint', md('lint', 'Run the linters.')], ['.claude/skills', 'broken', '# no frontmatter\n']]) { mkdirSync(join(repoDir, dir, name), { recursive: true }); writeFileSync(join(repoDir, dir, name, 'SKILL.md'), text); }
   writeFileSync(join(repoDir, '.agents/skills/deploy/run.sh'), 'echo deploy\n');
+  writeFileSync(join(repoDir, '.agents/skills/deploy/logo.png'), Buffer.from([0x89, 0x50, 0, 0, 1]));
   app = await (await import('../loader.js')).createApp();
   stopModule = await (await import('../modules/skills.module.js')).default.start();
 }, 60_000);
@@ -160,9 +161,9 @@ describe('skills', () => {
   it('CAPY-301: skills from Claude Code, Cursor and the skills CLI are reused by copying their folders', async () => {
     const r = await json(await call('/skills/import', { method: 'POST', json: { from: 'claude-code', files: [
       { path: '.claude/skills/review/SKILL.md', content: md('review', 'Review a diff.') },
-      { path: '.claude/skills/review/scripts/check.sh', content: 'echo ok\n' },
+      { path: '.claude/skills/review/scripts/check.sh', content: '#!/bin/sh\necho ok\n' }, { path: '.claude/skills/review/assets/skills/x/notes.md', content: 'n' },
       { path: 'skills/triage/SKILL.md', content: md('triage', 'Triage issues.') }] } }));
-    expect(r.items.map((s: any) => [s.name, s.origin, s.load.state, Object.keys(s.files).sort()])).toEqual([['review', 'claude-code', 'loaded', ['SKILL.md', 'scripts/check.sh']], ['triage', 'claude-code', 'loaded', ['SKILL.md']]]);
+    expect(r.items.map((s: any) => [s.name, s.origin, s.load.state, Object.keys(s.files).sort()])).toEqual([['review', 'claude-code', 'loaded', ['SKILL.md', 'assets/skills/x/notes.md', 'scripts/check.sh']], ['triage', 'claude-code', 'loaded', ['SKILL.md']]]);
     const cursor = await json(await call('/skills/import', { method: 'POST', json: { from: 'cursor', projectId: 'prj_sk', files: [{ path: '.cursor/skills/tidy/SKILL.md', content: md('tidy', 'Tidy code.') }] } }));
     expect(cursor.items[0]).toMatchObject({ name: 'tidy', origin: 'cursor', source: { kind: 'drive', scope: 'project' } });
     const cli = await json(await call('/skills/import', { method: 'POST', json: { from: 'skills-cli', files: [{ path: '.agents/skills/pdf/SKILL.md', content: md('pdf', 'Work with PDFs.') }] } }));
@@ -171,6 +172,8 @@ describe('skills', () => {
     expect((await call('/skills/import', { method: 'POST', json: { from: 'cursor', files: [{ path: '../etc/skills/x/SKILL.md', content: md('x', 'y') }] } })).status).toBe(400);
     copies.length = 0;
     const t = await runner.createThread({ ownerId: owner, title: 'c', prompt: 'hello' }); await waitRun(t.id as string);
-    expect(untar(copies.find((c) => c.dir === '/home/node')!.tar)['.claude/skills/review/scripts/check.sh']).toBe('echo ok\n');
+    const tar = copies.find((c) => c.dir === '/home/node')!.tar; const at = tar.indexOf('.claude/skills/review/scripts/check.sh');
+    expect(untar(tar)['.claude/skills/review/scripts/check.sh']).toBe('#!/bin/sh\necho ok\n'); expect(tar.toString('ascii', at + 100, at + 107)).toBe('0000755');
+    expect((await call('/skills', { method: 'POST', json: { source: 'drive', folder: 'big', files: { 'SKILL.md': md('big', 'Big.'), 'blob.txt': 'x'.repeat(300 * 1024) } } })).status).toBe(400);
   }, 20_000);
 });

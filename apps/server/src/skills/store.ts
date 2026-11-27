@@ -3,7 +3,7 @@ import pg from 'pg';
 import type { ProcessTransport } from '@flotilla/core/types';
 import { migrate } from '../db/migrate.js';
 import { ApiFailure } from '../api-platform/types.js';
-import { BUILTIN_SKILLS, IMPORT_ORIGINS, REPO_SKILL_DIRS, SKILL_HOME, invocationNote, parseInvocations, resolveSkills, safeRel, skillPath, skillsTar, type Skill, type SkillInvocation, type SkillSource, type SkillSourceKind } from './types.js';
+import { BUILTIN_SKILLS, IMPORT_ORIGINS, MAX_BYTES, MAX_FILES, REPO_SKILL_DIRS, SKILL_HOME, invocationNote, parseInvocations, resolveSkills, safeRel, skillPath, skillsTar, type Skill, type SkillInvocation, type SkillSource, type SkillSourceKind } from './types.js';
 
 type Row = Record<string, any>;
 type CopyIn = { copyIn?(containerId: string, dir: string, tar: Buffer): Promise<void> };
@@ -38,6 +38,7 @@ export class SkillStore {
     return resolveSkills([...BUILTIN_SKILLS, ...rows.map(toSkill)], disabled);
   }
   async save(userId: string, w: SkillWrite): Promise<Skill> {
+    if (Object.keys(w.files).length > MAX_FILES || Object.values(w.files).reduce((n, f) => n + Buffer.byteLength(f), 0) > MAX_BYTES) throw new ApiFailure('ValidationFailed', `a skill folder is limited to ${MAX_FILES} files and 256 KB`);
     const projectId = await this.ownedProject(userId, w.projectId);
     const [r] = await this.q(`INSERT INTO skills (id,owner_id,project_id,source,plugin,origin,name,files) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
       ON CONFLICT ON CONSTRAINT skills_folder DO UPDATE SET files=EXCLUDED.files, origin=EXCLUDED.origin, updated_at=now() RETURNING id`,
@@ -52,7 +53,7 @@ export class SkillStore {
     for (const f of input.files) {
       const segs = typeof f?.path === 'string' && typeof f.content === 'string' ? safeRel(f.path) : null;
       if (!segs) throw new ApiFailure('ValidationFailed', 'each file needs a relative path and string content');
-      const at = segs.lastIndexOf('skills', segs.length - 3); const rest = segs.slice(at + 1);
+      const root = segs.indexOf('skills'); const rest = segs.slice(root >= 0 && root <= segs.length - 3 ? root + 1 : 0);
       if (rest.length < 2) throw new ApiFailure('ValidationFailed', `${f.path} is not inside a skill folder`);
       folders.set(rest[0], { ...folders.get(rest[0]), [rest.slice(1).join('/')]: f.content });
     }
@@ -84,7 +85,8 @@ export class SkillStore {
     for (const line of lines) {
       const [path, b64 = ''] = line.split('\t'); const dir = REPO_SKILL_DIRS.find((d) => path.startsWith(`${d}/`)); const segs = dir && safeRel(path.slice(dir.length + 1));
       if (!dir || !segs || segs.length < 2) continue;
-      const key = `${dir}\t${segs[0]}`; found.set(key, { ...found.get(key), [segs.slice(1).join('/')]: Buffer.from(b64, 'base64').toString('utf8') });
+      const body = Buffer.from(b64, 'base64'); if (body.includes(0)) continue; // binary assets cannot be stored as jsonb text
+      const key = `${dir}\t${segs[0]}`; found.set(key, { ...found.get(key), [segs.slice(1).join('/')]: body.toString('utf8') });
     }
     const [p] = await this.q('SELECT owner_id FROM projects WHERE id=$1', [projectId]); if (!p) return;
     const client = await this.pool.connect();

@@ -18,7 +18,8 @@ export const IMPORT_ORIGINS = ['claude-code', 'cursor', 'skills-cli'] as const;
 /** Agent-native user skill folders under the thread user's home; every loaded skill is copied into each. */
 export const SKILL_HOME = '/home/node';
 export const MOUNT_ROOTS = ['.agents/skills', '.claude/skills', '.codex/skills'] as const;
-const MAX_BYTES = 256 * 1024;
+export const MAX_BYTES = 256 * 1024;
+export const MAX_FILES = 200;
 const NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 /** `name` and `description` from SKILL.md YAML frontmatter (plain, quoted, or `>`/`|` block scalars). */
@@ -86,10 +87,16 @@ export function parseInvocations(text: string, names: Set<string>): { name: stri
 }
 
 export const skillPath = (name: string) => `${SKILL_HOME}/${MOUNT_ROOTS[0]}/${name}/SKILL.md`;
+/** Scripts (shebang files) keep a runnable 0755 mode; the header checksum is recomputed. */
+function executable(t: Buffer): Buffer {
+  t.write('0000755\0', 100); t.write('        ', 148);
+  let sum = 0; for (const b of t.subarray(0, 512)) sum += b;
+  t.write(sum.toString(8).padStart(6, '0') + '\0 ', 148); return t;
+}
 /** One tar (extracted at SKILL_HOME) holding every loaded skill folder in each agent-native root. */
 export function skillsTar(skills: Skill[]): Buffer {
   const parts: Buffer[] = [];
-  for (const s of skills) for (const root of MOUNT_ROOTS) for (const [rel, body] of Object.entries(s.files)) parts.push(tarFile(`${root}/${s.name}/${rel}`, body).subarray(0, -1024));
+  for (const s of skills) for (const root of MOUNT_ROOTS) for (const [rel, body] of Object.entries(s.files)) { const t = tarFile(`${root}/${s.name}/${rel}`, body).subarray(0, -1024); parts.push(body.startsWith('#!') ? executable(t) : t); }
   return Buffer.concat([...parts, Buffer.alloc(1024)]);
 }
 export function invocationNote(invs: SkillInvocation[], skills: Skill[]): string {
