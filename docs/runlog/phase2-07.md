@@ -6,7 +6,7 @@ Branch `flotilla/phase2-07-thread-lifecycle` from `origin/flotilla/p1`. Fake ada
 CAPY-017, CAPY-018, CAPY-019, CAPY-020, CAPY-021, CAPY-022, CAPY-023, CAPY-024, CAPY-473, CAPY-474, CAPY-475 (all `done` in PARITY, pending merge).
 
 ## Changes
-- `apps/server/src/db/migrations/0006_thread_lifecycle.sql`: thread visibility/title_source/archive/pin/tags/folder columns, `thread_members`, `thread_settings`.
+- `apps/server/src/db/migrations/0008_thread_lifecycle.sql`: thread visibility/title_source/archive/pin/tags/folder columns, `thread_members`, `thread_settings`.
 - `apps/server/src/thread-lifecycle/{types,store}.ts`: `ThreadLifecycleStore` (actions, bulk, read-all, settings, title regeneration, message-triggered unarchive listener, idle sweep, cost).
 - `apps/server/src/routes/thread-lifecycle.route.ts`, `apps/server/src/modules/thread-lifecycle.module.ts`.
 - `apps/web/src/features/thread-lifecycle/`: Inbox page with archived toggle, mark-all-read, bulk toolbar, shift-click range selection, archive Undo, unread/mention marks and cost card.

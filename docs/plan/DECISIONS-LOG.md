@@ -59,3 +59,4 @@
 - 2026-11-27: phase2-07 API (paths inferred, not taken from Capy fixtures): `GET /me/threads?archived=true|all`, `GET|POST /threads/:id/lifecycle` with `{action,...}`, `POST /threads/bulk`, `POST /threads/read-all`, `DELETE /threads/:id`, `GET /threads/:id/cost`, `GET|PUT /thread-settings/org|me`. phase2-08 should map its public REST verbs onto `ThreadLifecycleStore` instead of duplicating the logic. Undo: rename the paths in phase2-08.
 - 2026-11-27: thread cost `byMachine` uses the thread's current `machine_id` plus `machine-estimate` entries, because cost entries and runs do not record a machine. Undo: add `machine_id` to cost entries in the machine-core unit.
 ||||||| 8ada8c0
+- 2026-11-27: phase2-07 migration renumbered to `0008_thread_lifecycle.sql` per parent integration rule (phase2-03 keeps 0006).
