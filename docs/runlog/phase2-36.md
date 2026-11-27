@@ -62,6 +62,9 @@ Checks after the merge:
 - `make check` exited 0: apps/server `Test Files 25 passed (25)`, `Tests 164 passed | 1 skipped (165)`; apps/web `Tests 17 passed (17)`.
 - `pnpm -r lint` exited 0.
 
+## Devin Review round 2
+Fixed: `ModelPolicyApi.answer` now returns `false` for a free offer revoked by `runOutFree: 'never'`. `answerApproval` then leaves the thread paused, so it is no longer re-queued on the exhausted connection. A test asserts that the status and run count are unchanged.
+
 ## Unverified
 - Runs shorter than the 10 s machine ticker get no machine cost (escalated to phase2-12).
 - Machine minutes are priced per runner type `pool` (the only type until phase2-12 machine core records sizes); no real machine sizes are metered here.
