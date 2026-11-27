@@ -75,3 +75,8 @@ lint=0
 
 - Fixed: a revoked share cookie no longer overrides a valid private cookie (new assertion failed 401, then passed).
 - Escalated: shared/private previews share one origin (`:8081`); per-preview origin isolation needs the P2 wildcard-host design.
+
+## Review round 3
+
+- Fixed: unauthenticated or forged-cookie requests are rejected before the `byCode` DB lookup (spy assertion: called 2 times before the fix, 0 after).
+- The cross-preview origin-isolation finding stays escalated (P2 wildcard hosts).

@@ -36,12 +36,13 @@ export function createPreviewServer(tokens = previewTokens, gateHost = 'gate-edg
     }
     const fromQuery = q.get('share');
     const shareRaw = fromQuery ?? cookie(req.headers.cookie, 'flotilla_share');
+    const signed = shareRaw ? verifyShareToken(shareRaw) : null;
+    const v = signed && signed.code === code && signed.port === port ? signed : null;
+    const priv = tokens.check(cookie(req.headers.cookie, 'flotilla_preview') ?? '', { code, port });
+    if ((fromQuery && !v) || (!v && !priv)) { res.writeHead(401); res.end(); return; }
     const row = await deps.store?.byCode(code, port) ?? null;
-    const v = shareRaw ? verifyShareToken(shareRaw) : null;
-    const share = v && v.code === code && v.port === port && !(row?.share_revoked_at && (v.iat ?? 0) <= row.share_revoked_at.getTime()) ? v : null;
-    if (fromQuery && !share) { res.writeHead(401); res.end(); return; }
-    const pc = cookie(req.headers.cookie, 'flotilla_preview');
-    if (!share && !tokens.check(pc ?? '', { code, port })) { res.writeHead(401); res.end(); return; }
+    const share = v && !(row?.share_revoked_at && (v.iat ?? 0) <= row.share_revoked_at.getTime()) ? v : null;
+    if ((fromQuery && !share) || (!share && !priv)) { res.writeHead(401); res.end(); return; }
     if (share && fromQuery) { res.writeHead(302, { location: cleanPath(req.url ?? '/'), 'set-cookie': `flotilla_share=${shareRaw}; Path=/p/${code}/${port}; HttpOnly; SameSite=Lax` }); res.end(); return; }
     if (deps.machine && await deps.machine.state(code) === 'asleep') {
       const link = `${uiUrl}/#/threads/${encodeURIComponent(row?.thread_id ?? share?.threadId ?? '')}`;
