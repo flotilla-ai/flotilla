@@ -79,3 +79,6 @@ apps/server test:       Tests  1 failed | 59 passed | 1 skipped (61)
 exit 2
 ```
 GitHub CI `check` on b6926e2: passed.
+
+## Parent review fix (3eae32f)
+Secrets copyIn failure (or a driver without copyIn) is no longer swallowed: the run is marked failed, the budget hold released, the queue cleared, and the machine removed before the agent starts. Focused: `npx vitest run src/secrets src/runner` -> Tests 13 passed (13).
