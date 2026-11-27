@@ -22,19 +22,24 @@ export class CaptainMachineApiStore {
     if (!r) throw new ApiFailure('NotFound', 'captain not found');
     return r;
   }
+  async accessible(userId: string, captainId: string): Promise<Row> {
+    const r = await one(this.pool, `SELECT t.*,c.purpose,c.crew_runs_on,c.max_concurrent_crew,c.drive_root,c.digest_md,c.hook_bundle,c.wake_policy,c.alias,c.photo,c.crew_device_id,c.machine_placement FROM threads t JOIN captains c ON c.thread_id=t.id WHERE t.id=$1 AND t.role='captain' AND (t.owner_id=$2 OR EXISTS(SELECT 1 FROM captain_shares s WHERE s.captain_id=t.id AND (s.subject_type='org' OR (s.subject_type='user' AND s.subject_id=$2))))`, [captainId, userId]);
+    if (!r) throw new ApiFailure('NotFound', 'captain not found');
+    return r;
+  }
   async list(userId: string): Promise<CaptainSummary[]> {
-    return (await rows(this.pool, `SELECT t.*,c.purpose,c.crew_runs_on,c.max_concurrent_crew,c.alias,c.photo FROM threads t JOIN captains c ON c.thread_id=t.id WHERE t.role='captain' AND t.owner_id=$1 AND t.status<>'archived' ORDER BY t.created_at`, [userId])).map(summary);
+    return (await rows(this.pool, `SELECT DISTINCT t.*,c.purpose,c.crew_runs_on,c.max_concurrent_crew,c.alias,c.photo FROM threads t JOIN captains c ON c.thread_id=t.id LEFT JOIN captain_shares s ON s.captain_id=t.id WHERE t.role='captain' AND t.status<>'archived' AND (t.owner_id=$1 OR s.subject_type='org' OR (s.subject_type='user' AND s.subject_id=$1)) ORDER BY t.created_at`, [userId])).map(summary);
   }
   async crew(userId: string, captainId: string): Promise<Row[]> {
-    await this.owned(userId, captainId);
+    await this.accessible(userId, captainId);
     return rows(this.pool, `SELECT id,code,title,status,machine_id,crew_of,project_id,created_at,updated_at FROM threads WHERE crew_of=$1 ORDER BY created_at LIMIT 500`, [captainId]);
   }
   async digest(userId: string, captainId: string): Promise<{ captainId: string; digestMd: string }> {
-    const r = await this.owned(userId, captainId);
+    const r = await this.accessible(userId, captainId);
     return { captainId, digestMd: String(r.digest_md ?? '') };
   }
   async profile(userId: string, captainId: string): Promise<CaptainProfile> {
-    const r = await this.owned(userId, captainId);
+    const r = await this.accessible(userId, captainId);
     return { captainId, alias: r.alias ?? null, photo: r.photo, purpose: r.purpose };
   }
   async updateProfile(userId: string, captainId: string, input: { alias?: unknown }): Promise<CaptainProfile> {
