@@ -6,15 +6,15 @@ Rows: CAPY-453..462. All proven offline against a throwaway `postgres:16` contai
 
 ```text
 $ cd apps/server && npx vitest run src/api-platform --reporter=verbose
- ✓ src/api-platform/api-platform.test.ts > api platform > CAPY-453: mints flt_ bearer keys only from an app session, honours expiry and revoke, has no rotate verb 43ms
- ✓ src/api-platform/api-platform.test.ts > api platform > CAPY-454: keys act as a human or service principal with authorId attribution 19ms
- ✓ src/api-platform/api-platform.test.ts > api platform > CAPY-455: replays a create with the same requestId instead of creating twice 16ms
- ✓ src/api-platform/api-platform.test.ts > api platform > CAPY-456: cursor-paginates unbounded lists as {items, cursor}; bounded lists return {items} 18ms
- ✓ src/api-platform/api-platform.test.ts > api platform > CAPY-457: SSE public frames carry type, resume id and retry 2000 104ms
- ✓ src/api-platform/api-platform.test.ts > api platform > CAPY-458: errors are typed flotilla/* codes 8ms
- ✓ src/api-platform/api-platform.test.ts > api platform > CAPY-459/460: legacy /tasks is still served and every documented flow route exists 1ms
+ ✓ src/api-platform/api-platform.test.ts > api platform > CAPY-453: mints flt_ bearer keys only from an app session, honours expiry and revoke, has no rotate verb 44ms
+ ✓ src/api-platform/api-platform.test.ts > api platform > CAPY-454: keys act as a human or service principal with authorId attribution 17ms
+ ✓ src/api-platform/api-platform.test.ts > api platform > CAPY-455: replays a create with the same requestId instead of creating twice 15ms
+ ✓ src/api-platform/api-platform.test.ts > api platform > CAPY-456: cursor-paginates unbounded lists as {items, cursor}; bounded lists return {items} 14ms
+ ✓ src/api-platform/api-platform.test.ts > api platform > CAPY-457: SSE public frames carry type, resume id and retry 2000 107ms
+ ✓ src/api-platform/api-platform.test.ts > api platform > CAPY-458: errors are typed flotilla/* codes 10ms
+ ✓ src/api-platform/api-platform.test.ts > api platform > CAPY-459/460: legacy /tasks is still served and every documented flow route exists 2ms
  ✓ src/api-platform/api-platform.test.ts > api platform > CAPY-461: POST /webhooks/automations/{secret} records a delivery for the matching automation 6ms
- ✓ src/api-platform/api-platform.test.ts > api platform > CAPY-462: uploads via a presigned URL, then attaches by fileId 15ms
+ ✓ src/api-platform/api-platform.test.ts > api platform > CAPY-462: uploads via a presigned URL, then attaches by fileId 12ms
  Test Files  1 passed (1)
       Tests  9 passed (9)
 ```
@@ -65,3 +65,7 @@ Fixed (focused test extended for each): mint responses are never cached or repla
 Rejected: replayed upload grant after 15 min (replay returns the original response by design; its `expiresAt` tells the client to retry with a new `requestId`).
 
 Escalated (fix lives outside SCOPE, pre-existing in `runner.ts`): `answerApproval` updates before its ownership check; `createThread` looks up `requestId` across all owners.
+
+## Devin Review round 2 (head 9df7b0d)
+
+Fixed: idempotency fingerprint uses key-sorted JSON, so a retry with reordered fields replays; the webhook strips a leading UTF-8 BOM before `JSON.parse`. `make check` exit 0; focused test 9/9.
