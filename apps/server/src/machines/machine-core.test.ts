@@ -165,9 +165,11 @@ describe('machine core', () => {
   it('review: deleting a Captain disposes its pooled machine before the lease cascade', async () => {
     const t = await thread(null);
     const { threadLifecycle } = await import('../thread-lifecycle/store.js');
-    threadLifecycle(url).onDelete((threadId) => core.destroyThread(threadId));
+    threadLifecycle(url).onDelete((threadId) => core.prepareDestroy(threadId));
     await core.boot(t, null, () => driver.startThreadContainer({}), driver as never); await core.release(t);
     await pool.query(`UPDATE threads SET role='captain' WHERE id=$1`, [t]);
+    const crew = await thread(null);
+    await pool.query(`INSERT INTO approvals (id,thread_id,captain_id,kind,question,options,blocking,state) VALUES ('apr_del',$1,$2,'decision','q','[]',true,'open')`, [crew, t]);
     calls.length = 0;
     await threadLifecycle(url).apply(t, owner, { action: 'delete' });
     expect(await lease(t)).toBeUndefined();

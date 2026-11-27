@@ -182,18 +182,20 @@ export class MachineCore {
     await this.q('UPDATE machine_leases SET keep_awake_until=$2 WHERE thread_id=$1 AND state=\'awake\'', [threadId, on ? this.at(this.now() + this.cap.keepAwakeMs) : null]);
     return this.state(threadId);
   }
-  /** User-initiated thread deletion: dispose any live container immediately instead of letting the FK cascade orphan it. */
-  async destroyThread(threadId: string): Promise<void> {
+  /** Captures machine state before a thread row is deleted; the returned cleanup runs only after the delete commits. */
+  async prepareDestroy(threadId: string): Promise<() => Promise<void>> {
     const [r] = await this.q('SELECT * FROM machine_leases WHERE thread_id=$1', [threadId]);
-    if (r) await this.dispose(r);
-    else {
-      const containerId = await this.hooks.driver?.findContainer?.(threadId).catch(() => null);
-      if (containerId) await (this.hooks.driver?.remove?.(containerId) ?? this.hooks.driver?.stop(containerId))?.catch(() => undefined);
-    }
-    const env = this.envs.get(threadId); if (env) { this.envs.delete(threadId); await env.ex.stop().catch(() => undefined); env.off(); }
-    await this.q('DELETE FROM machine_leases WHERE thread_id=$1', [threadId]);
-    await this.hooks.driver?.deleteWorkspace?.(threadId).catch(() => undefined);
+    const strayContainer = r ? null : await this.hooks.driver?.findContainer?.(threadId).catch(() => null) ?? null;
+    return async () => {
+      if (r) await this.dispose(r);
+      else if (strayContainer) await (this.hooks.driver?.remove?.(strayContainer) ?? this.hooks.driver?.stop(strayContainer))?.catch(() => undefined);
+      const env = this.envs.get(threadId); if (env) { this.envs.delete(threadId); await env.ex.stop().catch(() => undefined); env.off(); }
+      await this.q('DELETE FROM machine_leases WHERE thread_id=$1', [threadId]);
+      await this.hooks.driver?.deleteWorkspace?.(threadId).catch(() => undefined);
+    };
   }
+  /** User-initiated thread deletion: dispose any live container immediately instead of letting the FK cascade orphan it. */
+  async destroyThread(threadId: string): Promise<void> { await (await this.prepareDestroy(threadId))(); }
 
   async tick(): Promise<void> {
     const now = this.now();

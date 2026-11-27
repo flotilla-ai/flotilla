@@ -40,10 +40,10 @@ export class ThreadLifecycleStore {
   readonly pool: pg.Pool;
   private readonly events: EventStore;
   private ready?: Promise<unknown>;
-  private readonly deleteHooks: ((threadId: string) => Promise<void>)[] = [];
+  private readonly deleteHooks: ((threadId: string) => Promise<undefined | (() => Promise<void>)>)[] = [];
   titles: TitleGenerator = heuristicTitle;
   constructor(private readonly databaseUrl: string) { this.pool = new pg.Pool({ connectionString: databaseUrl, max: 3 }); this.events = new EventStore(databaseUrl, this.pool); }
-  onDelete(hook: (threadId: string) => Promise<void>): void { this.deleteHooks.push(hook); }
+  onDelete(hook: (threadId: string) => Promise<undefined | (() => Promise<void>)>): void { this.deleteHooks.push(hook); }
   private async q(sql: string, params: unknown[] = []): Promise<Row[]> {
     this.ready ??= migrate(this.databaseUrl).catch((err) => { this.ready = undefined; throw err; });
     await this.ready;
@@ -141,16 +141,19 @@ export class ThreadLifecycleStore {
   private async remove(threadId: string, v: ThreadLifecycle, owner: boolean) {
     if (!owner && (v.visibility === 'private' || !v.member?.joined)) throw new ApiFailure('Forbidden', v.visibility === 'private' ? 'only the owner can delete a private thread' : 'join the thread first');
     if (ACTIVE.includes(v.status)) throw new ApiFailure('Conflict', 'stop the thread before deleting it');
-    for (const hook of this.deleteHooks) await hook(threadId);
+    const cleanups: (() => Promise<void>)[] = [];
+    for (const hook of this.deleteHooks) { const cleanup = await hook(threadId); if (cleanup) cleanups.push(cleanup); }
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
       await client.query('UPDATE threads SET parent_id=NULL WHERE parent_id=$1', [threadId]);
       await client.query('UPDATE threads SET crew_of=NULL WHERE crew_of=$1', [threadId]);
+      await client.query('UPDATE approvals SET captain_id=NULL WHERE captain_id=$1', [threadId]);
       await client.query(`DELETE FROM secrets WHERE scope='thread' AND scope_id=$1`, [threadId]);
       await client.query('DELETE FROM threads WHERE id=$1', [threadId]);
       await client.query('COMMIT');
     } catch (err) { await client.query('ROLLBACK'); throw err; } finally { client.release(); }
+    for (const cleanup of cleanups) await cleanup();
   }
   /** Ownership moves; connections reset so the new owner's own logins apply. Vendor logins and personal secrets never move. */
   private async transfer(t: OwnershipTransfer) {
