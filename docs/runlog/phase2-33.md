@@ -47,7 +47,7 @@ Error: Cannot find module './index.js' imported from '/home/ubuntu/repos/flotill
 ```
 
 ## Done signal
-Branch real-merged `6b5546a` (repair-10/12) on top of `eba906f`. Final head after the Devin Review fix round (folder size cap on save, binary repo files skipped, shebang files mounted 0755, import uses the root-most `skills` dir, Skills page project picker; each with a red-first assertion in the focused tests). `pnpm --filter @flotilla/server test` lines from the `make check` run:
+Branch real-merged `6b5546a` (repair-10/12) on top of `eba906f`. Final head after the Devin Review fix round (folder size cap on save, binary repo files skipped, shebang files mounted 0755, import uses the root-most `skills` dir and validates every folder before saving any, Skills page project picker; each with a red-first assertion in the focused tests). `pnpm --filter @flotilla/server test` lines from the `make check` run:
 ```
 apps/server test:  Test Files  24 passed (24)
 apps/server test:       Tests  154 passed | 1 skipped (155)
