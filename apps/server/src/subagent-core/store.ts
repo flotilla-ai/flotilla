@@ -107,6 +107,11 @@ export class SubagentStore {
     return (await this.pool.query(`${SELECT} WHERE s.parent_id=$1 AND t.owner_id=$2 ORDER BY s.ordinal`, [parentId, userId])).rows.map((r) => this.view(r));
   }
 
+  async messages(id: string, userId: string, after = 0, limit = 100): Promise<Record<string, unknown>[]> {
+    await this.row(id, userId);
+    return (await this.pool.query('SELECT id,thread_id,seq,run_id,kind,at,source,trust,payload,request_id FROM events WHERE thread_id=$1 AND seq>$2 ORDER BY seq LIMIT $3', [id, after, Math.min(limit, 500)])).rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k.replace(/_([a-z])/g, (_, x) => x.toUpperCase()), v])));
+  }
+
   async progress(id: string, userId: string): Promise<SubagentProgress> {
     const subagent = await this.get(id, userId);
     const run = (await this.pool.query('SELECT id FROM runs WHERE thread_id=$1 ORDER BY ordinal DESC LIMIT 1', [id])).rows[0]?.id ?? null;

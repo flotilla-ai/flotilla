@@ -17,6 +17,7 @@ import { DockerMachineDriver } from '../machines/dockerDriver.js';
 import { onAfterRun, ThreadRunner } from '../runner/runner.js';
 import { ApiFailure, apiError } from '../api-platform/types.js';
 import { createSubagentCoreRoute } from '../routes/subagent-core.route.js';
+import { createStreamRoute } from '../routes/stream.route.js';
 import { SubagentStore } from './store.js';
 
 const exec = promisify(execFile);
@@ -67,7 +68,7 @@ beforeAll(async () => {
   await pool.query(`INSERT INTO users (id,email,role) VALUES ('usr_s','s@x','admin'),('usr_o','o@x','member')`);
   await pool.query(`INSERT INTO projects (id,owner_id,name,repo,trust,budget) VALUES ('prj_s','usr_s','app','{"provider":"github","fullName":"/nonexistent/app","baseBranch":"main"}','untrusted','{}')`);
   api = new Hono(); api.use('*', async (c, next) => { c.set('userId' as never, c.req.header('x-user') as never); await next(); });
-  api.onError((err, c) => (err instanceof ApiFailure ? apiError(c, err.kind, err.message) : apiError(c, 'Internal', String(err)))); api.route('/api/v1', createSubagentCoreRoute(() => store).app);
+  api.onError((err, c) => (err instanceof ApiFailure ? apiError(c, err.kind, err.message) : apiError(c, 'Internal', String(err)))); api.route('/api/v1', createSubagentCoreRoute(() => store).app); api.route('/api/v1/threads', createStreamRoute(runner.deps.store).app);
 }, 30_000);
 afterAll(async () => { uninstall(); releaseHold(); await runner.drain(); await unlisten(); await pool.end(); if (container) await exec('docker', ['rm', '-f', container]).catch(() => undefined); });
 
@@ -252,5 +253,21 @@ describe('subagent core', () => {
     expect(none.status).toBe(403); expect(none.json.error).toMatch(/budget/);
     const free = (await call('POST', `/threads/${await parent()}/subagents`, draft({ maxUsd: 3 }))).json;
     expect(free.budget).toEqual({ requestedUsd: 3, grantedUsd: 3 });
+  }, 20_000);
+
+  it('CAPY-593/594/595/609/610: subagents have list/get/messages APIs and SSE streams served from the event store', async () => {
+    const root = await parent(); const s = (await call('POST', `/threads/${root}/subagents`, draft())).json;
+    await call('POST', `/subagents/${s.id}/start`); await settled(s.id, 'done');
+    expect((await call('GET', `/threads/${root}/subagents`)).json.items.map((x: any) => x.id)).toContain(s.id);
+    expect((await call('GET', `/subagents/${s.id}`)).json.id).toBe(s.id);
+    const messages = await call('GET', `/subagents/${s.id}/messages`);
+    expect(messages.status).toBe(200); expect(messages.json[0]).toHaveProperty('threadId'); expect(messages.json[0]).not.toHaveProperty('thread_id'); expect(messages.json.map((e: any) => e.kind)).toEqual(expect.arrayContaining(['user.message', 'agent.delta', 'run.ended']));
+    for (const path of [`/subagents/${s.id}/stream`, `/threads/${s.id}/stream`]) {
+      const r = await api.request(`http://local/api/v1${path}`, { headers: { 'x-user': 'usr_s' } });
+      expect(r.status).toBe(200); expect(r.headers.get('content-type')).toContain('text/event-stream');
+      const reader = r.body!.getReader(); const first = new TextDecoder().decode((await reader.read()).value); await reader.cancel();
+      expect(first).toContain('event: thread.created'); expect(first).toContain('data:');
+    }
+    expect((await call('GET', `/subagents/${s.id}/messages`, undefined, 'usr_o')).status).toBe(404);
   }, 20_000);
 });

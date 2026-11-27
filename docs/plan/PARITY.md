@@ -66,9 +66,9 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-060 | Subagents & forks | P2 | done | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | Per-subagent engine resolved through the model catalog (`resolveEngine`); granted budget = min(request, parent cap − spent − sibling grants), 403 when nothing is left. |
 | CAPY-061 | Subagents & forks | P2 | blocked | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | No paired-device machine driver on `flotilla/p1`; needs the BYOM/device-pairing unit to add a placement target. |
 | CAPY-062 | Subagents & forks | P2 | blocked | phase2-18 | https://github.com/flotilla-ai/flotilla/pull/44 | Siblings are created and messaged through the user-authenticated subagent API; no agent-callable tool for non-Captain threads exists (Captain `crew.*` MCP tools are outside this unit). |
-| CAPY-063 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-064 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-065 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-063 | Subagents & forks | P2 | blocked | phase2-19 |  | Side chat requires a same-machine full workspace/session copy and tab UX; only the subagent API vertical slice fit this unit. Blocked: no machine workspace clone/session-copy primitive or thread tab UI yet. |
+| CAPY-064 | Subagents & forks | P2 | blocked | phase2-19 |  | Fork/summary-fork requires adapter session copy for full forks plus fresh-machine workspace copy; summary-fork can use any adapter but still needs the fork lifecycle. Blocked: no fork API/workspace clone primitive yet. |
+| CAPY-065 | Subagents & forks | P2 | blocked | phase2-19 |  | Passage fork/side-chat depends on the blocked fork/side-chat primitives plus composer passage selection UI; no such selection/fork workflow exists yet. |
 | CAPY-066 | Captains | P1 | done | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-067 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-068 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
@@ -593,9 +593,9 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-590 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-591 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-592 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-593 | API: subagents | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-594 | API: subagents | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-595 | API: subagents | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-593 | API: subagents | P2 | done | phase2-19 |  | `GET /threads/:id/subagents` lists child subagents; regression in `subagent-core.test.ts`. |
+| CAPY-594 | API: subagents | P2 | done | phase2-19 |  | `GET /subagents/:id` returns one owned subagent; regression in `subagent-core.test.ts`. |
+| CAPY-595 | API: subagents | P2 | done | phase2-19 |  | `GET /subagents/:id/messages` serves ordered event-store messages with owner validation; regression in `subagent-core.test.ts`. |
 | CAPY-596 | API: tasks | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-597 | API: tasks | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-598 | API: tasks | P3 | pending |  |  | Awaiting phase P3 unit. |
@@ -609,8 +609,8 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-606 | API: attachments | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-607 | API: attachments | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-608 | API: streams | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-609 | API: streams | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-610 | API: streams | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-609 | API: streams | P2 | done | phase2-19 |  | `GET /subagents/:id/stream` serves SSE directly from the Flotilla event store; regression in `subagent-core.test.ts`. |
+| CAPY-610 | API: streams | P2 | done | phase2-19 |  | `GET /threads/:id/stream` task SSE is served from the Flotilla event store; regression in `subagent-core.test.ts`. |
 | CAPY-611 | API: reviews | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-612 | API: reviews | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-613 | API: reviews | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
