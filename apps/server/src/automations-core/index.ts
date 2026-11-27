@@ -22,7 +22,8 @@ export type PublicAutomationBatch = Omit<AutomationBatch, 'events'> & { eventCou
 export interface AutomationBatch { id: string; automationId: string; state: 'open' | 'flushed' | 'cancelled'; events: Record<string, unknown>[] }
 export type Gate = (input: { runWhen: string; prompt: string; payload: Record<string, unknown>; model: Record<string, unknown> }) => Promise<boolean>;
 export type ModelResolver = (requested: string | null, pinned: boolean) => Promise<string | null>;
-export type StartAutomationRun = (input: { threadId: string; prompt: string; automationId: string; runId: string }) => Promise<void>;
+export type StartAutomationRun = (input: { threadId: string; prompt: string; automationId: string; runId: string }) => Promise<string | void>;
+export type CancelAutomationRun = (input: { threadId: string | null; automationId: string; runId: string; inboxItemId?: string }) => Promise<void>;
 
 type Row = Record<string, unknown>;
 const sha256 = (v: string) => createHash('sha256').update(v).digest('hex');
@@ -119,7 +120,7 @@ const toRun = (r: Row): AutomationRun => ({ id: String(r.id), automationId: Stri
 
 export class AutomationStore {
   private readonly pool: pg.Pool;
-  constructor(private readonly databaseUrl: string, private readonly deps: { gate?: Gate; resolveModel?: ModelResolver; startRun?: StartAutomationRun } = {}) { this.pool = new pg.Pool({ connectionString: databaseUrl, max: 3 }); }
+  constructor(private readonly databaseUrl: string, private readonly deps: { gate?: Gate; resolveModel?: ModelResolver; startRun?: StartAutomationRun; cancelRun?: CancelAutomationRun } = {}) { this.pool = new pg.Pool({ connectionString: databaseUrl, max: 3 }); }
   private async q(sql: string, params: unknown[] = []): Promise<Row[]> { return (await this.pool.query(sql, params)).rows as Row[]; }
   private async ownedProject(userId: string, projectId: string): Promise<void> {
     const [p] = await this.q('SELECT owner_id,visibility FROM projects WHERE id=$1', [projectId]);
@@ -209,18 +210,40 @@ export class AutomationStore {
       const ok = await (this.deps.gate ?? (async () => false))({ runWhen: a.runWhen, prompt: a.prompt, payload, model: a.gateModel });
       if (!ok) return this.recordSkipped(a, type, key, payload, idem, 'run_when gate rejected');
     }
-    if (a.maxRunsPerDay != null) {
-      const [count] = await this.q(`SELECT count(*)::int n FROM automation_runs WHERE automation_id=$1 AND created_at >= date_trunc('day', now()) AND status NOT IN ('skipped','duplicate','cancelled')`, [a.id]);
-      if (Number(count?.n ?? 0) >= a.maxRunsPerDay) return this.recordSkipped(a, type, key, payload, idem, 'max_runs_per_day reached');
-    }
     const threadId = await this.ensureThread(a);
     const rid = id('arun');
+    const client = await this.pool.connect();
+    let r: Row | undefined;
     try {
-      const [r] = await this.q('INSERT INTO automation_runs (id,automation_id,trigger_type,trigger_key,idempotency_key,status,thread_id,payload) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *', [rid, a.id, type, key, idem, 'queued', threadId, JSON.stringify(payload)]);
+      await client.query('BEGIN');
+      await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [a.id]);
+      if (idem) {
+        const oldRows = (await client.query('SELECT * FROM automation_runs WHERE automation_id=$1 AND idempotency_key=$2', [a.id, idem])).rows as Row[];
+        if (oldRows[0]) { await client.query('COMMIT'); return { ...toRun(oldRows[0]), status: 'duplicate' }; }
+      }
+      if (a.maxRunsPerDay != null) {
+        const count = (await client.query(`SELECT count(*)::int n FROM automation_runs WHERE automation_id=$1 AND created_at >= date_trunc('day', now()) AND status NOT IN ('skipped','duplicate','cancelled')`, [a.id])).rows[0] as Row;
+        if (Number(count?.n ?? 0) >= a.maxRunsPerDay) {
+          await client.query('COMMIT');
+          return this.recordSkipped(a, type, key, payload, idem, 'max_runs_per_day reached');
+        }
+      }
+      r = (await client.query('INSERT INTO automation_runs (id,automation_id,trigger_type,trigger_key,idempotency_key,status,thread_id,payload) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *', [rid, a.id, type, key, idem, 'queued', threadId, JSON.stringify(payload)])).rows[0] as Row | undefined;
+      await client.query('COMMIT');
+    } catch (e) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      if (idem && String((e as { code?: string }).code) === '23505') {
+        const [old] = await this.q('SELECT * FROM automation_runs WHERE automation_id=$1 AND idempotency_key=$2', [a.id, idem]);
+        if (old) return { ...toRun(old), status: 'duplicate' };
+      }
+      throw e;
+    } finally { client.release(); }
+    if (!r) throw new ApiFailure('Internal', 'automation run could not be inserted');
+    try {
       if (this.deps.startRun) {
         try {
-          await this.deps.startRun({ threadId, prompt: a.prompt, automationId: a.id, runId: rid });
-          await this.q('UPDATE automation_runs SET dispatched_at=now(),dispatch_attempts=dispatch_attempts+1 WHERE id=$1', [rid]);
+          const inboxItemId = await this.deps.startRun({ threadId, prompt: a.prompt, automationId: a.id, runId: rid });
+          await this.q('UPDATE automation_runs SET dispatched_at=now(),dispatch_attempts=dispatch_attempts+1 WHERE id=$1', [rid]); if (inboxItemId) await this.q(`UPDATE automation_runs SET output=output||jsonb_build_object('inboxItemId',$2::text) WHERE id=$1`, [rid, inboxItemId]);
         } catch (err) {
           await this.q('UPDATE automation_runs SET dispatch_attempts=dispatch_attempts+1 WHERE id=$1', [rid]).catch(() => undefined);
           throw err;
@@ -228,10 +251,6 @@ export class AutomationStore {
       }
       return toRun(r);
     } catch (e) {
-      if (idem && String((e as { code?: string }).code) === '23505') {
-        const [old] = await this.q('SELECT * FROM automation_runs WHERE automation_id=$1 AND idempotency_key=$2', [a.id, idem]);
-        if (old) return { ...toRun(old), status: 'duplicate' };
-      }
       throw e;
     }
   }
@@ -277,6 +296,7 @@ export class AutomationStore {
     const a = await this.getOwned(userId, automationId);
     const [r] = await this.q(`UPDATE automation_runs SET status='cancelled',cancelled_at=now(),updated_at=now() WHERE id=$1 AND automation_id=$2 AND status IN ('queued','running') RETURNING *`, [runId, a.id]);
     if (!r) throw new ApiFailure('NotFound', 'queued or running automation run not found');
+    if (this.deps.cancelRun) await this.deps.cancelRun({ threadId: r.thread_id == null ? null : String(r.thread_id), automationId: a.id, runId, inboxItemId: typeof (r.output as Row | undefined)?.inboxItemId === 'string' ? String((r.output as Row).inboxItemId) : undefined });
     const x = toRun(r) as Partial<AutomationRun>; delete x.payload; return x as PublicAutomationRun;
   }
   async trigger(userId: string, automationId: string, payload: Record<string, unknown> = {}): Promise<AutomationRun> {
@@ -334,6 +354,7 @@ export class AutomationStore {
   }
   async flushBatch(userId: string, automationId: string, batchId: string): Promise<AutomationRun> {
     const a = await this.getOwned(userId, automationId);
+    if (a.state !== 'active') throw new ApiFailure('Conflict', 'automation is paused');
     const [b] = await this.q("UPDATE automation_batches SET state='flushed',updated_at=now() WHERE id=$1 AND automation_id=$2 AND state='open' RETURNING *", [batchId, a.id]);
     if (!b) throw new ApiFailure('NotFound', 'open batch not found');
     return this.insertRun(a, 'webhook', 'webhook-batch', { events: b.events }, `batch:${batchId}`, true);
@@ -390,7 +411,7 @@ export class AutomationStore {
   async close(): Promise<void> { await this.pool.end(); }
 }
 const stores = new Map<string, AutomationStore>();
-export function automationStore(databaseUrl = process.env.DATABASE_URL ?? 'postgres://localhost/flotilla', deps: { gate?: Gate; resolveModel?: ModelResolver; startRun?: StartAutomationRun } = {}): AutomationStore {
+export function automationStore(databaseUrl = process.env.DATABASE_URL ?? 'postgres://localhost/flotilla', deps: { gate?: Gate; resolveModel?: ModelResolver; startRun?: StartAutomationRun; cancelRun?: CancelAutomationRun } = {}): AutomationStore {
   let store = stores.get(databaseUrl);
   if (!store) stores.set(databaseUrl, (store = new AutomationStore(databaseUrl, deps)));
   return store;
