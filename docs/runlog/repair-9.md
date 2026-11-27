@@ -16,7 +16,7 @@ Focused command:
 pnpm --filter @flotilla/server exec vitest run src/runner/runner-queue.test.ts --reporter=dot
 ```
 
-Output is recorded in the PR conversation/checks. No production code changed.
+Output: `Test Files 1 passed (1); Tests 12 passed (12)`. No production code changed.
 
 ## Unverified
 This removes one observed race; it does not prove there are no other timing races in the runner integration tests.
