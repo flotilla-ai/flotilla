@@ -3,8 +3,9 @@
 Branch `flotilla/phase2-29-projects` from `origin/flotilla/p1` `505d663`. Local git fixture repos, a fixture GitHub repo list, a temporary Postgres 16 container, and the web UI with a Playwright-mocked API. No vendor calls, logins or network clones.
 
 ## Rows
-- CAPY-177, CAPY-178, CAPY-179, CAPY-180, CAPY-182: `done` (pending merge).
-- CAPY-181: `needs-human-login`. The live GitHub list and live remote clones are unproven (see below).
+- CAPY-177, CAPY-178, CAPY-179, CAPY-180: `done` (pending merge).
+- CAPY-181: `needs-human-login`. The live GitHub list and live remote clones are unproven (see below). Members adding GitHub repos with their own access is blocked on per-user GitHub identity (P3).
+- CAPY-182: `blocked` (parent gate). Private-by-default, owner-only projects are proven. Teammates can see `shared` projects but cannot start threads in them, so collaborator use is not claimed.
 
 ## Changes
 - `apps/server/src/projects/types.ts`: `Project`, `ProjectRepository` (`role` primary|lazy, `provider` github|git|local), `ProjectIdentity`, `ProjectVisibility`, `ProjectSource`, `RepoSuggestion`.
@@ -140,7 +141,7 @@ Expected: suggestions list the account's repos by `pushed_at`. The project's pri
 - In headless Chrome on this VM the emoji icon renders as a box (no emoji font). The DOM text is correct (`🛒 Shop`).
 
 ## Escalations (out of scope, not fixed)
-- Suggestions and clones use the server `GITHUB_TOKEN` without checking the member's GitHub access (pre-existing for clones; needs per-user GitHub identity, P3).
+- Members cannot add GitHub repos while `GITHUB_TOKEN` is set. Letting them do so with their own GitHub access needs per-user GitHub identity (P3). Projects that members created from GitHub repos before this unit still mirror with the server token.
 - Teammates can see shared projects but cannot start threads in them, because `ThreadRunner.create` and Captain creation still require `projects.owner_id`. A P3 org/membership unit should decide this.
 - `apps/server/src/db/schema.ts` (Drizzle; not imported anywhere) does not list the new columns.
 
@@ -159,7 +160,7 @@ exit=0
 - Repoless threads started the agent in `/workspace/repo`, which is never created. The runner now seeds and uses `/workspace/repo` only when `project.repo` is set; otherwise it uses `/workspace`. New test in `runner.test.ts`. Fixed in e3c848e.
 - A reused project code could generate a thread code an older thread already holds (for example, after `WEB` is renamed and a new project takes `WEB`). The trigger now skips sequence numbers already used. The backfill uses `P00001...` by creation order instead of an md5 prefix, which could collide. Fixed in b1654a8. The backfill has no test (tests migrate an empty database).
 - A repo created without a base branch defaulted to `main` even when the remote only has `master`. When the requested branch is missing in the mirror, `materialize` now uses the mirror's default branch and stores it (also in `projects.repo` for the primary). Fixed in b1654a8.
-- Escalated (not fixed): suggestions and clones use the server's `GITHUB_TOKEN` without checking the member's GitHub access. Any member could already create a project from any repo the token can read before this unit. This needs per-user GitHub identity (P3 org/GitHub App).
+- Escalated in round 1, then fixed after the parent gate (see below): suggestions and clones used the server's `GITHUB_TOKEN` without checking the member's GitHub access.
 
 Red before the fixes (`npx vitest run src/projects/projects.test.ts`, `-t repoless` in runner):
 ```
@@ -188,3 +189,33 @@ apps/server test:       Tests  125 passed | 1 skipped (126)
 apps/server lint: Done
 exit=0
 ```
+
+## Parent gate: token access and CAPY-182 (merged `origin/flotilla/p1` 0662ec8)
+- When `GITHUB_TOKEN` is set, a non-admin gets `[]` from `GET /projects/suggestions`. They also get 403 for any GitHub repo, whether a `github` source, a `git-url` on github.com, the legacy `repo` body or a `lazy` entry, and when cloning one. Admins are the operators who configure the server token. Without a token, nobody uses it, so members can add public GitHub repos. Fixed in 893bd47.
+- CAPY-182 is downgraded to `blocked`. Teammates cannot start threads in `shared` projects, so no collaborator use is claimed.
+- The merge of p1 had conflicts in docs only (PARITY, PROGRESS, DECISIONS-LOG); both sides were kept. Counts after the merge: done 110, pending 462, needs-human-login 17, n-a 22, blocked 21.
+
+Red first (`npx vitest run src/projects/projects.test.ts -t "only admins"`, before the route change):
+```
+   × projects (phase2-29) > CAPY-181: only admins may use the server GitHub token for suggestions, GitHub sources and clones 24ms
+     → expected [ Array(3) ] to deeply equal []
+      Tests  1 failed | 6 skipped (7)
+```
+After (`npx vitest run src/projects`):
+```
+ ✓ src/projects/projects-read.test.ts (2 tests) 1542ms
+ ✓ src/projects/projects.test.ts (7 tests) 1961ms
+ Test Files  2 passed (2)
+      Tests  9 passed (9)
+```
+`make check`:
+```
+apps/web test:  Test Files  4 passed (4)
+apps/web test:       Tests  14 passed (14)
+apps/server test:  Test Files  23 passed (23)
+apps/server test:       Tests  141 passed | 1 skipped (142)
+apps/web lint: Done
+apps/server lint: Done
+exit=0
+```
+`npx playwright test e2e/projects.spec.ts e2e/features.spec.ts`: `5 passed (2.8s)`.

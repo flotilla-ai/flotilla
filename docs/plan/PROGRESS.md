@@ -5,7 +5,7 @@ Current `flotilla/p1` head: `0662ec8` (phase2-06, phase2-10, repair-7, repair-8 
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` on this branch: done 99, pending 481, needs-human-login 17, n-a 22, blocked 13 (recounted after merging phase2-04 and phase2-09; phase2-29 adds 5 done rows and CAPY-181 needs-human-login; phase2-05 adds 4 done rows and 10 blocked web-UI rows; phase2-08 adds 11 done rows; the remaining P2/P3/P4 rows are pending); phase 1 rows are done except live vendor/GitHub rows marked `needs-human-login`; n/a rows carry Appendix A's reason.
+Counted in `docs/plan/PARITY.md` on this branch: done 110, pending 462, needs-human-login 17, n-a 22, blocked 21 (recounted after merging phase2-06 and phase2-10; phase2-29 adds 4 done rows, CAPY-181 needs-human-login and CAPY-182 blocked; phase2-05 adds 4 done rows and 10 blocked web-UI rows; phase2-08 adds 11 done rows; the remaining P2/P3/P4 rows are pending); phase 1 rows are done except live vendor/GitHub rows marked `needs-human-login`; n/a rows carry Appendix A's reason.
 
 ## Unit table
 
@@ -31,7 +31,7 @@ Counted in `docs/plan/PARITY.md` on this branch: done 99, pending 481, needs-hum
 | phase2-04-model-policy-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/36 | model policy + model API; 2 rows done (335, 336), 3 needs-human-login (333, 337, 484), 2 blocked (338 no model-backed title/summary generator, 485 no web connections editor) |
 | phase2-10-environments | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/39 | environments model/store/executor seams; 2 rows done, 7 blocked on phase2-11/phase2-12 wiring; see `docs/runlog/phase2-10.md` |
 | phase2-06-thread-composer | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/40 | composer keymap/attachments, request cards + Undo, thread codes, sections/ticks/reading place, deep link, owner-approved feedback; 10 rows done; see `docs/runlog/phase2-06.md` |
-| phase2-29-projects | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/42 | repoless/lazy/multi-repo projects, descriptions, codes, sources, private; see `docs/runlog/phase2-29.md` |
+| phase2-29-projects | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/42 | repoless/lazy projects, descriptions, codes, sources; 4 rows done, CAPY-181 needs-human-login, CAPY-182 blocked (collaborator use); see `docs/runlog/phase2-29.md` |
 
 ## Next action
 
