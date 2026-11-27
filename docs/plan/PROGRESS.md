@@ -31,7 +31,7 @@ Counted in `docs/plan/PARITY.md` on this branch: done 124, pending 446, needs-hu
 | phase2-04-model-policy-api | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/36 | model policy + model API; 2 rows done (335, 336), 3 needs-human-login (333, 337, 484), 2 blocked (338 no model-backed title/summary generator, 485 no web connections editor) |
 | phase2-10-environments | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/39 | environments model/store/executor seams; 2 rows done, 7 blocked on phase2-11/phase2-12 wiring; see `docs/runlog/phase2-10.md` |
 | phase2-17-wakes | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/45 | wake router, watches/timers, background jobs, cross-thread peek/send, held messages; 9 rows done, 4 blocked; see `docs/runlog/phase2-17.md` |
-| phase2-36-usage-billing-api | in review | 1 | PRLINK | usage report/series/balance API, monthly org/project budget windows, machine-minute pricing, run-out free ask/forbid, `/usage` page; 9 rows done; see `docs/runlog/phase2-36.md` |
+| phase2-36-usage-billing-api | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/54 | usage report/series/balance API, monthly org/project budget windows, machine-minute pricing, run-out free ask/forbid, `/usage` page; 9 rows done; see `docs/runlog/phase2-36.md` |
 
 | phase2-06-thread-composer | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/40 | composer keymap/attachments, request cards + Undo, thread codes, sections/ticks/reading place, deep link, owner-approved feedback; 10 rows done; see `docs/runlog/phase2-06.md` |
 
