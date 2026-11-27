@@ -158,6 +158,9 @@ describe('models catalog and connections', () => {
     expect((await patch(`/api/v1/connections/${first}`, { label: 'Renamed' })).body.label).toBe('Renamed');
     expect((await patch(`/api/v1/connections/${first}`, { apiKey: 'wrong' })).body).toMatchObject({ status: 'failed', availableModels: [] });
     expect((await patch(`/api/v1/connections/${first}`, { apiKey: KEY_A })).body.status).toBe('connected');
+    expect((await patch(`/api/v1/connections/${first}`, { baseUrl: 'file:///etc' })).status).toBe(400);
+    expect((await store.list(owner)).find((c) => c.id === first)).toMatchObject({ baseUrl, status: 'connected' });
+    await expect(store.check(member, { provider: 'custom-openai', adapter: 'codex', baseUrl, apiKey: KEY_A })).rejects.toMatchObject({ kind: 'Forbidden' });
     for (const id of mine) await patch(`/api/v1/connections/${id}`, { enabled: false });
     expect((await post('/api/v1/models/resolve', { adapter: 'codex', model: 'gw-alpha' })).body).toMatchObject({ connectionId: org.body.id, connectionLabel: 'Org gateway' });
     expect((await post('/api/v1/models/resolve', { adapter: 'codex', model: 'gw-alpha', connectionId: first })).status).toBe(400);
@@ -178,6 +181,7 @@ describe('models catalog and connections', () => {
     const refused = await thread({ adapter: 'codex', model: 'gw-alpha', connectionId: b.id });
     expect(refused.status).toBe(400);
     expect(refused.body.error).toMatch(/not available on Pin B; no fallback/);
+    await expect(storeMod.modelsCatalogStore().connectionEnv(pinned.body.id)).rejects.toMatchObject({ kind: 'ValidationFailed' });
     expect((await post('/api/v1/models/resolve', { adapter: 'fake', model: 'fake-small', connectionId: a.id })).status).toBe(400);
   });
 

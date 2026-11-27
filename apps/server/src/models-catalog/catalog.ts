@@ -45,7 +45,7 @@ export async function checkAccess(provider: Provider, input: { apiKey: string | 
   const base = input.baseUrl ?? provider.baseUrl;
   if (!base || !/^https?:\/\//.test(base)) throw new ApiFailure('ValidationFailed', 'baseUrl must be an http(s) URL');
   try {
-    const res = await fetchImpl(`${base.replace(/\/+$/, '')}/models`, { headers: { authorization: `Bearer ${input.apiKey}` }, signal: AbortSignal.timeout(10_000) });
+    const res = await fetchImpl(`${base.replace(/\/+$/, '')}/models`, { headers: { authorization: `Bearer ${input.apiKey}` }, redirect: 'error', signal: AbortSignal.timeout(10_000) });
     if (!res.ok) return { status: 'failed', models: [], loginCommand: null, error: `HTTP ${res.status}` };
     const body = await res.json() as { data?: { id?: unknown }[] };
     return { status: 'connected', models: [...new Set((body.data ?? []).map((m) => m.id).filter((id): id is string => typeof id === 'string'))], loginCommand: null, error: null };

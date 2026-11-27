@@ -72,3 +72,15 @@ Before the merge, `make check` on `371f16b` passed end to end (`apps/server test
 - CAPY-328 subscription device/vendor login: `docker compose exec server claude auth login` and `docker compose exec server codex login`, then `POST /api/v1/connections/:id/test`.
 - CAPY-329/330 live key access check: `curl -X POST localhost:8080/api/v1/models/check-access -d '{"provider":"custom-openai","baseUrl":"<url>","apiKey":"<key>"}'` with a real gateway key (mehdi).
 - CAPY-332 web picker UI is not wired; API returns badges, tooltips, favorites and Alt+1…9 shortcuts.
+
+## Review round 1 (Devin Review on 7c76783)
+
+| Finding | Verdict |
+|---|---|
+| Model discovery reaches private services (SSRF) | resolved: custom endpoint discovery is admin-only, redirects refused |
+| Rejected edits break working connections | resolved: access re-checked before the UPDATE |
+| Pinned threads ignore connection changes | resolved: `connectionEnv` re-resolves the pin every run (no fallback) |
+| Fake output from vendor threads | escalated: `defaultRunner` registers only the fake adapter and `ThreadRunner` falls back to the first adapter (pre-existing); wiring vendor adapters / failing closed belongs to a parent repair PR |
+| Custom endpoint missing from runs | escalated: adapters declare no base-URL env/capability, so a custom gateway URL cannot reach the CLI without inventing flags; needs an adapter capability (out of scope) |
+
+CI on `a6c3609` failed once on the pre-existing `runner.test.ts` pool-teardown race (`Cannot use a pool after calling end on the pool`, runner.ts:83); `7c76783` passed `check`. Escalated with the mirror flake.

@@ -9,7 +9,7 @@ export function createModelsCatalogRoute(store = () => modelsCatalogStore()) {
   const app = new Hono();
   app.get('/models/catalog', (c) => c.json({ items: store().catalog.models }));
   app.get('/models/providers', (c) => c.json({ items: store().providers(c.req.query('q')) }));
-  app.post('/models/check-access', async (c) => c.json(await store().check((await body(c)) as never)));
+  app.post('/models/check-access', async (c) => c.json(await store().check(userId(c), (await body(c)) as never)));
   app.post('/models/resolve', async (c) => c.json(await store().resolve(userId(c), await body(c))));
   app.get('/models/picker', async (c) => c.json({ items: await store().picker(userId(c)) }));
   app.put('/me/model-favorites', async (c) => c.json({ items: await store().setFavorites(userId(c), (await body(c)).models) }));

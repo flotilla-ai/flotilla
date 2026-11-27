@@ -62,8 +62,12 @@ export class ModelsCatalogStore {
     if (p.kind !== 'subscription' && !key) throw new ApiFailure('ValidationFailed', `${m.displayName} cannot use an API key`);
     return { adapter: m.id, envVar: p.kind === 'subscription' ? null : key && key.kind === 'api-key' ? key.envVar : null };
   }
-  async check(input: ConnectionInput): Promise<AccessCheck> {
-    const p = this.provider(input.provider); this.target(p, input.adapter);
+  /** Discovery fetches a caller-chosen URL from the server, so only admins may point it at an endpoint. */
+  private async mayDiscover(userId: string, p: Provider): Promise<void> {
+    if (p.discovery === 'openai-models' && !(await this.isAdmin(userId))) throw new ApiFailure('Forbidden', 'only an admin can connect a custom endpoint');
+  }
+  async check(userId: string, input: ConnectionInput): Promise<AccessCheck> {
+    const p = this.provider(input.provider); this.target(p, input.adapter); await this.mayDiscover(userId, p);
     return checkAccess(p, { apiKey: optString(input.apiKey, 'apiKey'), baseUrl: optString(input.baseUrl, 'baseUrl') }, this.catalog, this.fetchImpl);
   }
 
@@ -100,7 +104,7 @@ export class ModelsCatalogStore {
     const scope = input.scope ?? 'user';
     if (scope !== 'user' && scope !== 'org') throw new ApiFailure('ValidationFailed', 'scope must be user or org');
     if (scope === 'org' && !(await this.isAdmin(userId))) throw new ApiFailure('Forbidden', 'only an admin can add org connections');
-    const p = this.provider(input.provider); const { adapter, envVar } = this.target(p, input.adapter);
+    const p = this.provider(input.provider); const { adapter, envVar } = this.target(p, input.adapter); await this.mayDiscover(userId, p);
     const excluded = modelIds(input.excludedModels, 'excludedModels'); const customs = modelIds(input.customModels, 'customModels');
     const label = optString(input.label, 'label') ?? p.name; const baseUrl = optString(input.baseUrl, 'baseUrl') ?? p.baseUrl; const apiKey = optString(input.apiKey, 'apiKey');
     const access = await checkAccess(p, { apiKey, baseUrl }, this.catalog, this.fetchImpl);
@@ -118,10 +122,17 @@ export class ModelsCatalogStore {
     const apiKey = optString(input.apiKey, 'apiKey'); const baseUrl = optString(input.baseUrl, 'baseUrl');
     const excluded = input.excludedModels === undefined ? r.excluded_models : modelIds(input.excludedModels, 'excludedModels');
     const customs = input.customModels === undefined ? r.custom_models : modelIds(input.customModels, 'customModels');
-    await this.q(`UPDATE model_connections SET label=$2, enabled=COALESCE($3,enabled), excluded_models=$4, custom_models=$5, base_url=COALESCE($6,base_url),
-      sealed_key=COALESCE($7,sealed_key), key_id=COALESCE($8,key_id) WHERE id=$1`,
-    [id, label, input.enabled ?? null, JSON.stringify(excluded), JSON.stringify(customs), baseUrl, apiKey ? this.kms.seal(Buffer.from(apiKey), aad(id)) : null, apiKey ? this.kms.keyId : null]);
-    return apiKey || baseUrl ? this.test(userId, id) : this.toConnection((await this.q('SELECT * FROM model_connections WHERE id=$1', [id]))[0]);
+    let access: AccessCheck | null = null;
+    if (apiKey || baseUrl) {
+      const p = this.provider(r.provider); if (baseUrl) await this.mayDiscover(userId, p);
+      access = await checkAccess(p, { apiKey: apiKey ?? (r.sealed_key ? this.kms.open(r.sealed_key, aad(id)).toString('utf8') : null), baseUrl: baseUrl ?? r.base_url }, this.catalog, this.fetchImpl);
+    }
+    const [row] = await this.q(`UPDATE model_connections SET label=$2, enabled=COALESCE($3,enabled), excluded_models=$4, custom_models=$5, base_url=COALESCE($6,base_url),
+      sealed_key=COALESCE($7,sealed_key), key_id=COALESCE($8,key_id), status=COALESCE($9,status), available_models=COALESCE($10,available_models),
+      checked_at=CASE WHEN $9::text IS NULL THEN checked_at ELSE now() END WHERE id=$1 RETURNING *`,
+    [id, label, input.enabled ?? null, JSON.stringify(excluded), JSON.stringify(customs), baseUrl, apiKey ? this.kms.seal(Buffer.from(apiKey), aad(id)) : null, apiKey ? this.kms.keyId : null,
+      access?.status ?? null, access ? JSON.stringify(access.models) : null]);
+    return this.toConnection(row);
   }
   async test(userId: string, id: string): Promise<Connection> {
     const r = await this.owned(userId, id);
@@ -195,10 +206,12 @@ export class ModelsCatalogStore {
     return (await this.picker(userId)).filter((i) => i.favorite).sort((a, b) => a.favorite! - b.favorite!);
   }
 
-  /** The pinned connection's key for the thread's machine; only the runner's vault path calls this. */
+  /** The pinned connection's key for the thread's machine; every run re-resolves the pin, so a disabled, deleted, failing or excluded pin fails the run (no fallback). */
   async connectionEnv(threadId: string): Promise<Record<string, string>> {
-    const [r] = await this.q(`SELECT c.id, c.env_var, c.sealed_key FROM threads t JOIN model_connections c ON c.id = t.engine->>'connectionId'
-      WHERE t.id=$1 AND c.enabled AND c.adapter = t.engine->>'adapter' AND (c.owner_id = t.owner_id OR c.scope='org')`, [threadId]);
+    const [t] = await this.q('SELECT owner_id, engine FROM threads WHERE id=$1', [threadId]);
+    if (!t?.engine?.connectionId) return {};
+    const sel = await this.resolve(t.owner_id, t.engine);
+    const [r] = await this.q('SELECT id, env_var, sealed_key FROM model_connections WHERE id=$1', [sel.connectionId]);
     if (!r?.sealed_key || !r.env_var) return {};
     return { [r.env_var]: this.kms.open(r.sealed_key, aad(r.id)).toString('utf8') };
   }
