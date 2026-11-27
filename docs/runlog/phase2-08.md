@@ -121,3 +121,19 @@ Focused (`npx vitest run src/thread-api src/api-platform`):
       Tests  1 failed | 88 passed | 1 skipped (90)
 ```
 The one failure is the same pre-existing `git/mirror` fsmonitor flake. `pnpm -r typecheck` and `pnpm -r lint` both end in `Done` with no errors.
+
+## Merge of `origin/flotilla/p1` 26f6713 (phase2-05, repair-6)
+Conflicts were in docs only (`DECISIONS-LOG.md`, `PROGRESS.md`), and both sides' entries are kept. Row counts were recounted from `PARITY.md`: done 85, pending 501, needs-human-login 13, n-a 22, blocked 11.
+
+Focused (`npx vitest run src/thread-api src/api-platform src/git src/runner`):
+```
+ Test Files  6 passed (6)
+      Tests  42 passed (42)
+```
+`make check` (the repair-6 git hook isolation fixed the `git/mirror` flake):
+```
+apps/server test:  Test Files  18 passed (18)
+apps/server test:       Tests  101 passed | 1 skipped (102)
+apps/server lint: Done
+exit=0
+```
