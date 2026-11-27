@@ -7,3 +7,7 @@ export function simpleDiff(a:string,b:string):string{
  const x=a.split(/(?<=\n)/),y=b.split(/(?<=\n)/);let n=0;while(n<x.length&&n<y.length&&x[n]===y[n])n++;
  return [...x.slice(n).filter(Boolean).map(l=>`-${l.replace(/\n$/,'')}`),...y.slice(n).filter(Boolean).map(l=>`+${l.replace(/\n$/,'')}`)].join('\n');
 }
+
+export function utf8Text(bytes:ArrayBuffer|Uint8Array):string{
+ return new TextDecoder('utf-8',{fatal:true}).decode(bytes)
+}

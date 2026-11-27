@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react';import {api} from '../../lib/api.js';
-import {markdownOutline,simpleDiff} from './drive-ux.js';
+import {markdownOutline,simpleDiff,utf8Text} from './drive-ux.js';
 type Scope={kind:string;id?:string;userId?:string};type Usage={scope:Scope;usedBytes:number;limitBytes:number;full:boolean};
 type Item={id:string;path:string;name:string;type:'file'|'folder';size:number;version:number};type Card={code:string;title:string;nextStep:string};
 type Version={version:number;at:string;source:string};type Share={id:string;itemId:string;path:string;access:'read'|'write'};
@@ -7,16 +7,16 @@ const key=(s:Scope)=>s.kind==='org'||s.kind==='user'?s.kind:`${s.kind}:${s.id}`;
 const label=(s:Scope)=>({org:'Organization',user:'Personal',project:'Project','project-user':'Project + personal',captain:'Captain',automation:'Automation'} as Record<string,string>)[s.kind]+(s.id&&s.kind!=='user'?` ${s.id}`:'');
 const mb=(n:number)=>`${(n/1048576).toFixed(1)} MiB`;
 async function put(scope:string,path:string,body:BodyInit,base?:number):Promise<Card|null>{const csrf=sessionStorage.getItem('csrf');const r=await fetch(`/api/v1/drive/files?scope=${encodeURIComponent(scope)}&path=${encodeURIComponent(path)}${base===undefined?'':`&baseVersion=${base}`}`,{method:'PUT',body,headers:{'content-type':'application/octet-stream',...(csrf?{'x-flotilla-csrf':csrf}:{})}});if(r.ok)return null;const b=await r.json().catch(()=>({}));return b.card??{code:'save_failed',title:'Drive changes were not saved',nextStep:b.error??`HTTP ${r.status}`}}
-async function textOf(url:string){const r=await fetch(url);if(!r.ok)throw new Error(String(r.status));return r.text()}
+async function textOf(url:string){const r=await fetch(url);if(!r.ok)throw new Error(String(r.status));return utf8Text(await r.arrayBuffer())}
 
 export function DriveEditor({scope,item,onSaved}:{scope:string;item:Item;onSaved:(card:Card|null)=>Promise<void>}){
  const[text,setText]=useState('');const[versions,setVersions]=useState<Version[]>([]);const[a,setA]=useState(0);const[b,setB]=useState(0);const[diff,setDiff]=useState('');const[share,setShare]=useState('');const[err,setErr]=useState('');
- useEffect(()=>{setErr('');void textOf(`/api/v1/drive/items/${item.id}/content`).then(setText).catch(()=>setErr('This is not a UTF-8 text file'));api(`/drive/items/${item.id}/versions`).then((r:{items:Version[]})=>{setVersions(r.items);setA(r.items.at(-1)?.version??0);setB(r.items[0]?.version??0)}).catch(()=>{})},[item.id]);
+ useEffect(()=>{setErr('');setText('');void textOf(`/api/v1/drive/items/${item.id}/content`).then(setText).catch(()=>setErr('This is not a UTF-8 text file'));api(`/drive/items/${item.id}/versions`).then((r:{items:Version[]})=>{setVersions(r.items);setA(r.items.at(-1)?.version??0);setB(r.items[0]?.version??0)}).catch(()=>{})},[item.id]);
  useEffect(()=>{if(!a||!b)return;if(a===b){setDiff('Pick two different versions to compare.');return}void Promise.all([textOf(`/api/v1/drive/items/${item.id}/versions/${a}/content`),textOf(`/api/v1/drive/items/${item.id}/versions/${b}/content`)]).then(([x,y])=>setDiff(simpleDiff(x,y)||'No line differences')).catch(()=>setDiff(''))},[a,b,item.id]);
  const save=async()=>{const c=await put(scope,item.path,text,item.version);if(!c)item.version+=1;await onSaved(c)};
  const makeShare=async(access:'read'|'write')=>{const s=await api(`/drive/items/${item.id}/shares`,{method:'POST',body:JSON.stringify({access})});const u=new URL(s.url,location.href).href;setShare(u);await navigator.clipboard?.writeText(u).catch(()=>undefined)};
  const outline=item.name.endsWith('.md')?markdownOutline(text):[];
- return <section aria-label='drive editor'><h2>{item.path}</h2>{err&&<p>{err}</p>}<textarea aria-label='file content' rows={12} value={text} onChange={e=>setText(e.target.value)}/><button onClick={()=>void save()}>Save</button>
+ return <section aria-label='drive editor'><h2>{item.path}</h2>{err&&<p>{err}</p>}<textarea aria-label='file content' rows={12} value={text} onChange={e=>setText(e.target.value)}/><button disabled={!!err} onClick={()=>void save()}>Save</button>
   {outline.length>0&&<nav aria-label='markdown outline'><b>Outline</b>{outline.map(h=><div key={h.line} style={{paddingLeft:(h.level-1)*12}}><a href={`#line-${h.line}`}>{h.text}</a></div>)}</nav>}
   <div><button onClick={()=>void makeShare('read')}>Share read link</button><button onClick={()=>void makeShare('write')}>Share write link</button>{share&&<small> copied: {share}</small>}</div>
   {versions.length>1&&<section><b>Compare versions</b><select aria-label='compare from' value={a} onChange={e=>setA(Number(e.target.value))}>{versions.map(v=><option key={v.version} value={v.version}>v{v.version}</option>)}</select><select aria-label='compare to' value={b} onChange={e=>setB(Number(e.target.value))}>{versions.map(v=><option key={v.version} value={v.version}>v{v.version}</option>)}</select><pre aria-label='version diff'>{diff}</pre></section>}
