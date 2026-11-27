@@ -51,6 +51,7 @@ describe('thread runner',()=>{
     expect(b.id).not.toBe(a.id);
     await runner.stop(a.id as string,'usr_test'); await runner.stop(b.id as string,'usr_other');
   },20_000);
+<<<<<<< HEAD
   it('carries first-prompt attachment ids into the durable inbox',async()=>{
     await pool.query(`INSERT INTO api_files (id,owner_id,name,content_type,size,upload_token_hash,upload_expires_at) VALUES ('file_first','usr_test','a.txt','text/plain',1,'',now())`);
     const t=await runner.createThread({ownerId:'usr_test',title:'first attachments',prompt:'hello',requestId:'req-first-attachments',attachments:['file_first']});
@@ -72,6 +73,19 @@ describe('thread runner',()=>{
     expect((await pool.query('SELECT count(*)::int n FROM thread_inbox WHERE thread_id=$1',[t.id as string])).rows[0].n).toBe(1);
     await runner.stop(t.id as string,'usr_test');
   },20_000);
+||||||| c820e63
+=======
+  it('does not close feedback drafts through the generic approval answer path',async()=>{
+    const t=await runner.createThread({ownerId:'usr_test',title:'feedback-guard',prompt:'hello',requestId:'req-feedback-guard'});
+    await waitFor(`SELECT * FROM events WHERE thread_id=$1 AND kind='run.ended'`,[t.id as string]);
+    const id='apr_feedback_guard';
+    await pool.query(`INSERT INTO approvals (id,thread_id,kind,question,options,blocking,state,detail) VALUES ($1,$2,'decision','Send feedback?','[]',false,'open','{"feedback":{"title":"t","body":"b"}}')`,[id,t.id]);
+    await expect(runner.answerApproval(id,'approve',undefined,'usr_test')).rejects.toThrow('feedback');
+    const after=(await pool.query('SELECT state,answer FROM approvals WHERE id=$1',[id])).rows[0];
+    expect(after.state).toBe('open'); expect(after.answer).toBeNull();
+    await runner.stop(t.id as string,'usr_test');
+  },20_000);
+>>>>>>> origin/flotilla/p1
   it('does not mutate another owner approval before the ownership check',async()=>{
     const t=await runner.createThread({ownerId:'usr_test',title:'approval-owner',prompt:'hello',maxUsd:1000,requestId:'req-approval-owner'});
     const rows=await waitFor(`SELECT * FROM approvals WHERE thread_id=$1 AND kind='budget' AND state='open'`,[t.id as string]);

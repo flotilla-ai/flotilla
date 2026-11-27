@@ -135,8 +135,9 @@ export class ThreadRunner {
   async stop(threadId: string, userId?: string): Promise<void> { if (!(await this.owned(threadId,userId))) throw new Error('not found'); this.cancelled.add(threadId); await this.inbox.cancelAll(threadId); { const live = this.live.get(threadId); if (live) await live.adapter.cancel(live.runId as never).catch(() => undefined); } await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'control.stop', source: 'user', trust: 'trusted', payload: {} }] as never); await this.pool.query(`UPDATE threads SET status='idle',updated_at=now() WHERE id=$1`, [threadId]); }
 
   async answerApproval(approvalId: string, optionId: string, value: number | undefined, userId: string): Promise<Row | null> {
-    const existing = (await this.pool.query('SELECT thread_id FROM approvals WHERE id=$1 AND state=$2', [approvalId, 'open'])).rows[0];
+    const existing = (await this.pool.query('SELECT thread_id, detail FROM approvals WHERE id=$1 AND state=$2', [approvalId, 'open'])).rows[0];
     if (!existing || !(await this.owned(existing.thread_id,userId))) return null;
+    if ((existing.detail as { feedback?: unknown } | null)?.feedback) throw new ApiFailure('Conflict', 'feedback drafts must be answered through the feedback endpoint');
     const rows = await this.pool.query(`UPDATE approvals SET state='answered',answer=$2 WHERE id=$1 AND state='open' RETURNING *`, [approvalId, JSON.stringify({ optionId, value, by: userId, at: new Date().toISOString() })]);
     const approval = rows.rows[0]; if (!approval) return null;
     if (approval.kind === 'budget' && optionId === 'raise' && value) await this.pool.query(`UPDATE threads SET budget=jsonb_set(budget,'{maxUsd}',to_jsonb($2::int)),status='queued' WHERE id=$1`, [approval.thread_id, value]);
