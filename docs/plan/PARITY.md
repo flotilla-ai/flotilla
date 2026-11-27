@@ -1,0 +1,645 @@
+# Flotilla parity ledger
+
+Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initialized from SPEC Appendix A; update in every unit PR.
+
+| ID | area | phase | status | unit | PR link | note |
+|---|---|---|---|---|---|---|
+| CAPY-001 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-002 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-003 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-004 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-005 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-006 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-007 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-008 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-009 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-010 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-011 | Threads | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-012 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-013 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-014 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-015 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-016 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-017 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-018 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-019 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-020 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-021 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-022 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-023 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-024 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-025 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-026 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-027 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-028 | Threads | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-029 | Threads | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-030 | Threads | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-031 | Threads | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-032 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-033 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-034 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-035 | Wakes & background | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-036 | Wakes & background | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-037 | Wakes & background | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-038 | Wakes & background | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-039 | Wakes & background | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-040 | Wakes & background | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-041 | Wakes & background | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-042 | Wakes & background | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-043 | Wakes & background | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-044 | Wakes & background | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-045 | Wakes & background | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-046 | Wakes & background | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-047 | Wakes & background | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-048 | Wakes & background | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-049 | Wakes & background | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-050 | Wakes & background | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-051 | Wakes & background | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-052 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-053 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-054 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-055 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-056 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-057 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-058 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-059 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-060 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-061 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-062 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-063 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-064 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-065 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-066 | Captains | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-067 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-068 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-069 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-070 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-071 | Captains | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-072 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-073 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-074 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-075 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-076 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-077 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-078 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-079 | Captains | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-080 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-081 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-082 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-083 | Captains | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-084 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-085 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-086 | Captains | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-087 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-088 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-089 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-090 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-091 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-092 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-093 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-094 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-095 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-096 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-097 | Captains | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-098 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-099 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-100 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-101 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-102 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-103 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-104 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-105 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-106 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-107 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-108 | Pull requests & autofix | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate with a real GitHub PAT: create a test project/thread, let it push and open a PR. |
+| CAPY-109 | Pull requests & autofix | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-110 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-111 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-112 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-113 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-114 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-115 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-116 | Pull requests & autofix | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-117 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-118 | Pull requests & autofix | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate with live GitHub CI: failing and passing checks wake the owning thread. |
+| CAPY-119 | Pull requests & autofix | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-120 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-121 | Pull requests & autofix | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-122 | Pull requests & autofix | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-123 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-124 | Pull requests & autofix | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-125 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-126 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-127 | Pull requests & autofix | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-128 | Pull requests & autofix | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | measure live CI pickup latency with a real GitHub check suite. |
+| CAPY-129 | Pull requests & autofix | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate Actions log reading and rerun permissions with a real GitHub token. |
+| CAPY-130 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-131 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-132 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-133 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-134 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-135 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-136 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-137 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-138 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-139 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-140 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-141 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-142 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-143 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-144 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-145 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-146 | Review | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-147 | Review | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-148 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-149 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-150 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-151 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-152 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-153 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-154 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-155 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-156 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-157 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-158 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-159 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-160 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-161 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-162 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-163 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-164 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-165 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-166 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-167 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-168 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-169 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-170 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-171 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-172 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-173 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-174 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-175 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-176 | Projects | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-177 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-178 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-179 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-180 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-181 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-182 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-183 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-184 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-185 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-186 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-187 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-188 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-189 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-190 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-191 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-192 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-193 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-194 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-195 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-196 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-197 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-198 | Cloud machines | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-199 | Cloud machines | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-200 | Cloud machines | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-201 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-202 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-203 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-204 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-205 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-206 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-207 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-208 | Cloud machines | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-209 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-210 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-211 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-212 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-213 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-214 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-215 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-216 | Cloud machines | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-217 | Cloud machines | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-218 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-219 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-220 | Previews | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-221 | Previews | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-222 | Previews | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-223 | Previews | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-224 | Previews | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-225 | Previews | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-226 | Previews | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-227 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-228 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-229 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-230 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-231 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-232 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-233 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-234 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-235 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-236 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-237 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-238 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-239 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-240 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-241 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-242 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-243 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-244 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-245 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-246 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-247 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-248 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-249 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-250 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-251 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-252 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-253 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-254 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-255 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-256 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-257 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-258 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-259 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-260 | Dock CLI | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-261 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-262 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-263 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-264 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-265 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-266 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-267 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-268 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-269 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-270 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-271 | Cloud phones | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-272 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-273 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-274 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-275 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-276 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-277 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-278 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-279 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-280 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-281 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-282 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-283 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-284 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-285 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-286 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-287 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-288 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-289 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-290 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-291 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-292 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-293 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-294 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-295 | Skills | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-296 | Skills | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-297 | Skills | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-298 | Skills | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-299 | Skills | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-300 | Skills | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-301 | Skills | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-302 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-303 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-304 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-305 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-306 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-307 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-308 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-309 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-310 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-311 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-312 | MCP & plugins | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-313 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-314 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-315 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-316 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-317 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-318 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-319 | Models & connections | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate the real default vendor model list/configuration with vendor login. |
+| CAPY-320 | Models & connections | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-321 | Models & connections | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate Claude/Codex subscription login behavior on mehdi's machine. |
+| CAPY-322 | Models & connections | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate Claude Agent SDK harness behavior with a real Claude login. |
+| CAPY-323 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-324 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-325 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-326 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-327 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-328 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-329 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-330 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-331 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-332 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-333 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-334 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-335 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-336 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-337 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-338 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-339 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-340 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-341 | Billing & plans | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-342 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-343 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-344 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-345 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-346 | Billing & plans | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-347 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-348 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-349 | Billing & plans | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-350 | Billing & plans | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-351 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-352 | Usage & analytics | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-353 | Usage & analytics | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-354 | Usage & analytics | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-355 | Usage & analytics | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-356 | Usage & analytics | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-357 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-358 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-359 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-360 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-361 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-362 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-363 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-364 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-365 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-366 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-367 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-368 | SSO & sign-in | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-369 | SSO & sign-in | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-370 | SSO & sign-in | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-371 | SSO & sign-in | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-372 | SSO & sign-in | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-373 | SSO & sign-in | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-374 | Security & data | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-375 | Security & data | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-376 | Security & data | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-377 | Security & data | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-378 | Security & data | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-379 | Security & data | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-380 | Security & data | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-381 | Security & data | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-382 | Security & data | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-383 | Secrets | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-384 | Secrets | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-385 | Secrets | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-386 | Secrets | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-387 | Secrets | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-388 | Secrets | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-389 | Secrets | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-390 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-391 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-392 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-393 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-394 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-395 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-396 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-397 | Cloud credentials (OIDC) | P4 | pending |  |  | Awaiting phase P4 unit. |
+| CAPY-398 | GitHub | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | install/validate the GitHub app webhook and permission flow live. |
+| CAPY-399 | GitHub | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-400 | GitHub | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-401 | GitHub | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-402 | GitHub | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-403 | GitHub | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-404 | GitHub | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-405 | GitHub | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-406 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-407 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-408 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-409 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-410 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-411 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-412 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-413 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-414 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-415 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-416 | Linear | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-417 | Linear | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-418 | Linear | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-419 | Linear | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-420 | Linear | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-421 | Linear | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-422 | Other integrations | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-423 | Other integrations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-424 | Other integrations | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-425 | Other integrations | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-426 | Other integrations | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-427 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-428 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-429 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-430 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-431 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-432 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-433 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-434 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-435 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-436 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-437 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-438 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-439 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-440 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-441 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-442 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-443 | Keyboard shortcuts | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-444 | Keyboard shortcuts | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-445 | Keyboard shortcuts | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-446 | Keyboard shortcuts | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-447 | Keyboard shortcuts | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-448 | Notifications | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-449 | Notifications | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-450 | Notifications | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-451 | Notifications | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-452 | Notifications | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-453 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-454 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-455 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-456 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-457 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-458 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-459 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-460 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-461 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-462 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-463 | Support | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-464 | Support | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-465 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-466 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-467 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-468 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-469 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-470 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-471 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-472 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-473 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-474 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-475 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-476 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-477 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-478 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-479 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-480 | Billing & plans | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-481 | Billing & plans | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-482 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-483 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-484 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-485 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-486 | Models & connections | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-487 | Usage & analytics | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-488 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-489 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-490 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-491 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-492 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-493 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-494 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-495 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-496 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-497 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-498 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-499 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-500 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-501 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-502 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-503 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-504 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-505 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-506 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-507 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-508 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-509 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-510 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-511 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-512 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-513 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-514 | SSO & sign-in | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-515 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-516 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-517 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-518 | GitHub | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-519 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-520 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-521 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-522 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-523 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-524 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-525 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-526 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-527 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-528 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-529 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-530 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-531 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-532 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-533 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-534 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-535 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-536 | API: projects | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-537 | API: projects | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-538 | API: projects | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-539 | API: projects | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-540 | API: projects | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-541 | API: threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-542 | API: threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-543 | API: threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-544 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-545 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-546 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-547 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-548 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-549 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-550 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-551 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-552 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-553 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-554 | API: threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-555 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-556 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-557 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-558 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-559 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-560 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-561 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-562 | API: folders | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-563 | API: folders | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-564 | API: folders | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-565 | API: folders | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-566 | API: folders | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-567 | API: folders | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-568 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-569 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-570 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-571 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-572 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-573 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-574 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-575 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-576 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-577 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-578 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-579 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-580 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-581 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-582 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-583 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-584 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-585 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-586 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-587 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-588 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-589 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-590 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-591 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-592 | API: issues | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-593 | API: subagents | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-594 | API: subagents | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-595 | API: subagents | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-596 | API: tasks | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-597 | API: tasks | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-598 | API: tasks | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-599 | API: messages | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-600 | API: messages | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-601 | API: messages | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-602 | API: messages | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-603 | API: messages | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-604 | API: messages | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-605 | API: files | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-606 | API: attachments | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-607 | API: attachments | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-608 | API: streams | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-609 | API: streams | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-610 | API: streams | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-611 | API: reviews | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-612 | API: reviews | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-613 | API: reviews | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-614 | API: reviews | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-615 | API: reviews | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-616 | API: reviews | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-617 | API: reviews | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
+| CAPY-618 | API: reviews | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-619 | API: reviews | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-620 | API: reviews | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-621 | API: reviews | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-622 | API: reviewRules | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-623 | API: reviewRules | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-624 | API: reviewRules | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-625 | API: reviewRules | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-626 | API: reviewRules | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-627 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-628 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-629 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-630 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-631 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-632 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-633 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-634 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-635 | API: usage | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-636 | API: usage | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-637 | API: usage | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-638 | API: users | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-639 | API: models | P2 | pending |  |  | Awaiting phase P2 unit. |
