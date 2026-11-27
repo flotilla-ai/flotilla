@@ -112,6 +112,20 @@ describe('thread runner',()=>{
     await runner.message(t.id as string,'next after stop','queue','usr_test');
     await waitFor(`SELECT 1 FROM thread_inbox WHERE thread_id=$1 AND text='next after stop' AND state='delivered'`,[t.id as string]);
   },20_000);
+  it('does not reuse an earlier plan request for a later plan',async()=>{
+    const t=await runner.createThread({ownerId:'usr_test',title:'two plans',prompt:'ordinary start',requestId:'req-two-plans'});
+    await waitFor(`SELECT 1 FROM events WHERE thread_id=$1 AND kind='run.ended'`,[t.id as string]);
+    await runner.message(t.id as string,'/plan first plan','queue','usr_test');
+    let rows=await waitFor(`SELECT * FROM approvals WHERE thread_id=$1 AND gate='plan' AND state='open'`,[t.id as string]);
+    await runner.answerApproval(rows[0].id as string,'approve',undefined,'usr_test');
+    await waitFor(`SELECT count(*)::int n FROM events WHERE thread_id=$1 AND kind='run.ended' HAVING count(*) >= 3`,[t.id as string]);
+    await runner.message(t.id as string,'/plan second plan','queue','usr_test');
+    rows=await waitFor(`SELECT * FROM approvals WHERE thread_id=$1 AND gate='plan' AND state='open'`,[t.id as string]);
+    await runner.answerApproval(rows[0].id as string,'approve',undefined,'usr_test');
+    const items=(await pool.query(`SELECT text FROM thread_inbox WHERE thread_id=$1 ORDER BY created_at`,[t.id as string])).rows;
+    expect(items.at(-1).text).toContain('Request:\nsecond plan'); expect(items.at(-1).text).not.toContain('Request:\nfirst plan');
+    await runner.stop(t.id as string,'usr_test');
+  },20_000);
   it('uses the message that started a later plan as the implementation request',async()=>{
     const t=await runner.createThread({ownerId:'usr_test',title:'late plan',prompt:'hello first',requestId:'req-late-plan'});
     await waitFor(`SELECT 1 FROM events WHERE thread_id=$1 AND kind='run.ended'`,[t.id as string]);

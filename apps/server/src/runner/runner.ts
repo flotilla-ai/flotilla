@@ -280,8 +280,8 @@ export class ThreadRunner {
   /** Plan mode ends every turn at a blocking gate; nothing else runs and no after-run hook (push, PR) fires until it is approved. */
   /** Runs start fresh sessions, so the implementation turn gets the request and the plan text. */
   private async approvedPlan(threadId: string): Promise<{ text: string; attachments: string[] }> {
-    const first = (await this.pool.query(`SELECT text,attachments FROM thread_inbox WHERE thread_id=$1 AND plan=true AND by_user IS NOT NULL ORDER BY created_at LIMIT 1`, [threadId])).rows[0] ?? (await this.pool.query('SELECT text,attachments FROM thread_inbox WHERE thread_id=$1 ORDER BY created_at LIMIT 1', [threadId])).rows[0];
     const latest = await this.inbox.lastDelivered(threadId);
+    const first = (await this.pool.query(`SELECT text,attachments FROM thread_inbox WHERE thread_id=$1 AND plan=true AND by_user IS NOT NULL AND created_at <= $2 ORDER BY created_at DESC LIMIT 1`, [threadId, latest?.created_at ?? new Date(0)])).rows[0] ?? (await this.pool.query(`SELECT text,attachments FROM thread_inbox WHERE thread_id=$1 AND plan=true AND by_user IS NOT NULL ORDER BY created_at DESC LIMIT 1`, [threadId])).rows[0] ?? (await this.pool.query('SELECT text,attachments FROM thread_inbox WHERE thread_id=$1 ORDER BY created_at LIMIT 1', [threadId])).rows[0];
     const plan = (await this.pool.query(`SELECT string_agg(payload->>'text', '' ORDER BY seq) AS text FROM events WHERE thread_id=$1 AND kind='agent.delta' AND run_id=$2`, [threadId, latest?.runId ?? null])).rows[0]?.text as string | null;
     return { text: `Plan approved. Implement the plan now.${first ? `\n\nRequest:\n${first.text}` : ''}${plan ? `\n\nApproved plan:\n${plan}` : ''}`, attachments: first?.attachments ?? [] };
   }
