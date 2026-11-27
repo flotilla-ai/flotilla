@@ -260,9 +260,19 @@ export class AutomationStore {
     const existing = await this.getOwned(userId, automationId);
     const vals: unknown[] = [automationId, userId]; const sets: string[] = [];
     const set = (column: string, value: unknown) => { vals.push(value); sets.push(`${column}=$${vals.length}`); };
-    if (input.name !== undefined) { if (!String(input.name).trim()) throw new ApiFailure('ValidationFailed', 'name is required'); set('name', String(input.name)); }
-    if (input.prompt !== undefined) { if (!String(input.prompt).trim()) throw new ApiFailure('ValidationFailed', 'prompt is required'); set('prompt', String(input.prompt)); }
-    if (input.triggers !== undefined) set('triggers', JSON.stringify(triggerList(input.triggers)));
+    if (input.name !== undefined) { if (typeof input.name !== 'string' || !input.name.trim()) throw new ApiFailure('ValidationFailed', 'name is required'); set('name', input.name); }
+    if (input.prompt !== undefined) { if (typeof input.prompt !== 'string' || !input.prompt.trim()) throw new ApiFailure('ValidationFailed', 'prompt is required'); set('prompt', input.prompt); }
+    let mintedWebhookToken: string | undefined;
+    if (input.triggers !== undefined) {
+      const triggers = triggerList(input.triggers);
+      const hasWebhook = triggers.some((t) => t.type === 'webhook');
+      set('triggers', JSON.stringify(triggers));
+      if (!hasWebhook) set('webhook_hash', null);
+      else if (!existing.triggers.some((t) => t.type === 'webhook') || !existing.webhookUrl) {
+        mintedWebhookToken = randomUUID() + randomUUID();
+        set('webhook_hash', sha256(mintedWebhookToken));
+      }
+    }
     if (input.conditions !== undefined) { if (!input.conditions || typeof input.conditions !== 'object' || Array.isArray(input.conditions)) throw new ApiFailure('ValidationFailed', 'conditions must be an object'); set('conditions', JSON.stringify(input.conditions)); }
     if (input.runWhen !== undefined) set('run_when', input.runWhen == null ? null : String(input.runWhen));
     if (input.machineSize !== undefined) set('machine_size', String(input.machineSize));
@@ -270,7 +280,7 @@ export class AutomationStore {
     if (input.driveScope !== undefined) { if (!input.driveScope || typeof input.driveScope !== 'object' || Array.isArray(input.driveScope)) throw new ApiFailure('ValidationFailed', 'driveScope must be an object'); set('drive_scope', JSON.stringify(input.driveScope)); }
     if (!sets.length) return existing;
     const [r] = await this.q(`UPDATE automations SET ${sets.join(',')},updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING *`, vals);
-    return toAutomation(r);
+    return toAutomation(r, mintedWebhookToken);
   }
   async setState(userId: string, automationId: string, state: unknown): Promise<Automation> {
     if (!['active','paused','deleted'].includes(String(state))) throw new ApiFailure('ValidationFailed', 'state must be active, paused or deleted');
@@ -371,7 +381,7 @@ export class AutomationStore {
       for (const t of a.triggers.filter((x) => x.type === 'schedule')) {
         const key = `${t.cron}:${t.timezone}`;
         const [last] = await this.q("SELECT max(created_at) AS at FROM automation_runs WHERE automation_id=$1 AND trigger_type='schedule' AND trigger_key=$2", [a.id, key]);
-        const base = Math.max(new Date(a.createdAt).getTime(), last?.at ? new Date(last.at as string).getTime() : 0);
+        const base = Math.max(new Date(a.createdAt).getTime(), new Date(a.updatedAt).getTime(), last?.at ? new Date(last.at as string).getTime() : 0);
         let latest: Date | null = null;
         const end = Math.floor(now.getTime() / 60_000) * 60_000;
         // Croner calculates the next occurrence directly, so even a months-old missed schedule is
