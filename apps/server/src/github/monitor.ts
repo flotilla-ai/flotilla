@@ -34,14 +34,14 @@ export class CheckMonitor {
       let checks: string | null = null;
       try { checks = checksState(await client.checkRuns(repo, pr.head.sha)); } catch { checks = null; }
       const state = pr.merged_at ? 'merged' : pr.state ?? 'open';
-      await this.deps.pool.query(`INSERT INTO prs (repo,number,thread_id,head_branch,owned,title,author,state,labels,draft,checks_state,updated_at) VALUES ($1,$2,NULL,$3,false,$4,$5,$6,$7,$8,COALESCE($9,'unknown'),now()) ON CONFLICT (repo,number) DO UPDATE SET head_branch=$3,title=$4,author=$5,state=$6,labels=$7,draft=$8,checks_state=COALESCE($9,prs.checks_state),updated_at=now()`, [repo, pr.number, pr.head.ref, pr.title ?? '', pr.user?.login?.toLowerCase() ?? '', state, JSON.stringify((pr.labels ?? []).map((x) => x.name).filter(Boolean)), pr.draft === true, checks]);
+      await this.deps.pool.query(`INSERT INTO prs (repo,number,thread_id,head_branch,owned,title,author,state,labels,draft,checks_state,updated_at) VALUES ($1,$2,NULL,$3,false,$4,$5,$6,$7,$8,COALESCE($9,'unknown'),COALESCE($10::timestamptz,now())) ON CONFLICT (repo,number) DO UPDATE SET head_branch=$3,title=$4,author=$5,state=$6,labels=$7,draft=$8,checks_state=COALESCE($9,prs.checks_state),updated_at=COALESCE($10::timestamptz,prs.updated_at)`, [repo, pr.number, pr.head.ref, pr.title ?? '', pr.user?.login?.toLowerCase() ?? '', state, JSON.stringify((pr.labels ?? []).map((x) => x.name).filter(Boolean)), pr.draft === true, checks, pr.updated_at ?? null]);
     }
   }
   async process(repo: string, number: number, threadId: string, sha: string): Promise<'pending' | 'green' | 'failed'> {
     const client = this.deps.clientFor(repo);
     const checks = await client.checkRuns(repo, sha);
     const state = checksState(checks);
-    await this.deps.pool.query('UPDATE prs SET checks_state=$3,updated_at=now() WHERE repo=$1 AND number=$2', [repo, number, state]);
+    await this.deps.pool.query('UPDATE prs SET checks_state=$3 WHERE repo=$1 AND number=$2', [repo, number, state]);
     const key = this.key(repo, number);
     if (state === 'pending') return state;
     if (state === 'green') {
@@ -77,7 +77,7 @@ export class CheckMonitor {
     return state;
   }
   async pollOnce(): Promise<void> {
-    const installs = await this.deps.pool.query(`SELECT repositories FROM github_installations WHERE revoked_at IS NULL`).catch(() => ({ rows: [] as never[] }));
+    const installs = await this.deps.pool.query(`SELECT repositories FROM github_installations WHERE revoked_at IS NULL AND verified_at IS NOT NULL`).catch(() => ({ rows: [] as never[] }));
     const repos = [...new Set(installs.rows.flatMap((r: any) => Array.isArray(r.repositories) ? r.repositories : []))];
     for (const repo of repos) await this.syncRepo(String(repo)).catch(() => {});
     const rows = await this.deps.pool.query(`SELECT t.id thread_id, p.repo repo, pr.number, pr.head_branch FROM prs pr JOIN threads t ON t.id=pr.thread_id JOIN projects p ON p.id=t.project_id WHERE pr.owned=true`);

@@ -44,7 +44,7 @@ describe('github client and autofix wake logic', () => {
   });
   it('syncs unlinked installed pull requests with metadata and records check state', async () => {
     const writes: unknown[][] = [];
-    const pr = { number: 9, title: 'External', user: { login: 'Alice' }, labels: [{ name: 'bug' }], draft: false, state: 'open', merged_at: null, head: { ref: 'external/branch', sha: 'abc' }, base: { ref: 'main' }, html_url: 'x' };
+    const pr = { number: 9, title: 'External', user: { login: 'Alice' }, labels: [{ name: 'bug' }], draft: false, state: 'open', merged_at: null, updated_at: '2026-01-02T03:04:05Z', head: { ref: 'external/branch', sha: 'abc' }, base: { ref: 'main' }, html_url: 'x' };
     const monitor = new CheckMonitor({
       pool: { query: async (sql: string, args: unknown[] = []) => { writes.push([sql, ...args]); return { rows: [] }; } } as never,
       store: { appendEvents: async () => {} } as never,
@@ -53,7 +53,7 @@ describe('github client and autofix wake logic', () => {
     });
     await monitor.syncRepo('o/r');
     const insert = writes.find((x) => String(x[0]).includes('INSERT INTO prs'));
-    expect(insert).toBeTruthy(); expect(insert?.slice(1)).toEqual(['o/r', 9, 'external/branch', 'External', 'alice', 'open', '["bug"]', false, 'green']);
+    expect(insert).toBeTruthy(); expect(insert?.slice(1)).toEqual(['o/r', 9, 'external/branch', 'External', 'alice', 'open', '["bug"]', false, 'green', '2026-01-02T03:04:05Z']);
     expect(insert?.[0]).toContain('thread_id,head_branch');
     expect(insert?.[0]).toContain('VALUES ($1,$2,NULL');
   });

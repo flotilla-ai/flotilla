@@ -80,7 +80,7 @@ export async function seedWorkspace(thread: GitThread, project: GitProject, driv
     await runTransport(transport, ['git', 'clone', '--branch', project.repo.baseBranch, '/tmp/seed.bundle', '/workspace/repo'], '/workspace');
     const branch = thread.branch ?? `${branchPrefix}/${thread.code}-${slug(thread.title)}`;
     await runTransport(transport, ['git', 'switch', '-c', branch], '/workspace/repo');
-    if (project.repo.baseBranch !== branch && project.repo.baseBranch.startsWith('flotilla/')) await runTransport(transport, ['git', 'branch', '-D', project.repo.baseBranch], '/workspace/repo');
+    if (project.repo.baseBranch !== branch && project.repo.baseBranch.startsWith(`${branchPrefix}/`)) await runTransport(transport, ['git', 'branch', '-D', project.repo.baseBranch], '/workspace/repo');
     return { branch };
   } finally { rmSync(tmp, { recursive: true, force: true }); }
 }

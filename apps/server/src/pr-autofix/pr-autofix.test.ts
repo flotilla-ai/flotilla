@@ -14,7 +14,7 @@ beforeAll(async()=>{container=(await exec('docker',['run','-d','--rm','-p','127.
  const gateway:PrGateway={act:async x=>{calls.push(x);return{ok:true,actor:x.actor}},review:async x=>{calls.push(x);return{ok:true,actor:x.actor}}};store=new PrAutofixStore(pool,gateway);
  await pool.query("INSERT INTO users (id,email,role) VALUES ('usr_pr','p@x','admin')");
  await pool.query("INSERT INTO github_accounts (id,user_id,login,kind,token_ref) VALUES ('gha_pr','usr_pr','alice','personal','vault:github/token')");
- await pool.query(`INSERT INTO github_installations (id,account_id,installation_id,subject,repositories,permissions) VALUES ('ghi_pr','gha_pr','1','acme','["acme/api","acme/web"]','{"contents":"write","pullRequests":"write","checks":"read","issues":"write","metadata":"read"}')`);
+ await pool.query(`INSERT INTO github_installations (id,account_id,installation_id,subject,repositories,permissions,verified_at) VALUES ('ghi_pr','gha_pr','1','acme','["acme/api","acme/web"]','{"contents":"write","pullRequests":"write","checks":"read","issues":"write","metadata":"read"}',now())`);
  for(const [id,code,title] of [['thr_pr1','PR-1','one'],['thr_pr2','PR-2','two'],['thr_pr3','PR-3','three']] as const) await pool.query(`INSERT INTO threads (id,code,role,owner_id,title,status,engine,budget,spent) VALUES ($1,$2,'thread','usr_pr',$3,'idle','{}','{}','{}')`,[id,code,title]);
  await pool.query(`INSERT INTO prs (repo,number,thread_id,head_branch,title,author,state,labels,draft,checks_state,pushed_at) VALUES
   ('acme/api',1,'thr_pr1','feature/x','Fix API','alice','open','["bug"]',false,'failed',now()-interval '40 minutes'),

@@ -24,7 +24,7 @@ export class PrAutofixStore {
     return this.settings(userId);
   }
   private async installedRepos(userId: string): Promise<Set<string>> {
-    const rows = await this.q(`SELECT i.repositories FROM github_installations i JOIN github_accounts a ON a.id=i.account_id WHERE a.user_id=$1 AND a.revoked_at IS NULL AND i.revoked_at IS NULL`, [userId]);
+    const rows = await this.q(`SELECT i.repositories FROM github_installations i JOIN github_accounts a ON a.id=i.account_id WHERE a.user_id=$1 AND a.revoked_at IS NULL AND i.revoked_at IS NULL AND i.verified_at IS NOT NULL`, [userId]);
     return new Set(rows.flatMap((r) => Array.isArray(r.repositories) ? r.repositories.map((x: unknown) => String(x).toLowerCase()) : []));
   }
   async list(userId: string, query: Row): Promise<PullRequestView[]> {
