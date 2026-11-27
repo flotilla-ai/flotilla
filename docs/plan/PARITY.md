@@ -446,16 +446,17 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-440 | UI surfaces | P3 | blocked | phase3-15 |  | phone browser/PWA push is not implemented app-wide.  |
 | CAPY-441 | UI surfaces | P3 | blocked | phase3-15 |  | native iOS replacement responsive/PWA shell is not implemented app-wide.  |
 | CAPY-442 | UI surfaces | P3 | blocked | phase3-15 |  | Markdown twin helpers exist but no docs site serves them.  |
-| CAPY-443 | Keyboard shortcuts | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-444 | Keyboard shortcuts | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-445 | Keyboard shortcuts | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-446 | Keyboard shortcuts | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-447 | Keyboard shortcuts | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-448 | Notifications | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-449 | Notifications | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-450 | Notifications | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-451 | Notifications | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-452 | Notifications | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-443 | Keyboard shortcuts | P3 | done | phase3-16 |  | Default/remappable command-menu, navigation and settings shortcuts are modeled and exposed in `/settings/shortcuts`.  |
+| CAPY-444 | Keyboard shortcuts | P3 | done | phase3-16 |  | Thread jump/step shortcuts are represented in the remappable shortcut map.  |
+| CAPY-445 | Keyboard shortcuts | P3 | done | phase3-16 |  | Shell, side-chat and tab shortcuts are represented in the remappable shortcut map.  |
+| CAPY-446 | Keyboard shortcuts | P3 | done | phase3-16 |  | Thread menu, comment, annotate and model-favorite shortcuts are represented in the remappable shortcut map.  |
+| CAPY-447 | Keyboard shortcuts | P3 | done | phase3-16 |  | Shortcut remap validation, conflict detection and local persistence are fixture-tested.  |
+| CAPY-448 | Notifications | P3 | done | phase3-16 |  | Durable per-user notification settings API covers requests/failures/sounds/system/device/Slack preferences.  |
+| CAPY-449 | Notifications | P3 | blocked | phase3-16 |  | Blocked: subscription storage exists, but signed Web Push/VAPID delivery while the browser is closed is not implemented.  |
+| CAPY-450 | Notifications | P3 | done | phase3-16 |  | Captain/user @-mentions create durable mention notifications for matching users.  |
+| CAPY-451 | Notifications | P3 | done | phase3-16 |  | Unread-count API and web badge/title helper are fixture-tested.  |
+| CAPY-452 | Notifications | P3 | blocked | phase3-16 |  | Blocked: deterministic PR follow-up copy exists, but Slack DM delivery needs the missing Slack vendor integration.  |
+
 | CAPY-453 | API (platform) | P2 | done | phase2-01 | https://github.com/flotilla-ai/flotilla/pull/25 | flt_ bearer keys minted only from a session; optional expiresAt; no rotate verb (api-platform.test.ts). |
 | CAPY-454 | API (platform) | P2 | done | phase2-01 | https://github.com/flotilla-ai/flotilla/pull/25 | Keys resolve to user or service principal; authorId = minting human; service-key project owned by service user. |
 | CAPY-455 | API (platform) | P2 | done | phase2-01 | https://github.com/flotilla-ai/flotilla/pull/25 | requestId/Idempotency-Key replay in requireSession; reuse on another path = flotilla/Conflict. |
