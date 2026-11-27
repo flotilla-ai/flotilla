@@ -27,6 +27,10 @@ server: Tests 12 passed (12)
 
 Full gate: `make check` exit 0; server 32 files, 233 passed, 1 skipped; web 11 files, 25 passed; typecheck and lint passed. A first full run hit the pre-existing concurrent machine-core readiness flake, and the focused machine-core file passed immediately when rerun (11/11); the second full run passed.
 
+## Review hardening
+
+Devin Review findings were fixed before merge: anonymous share writes validate the token before streaming a bounded body; write shares revalidate and lock the original item inside the save transaction; invalid UTF-8 cannot be rewritten as replacement characters; merged saves refresh authoritative content/version; Markdown outline navigation no longer exits through the hash router. Post-fix focused proof: server Drive 12/12, web Drive UX 3/3; post-fix `make check` exit 0.
+
 ## Unverified
 
 - Real browser interaction and real Docker machine timing are unverified; the <1 s proof uses the Drive mount seam and fake machine copy transport.
