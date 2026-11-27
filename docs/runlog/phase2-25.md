@@ -19,3 +19,10 @@ Dispositions:
 - blocked: CAPY-151 — machine read-only enforcement and 4 GB default are not wired to machine provisioning.
 
 Implemented durable repo/path review context, ignore filters, deterministic AGENTS.md rule finding generation, guided-review structure, evidence attachment, timeout retry helper, and stack detection. The UI slice is `/review-policy`.
+
+Full verification:
+
+```text
+make check
+exit 0
+```
