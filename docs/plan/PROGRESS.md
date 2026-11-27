@@ -1,7 +1,7 @@
 # Flotilla progress
 
-Current phase: phase1fix / planning phases 2-4.
-Current `flotilla/p1` head at this branch start: `58b34fb00537c86c4db87877d71109f1e90d9960`.
+Current phase: phase 2 planning.
+Current `flotilla/p1` head at this branch start: `82cc29f95b834e15a1ed7ea4d55adad30f18465f`.
 
 ## Row counts
 
@@ -15,13 +15,14 @@ Initialized in `docs/plan/PARITY.md`: P2/P3/P4 rows are pending; phase 1 rows ar
 | plan-p234 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/19 | run rules, parity ledger, coverage script |
 | phase1fix-01 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/20 | scheduler restart recovery; real Postgres fake-clock restart test passes |
 | phase1fix-02 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/21 | Captain five-crew fake relay |
-| phase1fix-03 | running | 1 | https://github.com/flotilla-ai/flotilla/pull/22 | egress/preview local fixtures |
+| phase1fix-03 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/22 | egress/preview local fixtures |
+| plan2 | running | 1 | pending | 37 phase-2 handoffs covering 353 P2 rows exactly once |
 
 ## Next action
 
-1. Merge phase1fix-03 through the PR-only gate.
-2. Plan phase 2 handoff waves.
-3. Start phase 2 implementation.
+1. Merge the phase 2 plan PR.
+2. Start wave 1 serialized foundations.
+3. Use child sessions only for independent units after dependencies merge.
 
 ## Phase 1 summary (preserved)
 
