@@ -95,8 +95,8 @@ export class WakeRouter {
     const said = (await this.q(`SELECT string_agg(payload->>'text', '' ORDER BY seq) s FROM events WHERE thread_id=$1 AND kind='agent.delta' AND run_id=$2`, [threadId, e.run_id]))[0]?.s ?? '';
     if (e.kind === 'run.ended' && e.payload.state === 'completed' && !t.plan_mode) {
       if (t.parent_id) await this.deliver(t.parent_id, 'agent', `Subagent ${t.code} finished:\n${said}`, { userId: t.owner_id, threadId });
-      const watchers = await this.q(`UPDATE wake_watches SET state='fired' WHERE kind='thread' AND target=$1 AND state='active' AND created_at <= (SELECT started_at FROM runs WHERE id=$2) RETURNING thread_id`, [threadId, e.run_id]);
-      for (const w of watchers) await this.deliver(w.thread_id, 'thread-message', `Reply from ${t.code}:\n${said}`, { userId: t.owner_id, threadId });
+      const watchers = await this.q(`UPDATE wake_watches SET state='fired' WHERE kind='thread' AND target=$1 AND state='active' AND created_at <= (SELECT started_at FROM runs WHERE id=$2) RETURNING thread_id, (SELECT owner_id FROM threads o WHERE o.id=wake_watches.thread_id) owner`, [threadId, e.run_id]);
+      for (const w of watchers) if (await canViewThread(this.pool, threadId, w.owner)) await this.deliver(w.thread_id, 'thread-message', `Reply from ${t.code}:\n${said}`, { userId: t.owner_id, threadId });
     }
     if (e.kind === 'approval.requested' && t.parent_id) {
       const q = (await this.q('SELECT question FROM approvals WHERE id=$1', [e.payload.approvalId]))[0]?.question ?? 'needs a decision';

@@ -159,6 +159,9 @@ describe('wake router', () => {
     const rows = await waitFor(`SELECT 1 FROM events WHERE thread_id=$1 AND kind='user.message' AND payload->>'text' LIKE 'Reply from%'`, [a]);
     expect(rows.length).toBe(1); await idle(a);
     expect((await pool.query('SELECT state FROM wake_watches WHERE id=$1', [r.watch.id])).rows[0].state).toBe('fired');
+    const priv = await thread('private', 'usr_b'); await pool.query(`UPDATE threads SET visibility='shared' WHERE id=$1`, [priv]);
+    await router.send(a, priv, 'secret?', 'usr_a'); await pool.query(`UPDATE threads SET visibility='private' WHERE id=$1`, [priv]); await idle(priv); await sleep(300);
+    expect((await messages(a)).filter((m) => m.startsWith('Reply from')).length).toBe(1); await idle(a);
   }, 30_000);
 
   it('CAPY-050: messages to a held thread wait until the owner allows them', async () => {
