@@ -120,7 +120,11 @@ describe('wake router', () => {
     expect((await router.watches('usr_a')).map((x) => x.id)).toContain(w.id);
     expect((await router.watches('usr_b')).map((x) => x.id)).not.toContain(w.id);
     await expect(router.stop(w.id, 'usr_b')).rejects.toThrow(/not found/);
-    await router.stop(w.id, 'usr_a');
+    await pr(t, 212); await router.github('issue_comment', { action: 'created', repository: { full_name: 'acme/api' }, issue: { number: 212, pull_request: {} }, comment: { body: 'hi', user: { login: 'sam', type: 'User' } } });
+    expect((await router.waiting(t)).waiting).toBe(true); await idle(t);
+    await router.checksDone({ action: 'completed', repository: { full_name: 'acme/api' }, check_run: { pull_requests: [{ number: 212 }] } });
+    expect((await router.waiting(t)).waiting).toBe(false);
+    const w2 = await router.watchPr(t, 'acme/api', 212); await router.stop(w2.id, 'usr_a');
     expect(await router.waiting(t)).toMatchObject({ waiting: false, label: null });
   });
 

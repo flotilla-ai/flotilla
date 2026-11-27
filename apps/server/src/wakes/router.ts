@@ -83,7 +83,7 @@ export class WakeRouter {
       const recent = await this.q(`SELECT 1 FROM events WHERE thread_id=$1 AND kind='user.message' AND source='user' AND at > now() - make_interval(days => $2) LIMIT 1`, [owner, p.mergeWindowDays]);
       if (!recent.length) return { threadId: owner, outcome: 'ignored' };
     }
-    await this.q(`UPDATE wake_watches SET state='fired' WHERE thread_id=$1 AND kind='pr' AND target=$2 AND state='active'`, [owner, ref]);
+    await this.q(`UPDATE wake_watches SET state='fired' WHERE thread_id=$1 AND kind='pr' AND target=$2 AND state='active' AND payload->>'what'<>'checks'`, [owner, ref]);
     return { threadId: owner, outcome: await this.deliver(owner, kind, body, { userId: null }) };
   }
 
@@ -116,7 +116,12 @@ export class WakeRouter {
   }
   watchPr(threadId: string, repo: string, number: number, what = 'checks') {
     if (!/^[\w.-]+\/[\w.-]+$/.test(repo) || !(Number.isInteger(number) && number > 0)) throw new ApiFailure('ValidationFailed', 'repo owner/name and PR number required');
-    return this.watch(threadId, { kind: 'pr', target: `${repo}#${number}`, label: `Waiting on ${repo.split('/')[1]}#${number} ${what}`, url: `https://github.com/${repo}/pull/${number}${what === 'checks' ? '/checks' : ''}` });
+    return this.watch(threadId, { kind: 'pr', target: `${repo}#${number}`, label: `Waiting on ${repo.split('/')[1]}#${number} ${what}`, url: `https://github.com/${repo}/pull/${number}${what === 'checks' ? '/checks' : ''}`, payload: { what } });
+  }
+  /** A completed check run ends "checks" watches; the CI monitor sends the wake itself. */
+  async checksDone(b: Row): Promise<void> {
+    const repo = b.repository?.full_name; const n = b.check_run?.pull_requests?.[0]?.number;
+    if (b.action === 'completed' && repo && n) await this.q(`UPDATE wake_watches SET state='fired' WHERE kind='pr' AND target=$1 AND state='active' AND payload->>'what'='checks'`, [`${repo}#${n}`]);
   }
   timer(threadId: string, inSec: number, note: string, now = new Date()) {
     if (!(Number.isFinite(inSec) && inSec > 0 && inSec <= TIMER_MAX_SEC)) throw new ApiFailure('ValidationFailed', `timers run 1 s to 7 days (${TIMER_MAX_SEC} s)`);
