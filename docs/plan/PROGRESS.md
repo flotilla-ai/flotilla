@@ -1,11 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 2, waves 3-6 continuing in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-Current `flotilla/p1` head before this PR: `a278a5f` (phase2-22 captain operations).
+Current `flotilla/p1` head before this PR: `cb9f1f6` (phase2-16 dock CLI).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after phase2-16, phase2-22 and phase2-25: done 292, pending 221, needs-human-login 23, n-a 22, blocked 78.
+Counted in `docs/plan/PARITY.md` after phase2-16, phase2-22 and phase2-25: done 294, pending 214, needs-human-login 24, n-a 22, blocked 82.
 
 ## Unit table
 
@@ -58,10 +58,11 @@ Counted in `docs/plan/PARITY.md` after phase2-16, phase2-22 and phase2-25: done 
 | phase2-24-review-core | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/75 | durable review rounds/findings/triage/readiness/posting policy; see `docs/runlog/phase2-24.md` |
 | phase2-25-review-policy | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/76 | review context/policy/guides/evidence/stack detection; see `docs/runlog/phase2-25.md` |
 | phase2-22-captain-ops | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/77 | Captain digest documents/rules/messages/actions/templates; see `docs/runlog/phase2-22.md` |
-| phase2-16-dock-cli | in review | 1 |  | dock install verification/layout/dirs/commands/user isolation; see `docs/runlog/phase2-16.md` |
+| phase2-16-dock-cli | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/78 | dock install verification/layout/dirs/commands/user isolation; see `docs/runlog/phase2-16.md` |
+| phase2-15-device-execution | in review | 1 |  | device worktree policy/placement/Tailscale/import validation foundation; see `docs/runlog/phase2-15.md` |
 ## Next action
 
-1. Merge dock CLI after its gate, then implement phase2-15 device execution.
+1. Merge device execution after its gate, then write and merge the phase 2 exit report.
 2. Keep live GitHub/device rows fixture-backed and marked needs-human-login until a real operator login verifies them.
 3. Continue phase 2 units in dependency order without child sessions.
 

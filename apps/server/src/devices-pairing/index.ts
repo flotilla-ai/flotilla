@@ -106,6 +106,8 @@ export class DevicesPairingStore {
     const d = await this.deviceByToken(token);
     const [r] = await this.q(`UPDATE paired_devices SET status=$2,last_seen_at=now(),updated_at=now() WHERE id=$1 AND trust<>'revoked' RETURNING *`, [d.id, status]);
     if (!r) throw new ApiFailure('Forbidden', 'invalid device token');
+    if (status === 'online') await this.q(`UPDATE device_placements p SET state='ready',waiting_since=NULL,updated_at=now() FROM threads t WHERE t.id=p.thread_id AND p.device_id=$1 AND t.owner_id=$2 AND p.state='waiting-reconnect'`, [d.id,d.owner_id]);
+    else await this.q(`UPDATE device_placements p SET state='waiting-reconnect',waiting_since=COALESCE(p.waiting_since,now()),updated_at=now() FROM threads t WHERE t.id=p.thread_id AND p.device_id=$1 AND t.owner_id=$2 AND p.placement='paired-device' AND p.state='ready'`, [d.id,d.owner_id]);
     return toDevice(r);
   }
   async reportFolders(token: string, folders: unknown): Promise<PairedDevice> {
