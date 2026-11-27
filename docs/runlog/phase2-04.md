@@ -122,3 +122,18 @@ exit=0
 $ pnpm --filter @flotilla/adapter-claude-code test
       Tests  7 passed (7)
 ```
+
+## After merging `origin/flotilla/p1` `26f6713` (phase2-05 runner queue)
+
+Run-out now re-adds the claimed inbox item (priority 1) instead of the removed in-memory queue; `adapterFor` no longer falls back to the first adapter; `retry` carries the resolved `contextWindow`.
+
+```text
+$ cd apps/server && npx vitest run src/models-catalog src/runner
+ Test Files  4 passed (4)
+      Tests  33 passed (33)
+$ make check
+apps/web test:       Tests  5 passed (5)
+apps/server test:  Test Files  18 passed (18)
+apps/server test:       Tests  102 passed | 1 skipped (103)
+exit=0
+```
