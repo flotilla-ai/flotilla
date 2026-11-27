@@ -108,6 +108,10 @@ it('CAPY-152/154/155/159/160/161/162/163/164/165/166/500: automation triggers, c
   const standing = await store.create('usr_a', 'prj_auto', { name: 'Standing', prompt: 'x', triggers: [manual], threadMode: 'standing', model: { pinned: false } });
   const s1 = await store.trigger('usr_a', standing.id, {}); const s2 = await store.trigger('usr_a', standing.id, {});
   expect(s1.threadId).toBe(s2.threadId);
+  await pool.query(`INSERT INTO model_connections (id,scope,owner_id,provider,kind,adapter,label,position,status,available_models) VALUES ('mcn_sub_shared','user','usr_a','anthropic','subscription','claude-code','Subscription shared',0,'connected','["shared-model"]'),('mcn_existing','user','usr_a','custom-openai','custom','fake','Existing shared',2,'connected','["shared-model"]')`);
+  await pool.query(`INSERT INTO threads (id,code,project_id,role,owner_id,title,status,engine,budget,spent) VALUES ('thr_pinmatch','AUT-91','prj_auto','thread','usr_a','pinmatch','idle','{"adapter":"fake","model":"shared-model","connectionId":"mcn_existing"}','{}','{}')`);
+  const existingPinned = await store.create('usr_a', 'prj_auto', { name: 'Existing pinned', prompt: 'x', triggers: [manual], threadMode: 'existing', existingThreadId: 'thr_pinmatch', model: { name: 'shared-model', pinned: true } });
+  expect((existingPinned.model as any)).toMatchObject({ adapter: 'fake', connectionId: 'mcn_existing' });
   await pool.query(`INSERT INTO threads (id,code,project_id,role,owner_id,title,status,engine,budget,spent) VALUES ('thr_existing','AUT-90','prj_auto','thread','usr_a','existing','idle','{}','{}','{}')`);
   const existing = await store.create('usr_a', 'prj_auto', { name: 'Existing', prompt: 'x', triggers: [manual], threadMode: 'existing', existingThreadId: 'thr_existing', model: { pinned: false } });
   expect((await store.trigger('usr_a', existing.id, {})).threadId).toBe('thr_existing');

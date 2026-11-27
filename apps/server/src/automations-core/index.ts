@@ -144,14 +144,17 @@ export class AutomationStore {
     let adapter = 'fake'; let connectionId: string | null = null;
     if (model.pinned) {
       const catalog = modelsCatalogStore(this.databaseUrl);
-      const offers = (await catalog.candidates(userId)).filter((c) => c.models.includes(String(model.name)));
-      if (!offers.length) throw new ApiFailure('Conflict', 'pinned model is unavailable; no substitution was made');
-      adapter = offers[0].adapter;
-      connectionId = (await catalog.resolve(userId, { adapter, model: model.name })).connectionId;
       if (mode === 'existing') {
         const [t] = await this.q('SELECT engine FROM threads WHERE id=$1', [String(input.existingThreadId)]);
         const engine = (t?.engine ?? {}) as Record<string, unknown>;
-        if (engine.adapter !== adapter || (engine.model ?? null) !== model.name) throw new ApiFailure('ValidationFailed', 'existing thread engine does not match the pinned automation model');
+        if ((engine.model ?? null) !== model.name || typeof engine.adapter !== 'string') throw new ApiFailure('ValidationFailed', 'existing thread engine does not match the pinned automation model');
+        adapter = engine.adapter;
+        connectionId = (await catalog.resolve(userId, { adapter, model: model.name, connectionId: engine.connectionId ?? null })).connectionId;
+      } else {
+        const offers = (await catalog.candidates(userId)).filter((c) => c.models.includes(String(model.name)));
+        if (!offers.length) throw new ApiFailure('Conflict', 'pinned model is unavailable; no substitution was made');
+        adapter = offers[0].adapter;
+        connectionId = (await catalog.resolve(userId, { adapter, model: model.name })).connectionId;
       }
     }
     (model as Record<string, unknown>).adapter = adapter;
