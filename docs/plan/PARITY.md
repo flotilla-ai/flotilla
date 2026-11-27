@@ -456,16 +456,16 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-450 | Notifications | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-451 | Notifications | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-452 | Notifications | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-453 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-454 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-455 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-456 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-457 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-458 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-459 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-460 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-461 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-462 | API (platform) | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-453 | API (platform) | P2 | done | phase2-01 | https://github.com/flotilla-ai/flotilla/pull/25 | flt_ bearer keys minted only from a session; optional expiresAt; no rotate verb (api-platform.test.ts). |
+| CAPY-454 | API (platform) | P2 | done | phase2-01 | https://github.com/flotilla-ai/flotilla/pull/25 | Keys resolve to user or service principal; authorId = minting human; service-key project owned by service user. |
+| CAPY-455 | API (platform) | P2 | done | phase2-01 | https://github.com/flotilla-ai/flotilla/pull/25 | requestId/Idempotency-Key replay in requireSession; reuse on another path = flotilla/Conflict. |
+| CAPY-456 | API (platform) | P2 | done | phase2-01 | https://github.com/flotilla-ai/flotilla/pull/25 | Page<T> {items,cursor} on GET /files; bounded GET /api-keys returns {items}. |
+| CAPY-457 | API (platform) | P2 | done | phase2-01 | https://github.com/flotilla-ai/flotilla/pull/25 | ?frames=public SSE: status/run/turn/tool_call/assistant/transcript, id=seq, Last-Event-ID resume, retry 2000. |
+| CAPY-458 | API (platform) | P2 | done | phase2-01 | https://github.com/flotilla-ai/flotilla/pull/25 | flotilla/* typed errors incl. RateLimited (per-key window), PaidFeatureUnavailable, CrewRefused, BillingAuthorityUnavailable. |
+| CAPY-459 | API (platform) | P2 | done | phase2-01 | https://github.com/flotilla-ai/flotilla/pull/25 | /api/v1/tasks/* 308 to /threads with Deprecation; migration guide in apps/server/src/api-platform/API.md. |
+| CAPY-460 | API (platform) | P2 | done | phase2-01 | https://github.com/flotilla-ai/flotilla/pull/25 | Common flows doc API.md; test asserts every documented route exists. |
+| CAPY-461 | API (platform) | P2 | done | phase2-01 | https://github.com/flotilla-ai/flotilla/pull/25 | POST /api/v1/webhooks/automations/:secret -> hashed lookup, durable delivery row, 202; trigger semantics in phase2-26. |
+| CAPY-462 | API (platform) | P2 | done | phase2-01 | https://github.com/flotilla-ai/flotilla/pull/25 | POST /files presigned PUT grant, single-use upload, attachFiles(fileIds) resolver; composer wiring in phase2-06. |
 | CAPY-463 | Support | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-464 | Support | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-465 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
