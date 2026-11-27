@@ -34,8 +34,11 @@ export class NotificationCenter {
   }
   async subscribe(userId:string,input:PushSubscription):Promise<{id:string}> {
     if (!input.endpoint?.startsWith('https://')) throw new ApiFailure('ValidationFailed','push endpoint must be HTTPS');
+    const existing=(await this.q('SELECT id,user_id FROM push_subscriptions WHERE endpoint=$1',[input.endpoint]))[0];
+    if(existing&&existing.user_id!==userId)throw new ApiFailure('Conflict','push endpoint is already registered');
+    if(existing){await this.q('UPDATE push_subscriptions SET keys=$2 WHERE id=$1',[existing.id,JSON.stringify(input.keys??{})]);return{id:existing.id}}
     const id=`ps_${crypto.randomBytes(8).toString('hex')}`;
-    await this.q('INSERT INTO push_subscriptions(id,user_id,endpoint,keys) VALUES($1,$2,$3,$4) ON CONFLICT(endpoint) DO UPDATE SET user_id=$2,keys=$4 RETURNING id',[id,userId,input.endpoint,JSON.stringify(input.keys??{})]);
+    await this.q('INSERT INTO push_subscriptions(id,user_id,endpoint,keys) VALUES($1,$2,$3,$4)',[id,userId,input.endpoint,JSON.stringify(input.keys??{})]);
     return { id };
   }
   private async insert(userId:string,kind:AppNotification['kind'],body:string,payload:Record<string,unknown>={}):Promise<AppNotification> {
