@@ -64,3 +64,22 @@ $ cd apps/server && npx vitest run src/git
 - Live provider error strings are unverified. The classification regexes (429/rate limit, 529/503/overloaded, 401/403/auth, context/too long) are inferred, not taken from captured vendor output.
 - No adapter exposes fork/rewind, so editing a sent message starts a new session from the edited version instead of rewinding the vendor session.
 - API paths and body shapes are inferred, not taken from Capy fixtures.
+
+## CI round 1 (9c7c69d)
+
+CI `check` failed: `runner.test.ts > pauses at cap and raise resumes` saw `expected 'working' to be 'paused'`. `pauseBudget` inserted the open approval before it set the thread to `paused`, so the test could poll in between. The runner now sets the thread status first, in `pauseBudget` and the plan gate alike.
+
+```text
+$ cd apps/server && for i in 1 2 3; do npx vitest run src/runner; done
+      Tests  14 passed (14)
+      Tests  14 passed (14)
+      Tests  14 passed (14)
+```
+
+```text
+$ make check   (local, after the fix)
+apps/server test:    × git mirror > collects and pushes without token in mirror config or agent hooks/config running 177ms
+apps/server test:       Tests  1 failed | 71 passed | 1 skipped (73)
+make exit 2
+```
+This local failure is the `git/mirror.test.ts` failure recorded above. It is outside phase2-05 scope, and the same test passed in CI on 9c7c69d.

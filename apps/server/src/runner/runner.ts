@@ -252,8 +252,8 @@ export class ThreadRunner {
   /** Plan mode ends every turn at a blocking gate; nothing else runs and no after-run hook (push, PR) fires until it is approved. */
   private async openPlanGate(thread: Row, runId: string): Promise<void> {
     const approvalId = id('apr');
-    await this.pool.query(`INSERT INTO approvals (id,thread_id,captain_id,kind,question,options,blocking,state,gate) VALUES ($1,$2,$3,'decision','Approve the plan?',$4,true,'open','plan')`, [approvalId, thread.id, thread.crew_of ?? null, JSON.stringify([{ id: 'approve', label: 'Approve plan' }, { id: 'revise', label: 'Keep planning' }])]);
     await this.pool.query(`UPDATE threads SET status='paused',needs_you=$2 WHERE id=$1`, [thread.id, JSON.stringify([approvalId])]);
+    await this.pool.query(`INSERT INTO approvals (id,thread_id,captain_id,kind,question,options,blocking,state,gate) VALUES ($1,$2,$3,'decision','Approve the plan?',$4,true,'open','plan')`, [approvalId, thread.id, thread.crew_of ?? null, JSON.stringify([{ id: 'approve', label: 'Approve plan' }, { id: 'revise', label: 'Keep planning' }])]);
     await this.deps.store.appendEvents(thread.id as Thread['id'], [{ runId: runId as never, kind: 'approval.requested', source: 'kernel', trust: 'trusted', payload: { approvalId, kind: 'decision', gate: 'plan' } }] as never);
   }
   private async failStart(threadId: string, runId: string, err: unknown): Promise<never> {
@@ -265,8 +265,9 @@ export class ThreadRunner {
   }
   private async pauseBudget(threadId: string, runId: string, why: string): Promise<void> {
     const approvalId = id('apr');
-    await this.pool.query(`INSERT INTO approvals (id,thread_id,kind,question,options,blocking,state) VALUES ($1,$2,'budget',$3,$4,true,'open') ON CONFLICT DO NOTHING`, [approvalId, threadId, `Budget cap reached (${why}); raise the cap or stop`, JSON.stringify([{ id: 'raise', label: 'Raise budget' }, { id: 'stop', label: 'Stop' }])]);
+    // Thread status first: anything that sees the open approval also sees the thread paused.
     await this.pool.query(`UPDATE threads SET status='paused',needs_you=$2 WHERE id=$1`, [threadId, JSON.stringify([approvalId])]);
+    await this.pool.query(`INSERT INTO approvals (id,thread_id,kind,question,options,blocking,state) VALUES ($1,$2,'budget',$3,$4,true,'open') ON CONFLICT DO NOTHING`, [approvalId, threadId, `Budget cap reached (${why}); raise the cap or stop`, JSON.stringify([{ id: 'raise', label: 'Raise budget' }, { id: 'stop', label: 'Stop' }])]);
     await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'budget.exceeded', source: 'kernel', trust: 'trusted', payload: { why } }, { runId: null, kind: 'approval.requested', source: 'kernel', trust: 'trusted', payload: { approvalId, kind: 'budget' } }] as never);
   }
 }
