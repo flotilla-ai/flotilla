@@ -8,11 +8,12 @@ import { EventStore } from '../events/store.js';
 import { DockerMachineDriver } from '../machines/dockerDriver.js';
 import { ThreadRunner } from '../runner/runner.js';
 import { parseVariables, secretsStore } from '../secrets/store.js';
+import { mcpStore } from '../mcp/store.js';
 import { modelPolicyApi, modelsCatalogStore, withConnectionKeys } from '../models-catalog/store.js';
 
 let singleton: ThreadRunner | null = null;
 export function defaultRunner(): ThreadRunner {
-  singleton ??= new ThreadRunner({ store: new EventStore(process.env.DATABASE_URL ?? 'postgres://postgres@postgres:5432/flotilla'), driver: new DockerMachineDriver(new Docker()), adapters: new Map<string, AgentAdapter>([['fake', fakeAdapter], ['claude-code', claudeCodeAdapter], ['codex', codexAdapter]]), vault: withConnectionKeys(secretsStore()), resolveEngine: (user, engine) => modelsCatalogStore().resolve(user, engine), runOut: modelPolicyApi() });
+  singleton ??= new ThreadRunner({ store: new EventStore(process.env.DATABASE_URL ?? 'postgres://postgres@postgres:5432/flotilla'), driver: new DockerMachineDriver(new Docker()), adapters: new Map<string, AgentAdapter>([['fake', fakeAdapter], ['claude-code', claudeCodeAdapter], ['codex', codexAdapter]]), vault: withConnectionKeys(secretsStore()), resolveEngine: (user, engine) => modelsCatalogStore().resolve(user, engine), runOut: modelPolicyApi(), mcp: mcpStore() });
   return singleton;
 }
 function userId(c: unknown): string { return (c as { get(key: string): string }).get('userId'); }
