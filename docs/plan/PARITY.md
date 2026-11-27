@@ -20,14 +20,14 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-014 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-015 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-016 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-017 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-018 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-019 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-020 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-021 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-022 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-023 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-024 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-017 | Threads | P2 | done | phase2-07 |  | Rename/regenerate/heuristic <=50-char titles; org+personal instructions reach TitleGenerator; regenerateWhen setting. Model-backed generator unverified. Inbox UI e2e: `apps/web/e2e/thread-lifecycle.spec.ts`. |
+| CAPY-018 | Threads | P2 | done | phase2-07 |  | Archive keeps events; unarchive/Undo starts no run; a message unarchives and runs. Inbox UI e2e: `apps/web/e2e/thread-lifecycle.spec.ts`. |
+| CAPY-019 | Threads | P2 | done | phase2-07 |  | Bulk archive/tag/file/pin/delete with per-thread results; shift-click range in web. Inbox UI e2e: `apps/web/e2e/thread-lifecycle.spec.ts`. |
+| CAPY-020 | Threads | P2 | done | phase2-07 |  | Hard delete (cascade + thread secrets); private = owner-only. Inbox UI e2e: `apps/web/e2e/thread-lifecycle.spec.ts`. |
+| CAPY-021 | Threads | P2 | done | phase2-07 |  | Per-viewer read/unread and @mention badge count. Inbox UI e2e: `apps/web/e2e/thread-lifecycle.spec.ts`. |
+| CAPY-022 | Threads | P2 | done | phase2-07 |  | Join/leave/subscribe/unsubscribe on shared threads. Inbox UI e2e: `apps/web/e2e/thread-lifecycle.spec.ts`. |
+| CAPY-023 | Threads | P2 | done | phase2-07 |  | Takeover makes the actor owner; prior owner stays a member. Inbox UI e2e: `apps/web/e2e/thread-lifecycle.spec.ts`. |
+| CAPY-024 | Threads | P2 | done | phase2-07 |  | Transfer via share-dialog actions; connectionId reset, personal secrets never move. Inbox UI e2e: `apps/web/e2e/thread-lifecycle.spec.ts`. |
 | CAPY-025 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-026 | Threads | P2 | blocked | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | Server/API proven in runner-queue.test.ts: GET/PATCH `/threads/:id/context`: used tokens from the last run; Compact at is editable only when the adapter declares `compaction`. Blocked: web UI (context meter and Compact-at control) not built in phase2-05 (server-only slice within diff budget); needs a web unit. |
 | CAPY-027 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
@@ -321,21 +321,21 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-315 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-316 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-317 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-318 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-318 | Models & connections | P2 | needs-human-login | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | catalog rows (adapter+model, list price, BYOK, ZDR) proven with built-in free + operator fixture file; real vendor rows/prices: operator fills FLOTILLA_MODEL_CATALOG. |
 | CAPY-319 | Models & connections | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate the real default vendor model list/configuration with vendor login. |
 | CAPY-320 | Models & connections | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-321 | Models & connections | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate Claude/Codex subscription login behavior on mehdi's machine. |
 | CAPY-322 | Models & connections | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate Claude Agent SDK harness behavior with a real Claude login. |
 | CAPY-323 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-324 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-325 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-325 | Models & connections | P2 | needs-human-login | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | none…max validated per catalog model, unsupported fails with no fallback, effort reaches StartInput (fake); CLI effort-flag mapping unverified with real claude/codex. |
 | CAPY-326 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-327 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-328 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-329 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-330 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-331 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-332 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-327 | Models & connections | P2 | done | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | owner → org → free order, reorder, per-connection models, edit/test/reconnect/disable (fixture endpoint). |
+| CAPY-328 | Models & connections | P2 | needs-human-login | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | provider list from adapter auth capabilities, searchable; subscription = CLI vendor/device login; real logins and gateway list need mehdi. |
+| CAPY-329 | Models & connections | P2 | needs-human-login | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | check access via local OpenAI-compatible fixture; exclusions; new models auto-covered; real provider endpoints need a key. |
+| CAPY-330 | Models & connections | P2 | needs-human-login | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | custom model ids added/found/selectable on a connection (fixture); real key needed for live endpoint. |
+| CAPY-331 | Models & connections | P2 | done | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | pinned connection never falls back; its key alone reaches the run env (fake). |
+| CAPY-332 | Models & connections | P2 | blocked | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | blocked: the row is the web model picker (badges, connection tooltip, Alt+1…9 favorites) and `apps/web` is outside phase2-03 SCOPE; the server API returning badges, tooltips, favorites and shortcuts is proven (models-catalog.test.ts). Needs a web picker unit. |
 | CAPY-333 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-334 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-335 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
@@ -476,9 +476,9 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-470 | Threads | P2 | blocked | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | Server/API proven in runner-queue.test.ts: POST `/approvals/:id/later` (snooze) and `/dismiss`, POST `/captains/:id/approvals/dismiss`; each emits `approval.updated`. Blocked: web UI (request cards with Later/Dismiss and Captain dismiss-all) not built in phase2-05 (server-only slice within diff budget); needs a web unit. |
 | CAPY-471 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-472 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-473 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-474 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-475 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-473 | Threads | P2 | done | phase2-07 |  | Idle auto-archive off by default; skips pinned/open-PR/active/needs-you. Inbox UI e2e: `apps/web/e2e/thread-lifecycle.spec.ts`. |
+| CAPY-474 | Threads | P2 | done | phase2-07 |  | Mark all read includes archived. Inbox UI e2e: `apps/web/e2e/thread-lifecycle.spec.ts`. |
+| CAPY-475 | Threads | P2 | done | phase2-07 |  | Cost by token kind, model and machine. Inbox UI e2e: `apps/web/e2e/thread-lifecycle.spec.ts`. |
 | CAPY-476 | Threads | P2 | blocked | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | Server/API proven in runner-queue.test.ts: Nested tool calls/results keep `parentId` in live `agent.tool_*` events. Blocked: web UI (nested codemode tool-call display) not built in phase2-05 (server-only slice within diff budget); needs a web unit. |
 | CAPY-477 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-478 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |

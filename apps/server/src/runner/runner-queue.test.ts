@@ -49,7 +49,7 @@ beforeAll(async () => {
   container = (await exec('docker', ['run', '-d', '--rm', '-p', '127.0.0.1::5432', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', 'postgres:16'])).stdout.trim();
   const port = (await exec('docker', ['port', container, '5432/tcp'])).stdout.trim().split(':').pop(); url = `postgres://postgres@127.0.0.1:${port}/postgres`;
   for (let i = 0; i < 40; i++) { try { const c = new pg.Client({ connectionString: url }); await c.connect(); await c.end(); break; } catch { await sleep(250); } }
-  await migrate(url); const store = new EventStore(url); pool = store.pool; runner = new ThreadRunner({ store, driver: driver as never, adapters });
+  await migrate(url); const store = new EventStore(url); pool = store.pool; runner = new ThreadRunner({ store, driver: driver as never, adapters, resolveEngine: async (_u, e) => { if (e.connectionId === 'con_other') throw new ApiFailure('NotFound', 'connection not found'); return { adapter: e.adapter as string, model: (e.model as string | null) ?? null, effort: e.effort ?? null, connectionId: (e.connectionId as string | null) ?? null }; } });
   await pool.query(`INSERT INTO users (id,email,role) VALUES ('usr_q','q@x','admin'),('usr_o','o@x','member')`);
   api = new Hono(); api.use('*', async (c, next) => { c.set('userId' as never, c.req.header('x-user') as never); await next(); }); api.onError((err, c) => (err instanceof ApiFailure ? apiError(c, err.kind, err.message) : apiError(c, 'Internal', String(err)))); api.route('/api/v1', createRunnerQueueRoute(runner).app);
 }, 30_000);
@@ -145,6 +145,7 @@ describe('runner queue', () => {
     const t = await make('flaky', 'do it'); const [failed] = await until(() => runs(t.id), (r) => r[0]?.state === 'failed');
     expect(failed.error).toMatchObject({ kind: 'overloaded', retryable: true });
     expect((await kinds(t.id, 'run.ended'))[0].error.kind).toBe('overloaded');
+    expect((await call('POST', `/threads/${t.id}/retry`, { connectionId: 'con_other' })).status).toBe(404);
     const r = await call('POST', `/threads/${t.id}/retry`, { model: 'other-model', connectionId: 'con_own' });
     expect(r.status).toBe(202);
     await until(() => runs(t.id), (x) => x[1]?.state === 'completed');

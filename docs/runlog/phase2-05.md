@@ -107,7 +107,14 @@ Cause: the budget approval is now inserted after the status update, so it can ap
 - Fixed: `/btw` now only opens a side thread for an owner-sent message. Captain/kernel messages (no `userId`) are delivered as plain text. Side threads inherit the parent's `maxUsd`.
 - Fixed: inbox attachments are copied into the machine at `/run/flotilla/attachments/<id>-<name>`. Their paths go to `StartInput.attachments` and are listed in the prompt.
 - Fixed: the plan-approval message now carries the original request and the plan run's `agent.delta` text, because each run starts a fresh session.
-- Fixed: `StartInput.model`/`effort` now come from `threads.engine`, so a retry on another model uses that model. `connectionId` is saved but not yet used: there are no connection credentials in this phase (`auth` is still `none`).
+- Fixed: `StartInput.model`/`effort` now come from `threads.engine`, so a retry on another model uses that model. `connectionId` is validated and used since the bd40ab1 merge; see the integration section below.
 - Fixed: on startup, `recoverClaimed()` ends runs without `ended_at` as `failed` and re-queues the inbox items they had claimed. Delivery is at-least-once after a crash.
 
 `npx vitest run src/runner`: Tests 16 passed (16). `make check` failed only on the known `git/mirror.test.ts` fsmonitor test; every other server test passed.
+
+## Integration merge (flotilla/p1 bd40ab1: phase2-03 + phase2-07)
+
+- `runner.ts` kept the phase2-05 side. p1 only added `model`/`effort` to `adapter.start`, which this branch already passes from `threads.engine`.
+- Docs merged with both sides kept. Parity counts on this branch: done 74, pending 512, needs-human-login 13, n-a 22, blocked 11.
+- Retry connection gap closed: `RunnerDeps.resolveEngine` (in `defaultRunner`, `modelsCatalogStore().resolve`) checks the new model/connection. An unknown or foreign connection returns 404 before anything is saved. The saved `engine.connectionId` then reaches the run through `withConnectionKeys` → `connectionEnv()` at `vault.prepare`. The runner-queue test uses a stub resolver; phase2-03's tests already prove the key injection.
+- `npx vitest run src/runner src/models-catalog src/thread-lifecycle src/secrets`: Tests 45 passed (45).

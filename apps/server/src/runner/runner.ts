@@ -20,7 +20,7 @@ const zero = budgetZero;
 const add = (a: CostTotals, b: CostTotals): CostTotals => ({ usd: a.usd+b.usd, inputTokens: a.inputTokens+b.inputTokens, outputTokens: a.outputTokens+b.outputTokens, cacheTokens: a.cacheTokens+b.cacheTokens, machineSec: a.machineSec+b.machineSec });
 const id = (p: string) => `${p}_${randomBytes(10).toString('base64url')}`;
 const budget = (maxUsd: number | null = null) => ({ maxUsd, maxTokens: null, maxWallSec: null, scope: 'thread' as const, onHit: 'pause-and-ask' as const, warnAt: 0.8 });
-export type RunnerDeps = { store: EventStore; driver: Driver; adapters: Map<string, AgentAdapter>; secrets?: Record<string,string>; projectFor?(row: Row): Row; vault?: Pick<SecretsStore, 'mutate' | 'prepare'> };
+export type RunnerDeps = { store: EventStore; driver: Driver; adapters: Map<string, AgentAdapter>; secrets?: Record<string,string>; projectFor?(row: Row): Row; vault?: Pick<SecretsStore, 'mutate' | 'prepare'>; resolveEngine?(userId: string, engine: Row): Promise<{ adapter: string; model: string | null; effort: unknown; connectionId: string | null }> };
 type AfterRun=(input:{thread:Row;project:Row|null;runId:string;state:string;containerId:string;driver:Driver})=>Promise<void>;
 const afterRunHooks:AfterRun[]=[];
 export function onAfterRun(fn:AfterRun):()=>void{afterRunHooks.push(fn);return()=>{const i=afterRunHooks.indexOf(fn);if(i>=0)afterRunHooks.splice(i,1)}}
@@ -107,7 +107,12 @@ export class ThreadRunner {
     const last = (await this.pool.query('SELECT state FROM runs WHERE thread_id=$1 ORDER BY ordinal DESC LIMIT 1', [threadId])).rows[0];
     const sent = await this.inbox.lastDelivered(threadId);
     if (last?.state !== 'failed' || !sent || this.running.has(threadId)) throw new ApiFailure('Conflict', 'nothing to retry');
-    if (engine.model !== undefined || engine.connectionId !== undefined) await this.pool.query('UPDATE threads SET engine=engine || $2::jsonb WHERE id=$1', [threadId, JSON.stringify({ ...(engine.model !== undefined ? { model: engine.model } : {}), ...(engine.connectionId !== undefined ? { connectionId: engine.connectionId } : {}) })]);
+    if (engine.model !== undefined || engine.connectionId !== undefined) {
+      const next: Row = { ...(thread.engine as Row), ...(engine.model !== undefined ? { model: engine.model } : {}), ...(engine.connectionId !== undefined ? { connectionId: engine.connectionId } : {}) };
+      // The catalog checks the user owns an enabled connection that offers the model; the vault then injects its key at run start.
+      const r = this.deps.resolveEngine ? await this.deps.resolveEngine(userId, next) : null;
+      await this.pool.query('UPDATE threads SET engine=engine || $2::jsonb WHERE id=$1', [threadId, JSON.stringify(r ? { adapter: r.adapter, model: r.model, effort: r.effort, connectionId: r.connectionId } : next)]);
+    }
     await this.pool.query(`UPDATE threads SET status='queued' WHERE id=$1`, [threadId]);
     const item = await this.inbox.add({ threadId, text: sent.text, mode: 'queue', plan: sent.plan, by: userId, ownerId: thread.owner_id as string, attachments: sent.attachments, priority: 1 });
     await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'control.retry', source: 'user', trust: 'trusted', payload: { inboxId: item.id, ...engine } }] as never);

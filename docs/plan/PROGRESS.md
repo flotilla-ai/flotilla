@@ -1,11 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 2, wave 2 (phase2-05 runner queue in review).
-Current `flotilla/p1` head: `4772b1c` (repair-5 merged; merged into phase2-05).
+Current `flotilla/p1` head: `bd40ab1` (phase2-03 and phase2-07 merged; merged into phase2-05).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` on this branch: done 61, pending 531, needs-human-login 8, n-a 22, blocked 10 (phase2-05 adds 4 done rows and 10 blocked web-UI rows; the remaining P2/P3/P4 rows are pending); phase 1 rows are done except live vendor/GitHub rows marked `needs-human-login`; n/a rows carry Appendix A's reason.
+Counted in `docs/plan/PARITY.md` on this branch: done 74, pending 512, needs-human-login 13, n-a 22, blocked 11 (phase2-05 adds 4 done rows and 10 blocked web-UI rows; the remaining P2/P3/P4 rows are pending); phase 1 rows are done except live vendor/GitHub rows marked `needs-human-login`; n/a rows carry Appendix A's reason.
 
 ## Unit table
 
@@ -21,13 +21,14 @@ Counted in `docs/plan/PARITY.md` on this branch: done 61, pending 531, needs-hum
 | repair-2-runner-authz | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/26 | runner ownership/idempotency security repair |
 | phase2-02-secrets | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/28 | secrets vault + env API; 12 rows done |
 | repair-4-secrets-hardening | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/29 | persist vault key; keyed idempotency fingerprints |
-| phase2-03-models-catalog | in progress | 1 |  | child session implementing |
+| phase2-03-models-catalog | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/30 | model catalog + connections; 2 rows done, 5 needs-human-login, 1 blocked (CAPY-332 web picker) |
+| phase2-07-thread-lifecycle | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/31 | thread lifecycle and collaboration; 11 rows done pending merge; see `docs/runlog/phase2-07.md` |
 | repair-5-runner-supervise | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/33 | runner background continuations drained before pool end |
 | phase2-05-runner-queue | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/34 | durable inbox, steer/queue, versions, retry, /plan gate; 4 rows done, 10 web-UI rows blocked |
 
 ## Next action
 
-1. Finish phase2-05 review (flotilla/p1 with repair-5 already merged in); review the phase2-03 child PR.
+1. Finish phase2-05 review (current `flotilla/p1` `bd40ab1` with phase2-03 and phase2-07 merged in).
 2. Continue wave 1 serialized foundations in order with phase2-04 after phase2-03.
 3. Wave 2 units may start after wave 1 dependencies merge.
 
@@ -41,4 +42,4 @@ None.
 
 ## Unverified items
 
-See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. Unverified items for phase2-01, phase2-02 and phase2-05 are listed in `docs/runlog/phase2-01.md`, `docs/runlog/phase2-02.md` and `docs/runlog/phase2-05.md` (phase2-05 web UI display is not built).
+See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. Unverified items for phase2-01, phase2-02, phase2-05 and phase2-07 are listed in `docs/runlog/phase2-01.md`, `docs/runlog/phase2-02.md`, `docs/runlog/phase2-07.md` and `docs/runlog/phase2-05.md` (phase2-05 web UI display is not built).
