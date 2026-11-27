@@ -137,3 +137,15 @@ apps/server test:  Test Files  18 passed (18)
 apps/server test:       Tests  102 passed | 1 skipped (103)
 exit=0
 ```
+
+## After merging `origin/flotilla/p1` `505d663` (phase2-08 thread API)
+
+Docs-only conflicts (DECISIONS-LOG, PROGRESS); both sides kept.
+
+```text
+$ make check
+apps/web test:       Tests  5 passed (5)
+apps/server test:  Test Files  19 passed (19)
+apps/server test:       Tests  110 passed | 1 skipped (111)
+exit=0
+```
