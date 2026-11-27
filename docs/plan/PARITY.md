@@ -172,13 +172,13 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-166 | Automations | P2 | done | phase2-26 |  | Runs may target an existing thread or create private threads. |
 | CAPY-167 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-168 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-169 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-170 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-171 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-172 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-173 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-169 | Automations | P2 | done | phase2-27 |  | Webhook payloads are stored as data in automation runs and never concatenated into the stored prompt; prompt remains the only instruction source. |
+| CAPY-170 | Automations | P2 | done | phase2-27 |  | max_runs_per_day is validated and enforced atomically before thread creation; over-cap events are durable skipped runs. |
+| CAPY-171 | Automations | P2 | blocked | phase2-27 |  | Automation drive_scope metadata is durable, but Drive state is not yet mounted into automation runs. |
+| CAPY-172 | Automations | P2 | blocked | phase2-27 |  | Per-automation machine_size is durable, but runner machine placement does not consume it yet. |
+| CAPY-173 | Automations | P2 | done | phase2-27 |  | Pause/resume/delete/restore, manual trigger, run list/cancel and webhook rotation APIs are proven. |
 | CAPY-174 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-175 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-175 | Automations | P2 | blocked | phase2-27 |  | Failed automation runs and thread references are retained, but runner output/completion is not yet written back to automation_runs.output. |
 | CAPY-176 | Projects | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-180 | Projects | P2 | done | phase2-29 | https://github.com/flotilla-ai/flotilla/pull/42 | `name`, emoji `icon`, unique uppercase `code` (2-6, derived from name if absent); a `threads` BEFORE INSERT trigger numbers project threads `CODE-n`. Test: `apps/server/src/projects/projects.test.ts`; UI `apps/web/e2e/projects.spec.ts`. |
 | CAPY-181 | Projects | P2 | needs-human-login | phase2-29 | https://github.com/flotilla-ai/flotilla/pull/42 | Sources `github|git-url|folder|empty` (+ `lazy[]`) and `GET /projects/suggestions` proven with local git fixtures and a fixture GitHub list. When `GITHUB_TOKEN` is set, only admins can list suggestions or add/clone GitHub repos (403 for members, suggestions `[]`). Blocked remainder: members adding GitHub repos with their own access needs per-user GitHub identity (P3). Live `GET /user/repos?sort=pushed`, live clones and device-folder clones (phase2-15) are unproven; operator commands are in `docs/runlog/phase2-29.md`. Test: `apps/server/src/projects/projects.test.ts`; UI `apps/web/e2e/projects.spec.ts`. |
@@ -501,7 +501,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-498 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-499 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-500 | Automations | P2 | done | phase2-26 |  | Multiple schedule triggers per automation are stored and scanned independently. |
-| CAPY-501 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-501 | Automations | P2 | done | phase2-27 |  | Automation list API filters by state and creation date; project scoping is inherent in the project list endpoint. |
 | CAPY-502 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | Usage is summed as bigint; a Drive at >2 GiB accepts saves up to its quota (drive-core.test.ts, sizes recorded without writing 2 GiB). |
 | CAPY-503 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | Mount/save failures insert a non-blocking `approvals` card with `detail.drive={code,title,nextStep}`; the run still starts (drive-core.test.ts). |
 | CAPY-504 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |

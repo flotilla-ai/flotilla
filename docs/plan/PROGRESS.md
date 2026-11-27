@@ -51,6 +51,8 @@ Counted in `docs/plan/PARITY.md` on this branch after automations core plus Capt
 | phase2-26-automations-core | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/68 | durable automation definitions, cron/webhook/GitHub/manual triggers, batches, conditions, model pinning and thread modes; 11 rows done, CAPY-153/163 blocked; see `docs/runlog/phase2-26.md` |
 | phase2-21-captain-machine-api | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/69 | Captain list/create/get/crew/digest REST, crew-thread creation, alias/photo upload/library, pool placement metadata; 10 rows done, paired-device rows blocked; see `docs/runlog/phase2-21.md` |
 
+| phase2-27-automation-control | in review | 1 |  | automation control operations, cap, webhook rotation, filters; 3 rows done, Drive/machine/output rows blocked; see `docs/runlog/phase2-27.md` |
+
 ## Next action
 
 1. Continue machine UX/devices/dock and Captain/work-surface units directly in the parent session. CAPY-061/062 need a paired-device target and an agent-callable subagent tool.

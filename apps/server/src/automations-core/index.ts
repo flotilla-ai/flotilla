@@ -11,10 +11,10 @@ export interface Automation {
   triggers: AutomationTrigger[]; conditions: Record<string, unknown>; runWhen: string | null;
   gateModel: Record<string, unknown>; model: { name: string | null; pinned: boolean };
   threadMode: 'new' | 'standing' | 'existing' | 'private'; existingThreadId: string | null; standingThreadId: string | null;
-  machineSize: string; state: 'active' | 'paused' | 'deleted'; webhookUrl: string | null; webhookToken?: string; createdAt: string; updatedAt: string;
+  machineSize: string; maxRunsPerDay: number | null; driveScope: Record<string, unknown>; state: 'active' | 'paused' | 'deleted'; webhookUrl: string | null; webhookToken?: string; createdAt: string; updatedAt: string;
 }
 export interface AutomationRun {
-  id: string; automationId: string; triggerType: TriggerType; triggerKey: string; status: 'queued' | 'skipped' | 'duplicate' | 'failed';
+  id: string; automationId: string; triggerType: TriggerType; triggerKey: string; status: 'queued' | 'running' | 'completed' | 'skipped' | 'duplicate' | 'failed' | 'cancelled';
   threadId: string | null; payload: Record<string, unknown>; skipReason: string | null; createdAt: string;
 }
 export type PublicAutomationRun = Omit<AutomationRun, 'payload'>
@@ -112,7 +112,7 @@ const toAutomation = (r: Row, token?: string): Automation => ({
   triggers: r.triggers as AutomationTrigger[], conditions: (r.conditions ?? {}) as Record<string, unknown>, runWhen: r.run_when as string | null,
   gateModel: r.gate_model as Record<string, unknown>, model: r.model as Automation['model'], threadMode: r.thread_mode as Automation['threadMode'],
   existingThreadId: r.existing_thread_id as string | null, standingThreadId: r.standing_thread_id as string | null,
-  machineSize: String(r.machine_size ?? 'small'), state: r.state as Automation['state'], webhookUrl: r.webhook_hash ? `/api/v1/automation-webhooks/${token ?? '<token>'}` : null,
+  machineSize: String(r.machine_size ?? 'small'), maxRunsPerDay: r.max_runs_per_day == null ? null : Number(r.max_runs_per_day), driveScope: (r.drive_scope ?? {}) as Record<string, unknown>, state: r.state as Automation['state'], webhookUrl: r.webhook_hash ? `/api/v1/automation-webhooks/${token ?? '<token>'}` : null,
   ...(token ? { webhookToken: token } : {}), createdAt: iso(r.created_at), updatedAt: iso(r.updated_at)
 });
 const toRun = (r: Row): AutomationRun => ({ id: String(r.id), automationId: String(r.automation_id), triggerType: r.trigger_type as TriggerType, triggerKey: String(r.trigger_key), status: r.status as AutomationRun['status'], threadId: r.thread_id as string | null, payload: (r.payload ?? {}) as Record<string, unknown>, skipReason: r.skip_reason as string | null, createdAt: iso(r.created_at) });
@@ -131,6 +131,10 @@ export class AutomationStore {
     const triggers = triggerList(input.triggers);
     const mode = String(input.threadMode ?? 'new');
     if (!['new','standing','existing','private'].includes(mode)) throw new ApiFailure('ValidationFailed', 'threadMode must be new, standing, existing or private');
+    const maxRunsPerDay = input.maxRunsPerDay == null ? null : Number(input.maxRunsPerDay);
+    if (maxRunsPerDay != null && (!Number.isInteger(maxRunsPerDay) || maxRunsPerDay < 1)) throw new ApiFailure('ValidationFailed', 'maxRunsPerDay must be a positive integer');
+    const driveScope = (input.driveScope ?? {}) as Record<string, unknown>;
+    if (!driveScope || typeof driveScope !== 'object' || Array.isArray(driveScope)) throw new ApiFailure('ValidationFailed', 'driveScope must be an object');
     if (!String(input.prompt ?? '').trim() || !String(input.name ?? '').trim()) throw new ApiFailure('ValidationFailed', 'name and prompt are required');
     if (mode === 'existing') {
       const [t] = await this.q('SELECT id,engine FROM threads WHERE id=$1 AND project_id=$2 AND owner_id=$3', [String(input.existingThreadId ?? ''), projectId, userId]);
@@ -161,11 +165,18 @@ export class AutomationStore {
     if (connectionId) (model as Record<string, unknown>).connectionId = connectionId;
     const token = triggers.some((t) => t.type === 'webhook') ? randomUUID() + randomUUID() : null;
     const aid = id('aut');
-    const [r] = await this.q(`INSERT INTO automations (id,project_id,owner_id,name,prompt,triggers,conditions,run_when,gate_model,model,thread_mode,existing_thread_id,webhook_hash,machine_size)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`, [aid, projectId, userId, String(input.name), String(input.prompt), JSON.stringify(triggers), JSON.stringify(input.conditions ?? {}), input.runWhen == null ? null : String(input.runWhen), JSON.stringify(input.gateModel ?? { adapter: 'fake', model: 'free-fast' }), JSON.stringify(model), mode, mode === 'existing' ? String(input.existingThreadId) : null, token ? sha256(token) : null, String(input.machineSize ?? 'small')]);
+    const [r] = await this.q(`INSERT INTO automations (id,project_id,owner_id,name,prompt,triggers,conditions,run_when,gate_model,model,thread_mode,existing_thread_id,webhook_hash,machine_size,max_runs_per_day,drive_scope)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`, [aid, projectId, userId, String(input.name), String(input.prompt), JSON.stringify(triggers), JSON.stringify(input.conditions ?? {}), input.runWhen == null ? null : String(input.runWhen), JSON.stringify(input.gateModel ?? { adapter: 'fake', model: 'free-fast' }), JSON.stringify(model), mode, mode === 'existing' ? String(input.existingThreadId) : null, token ? sha256(token) : null, String(input.machineSize ?? 'small'), maxRunsPerDay, JSON.stringify(driveScope)]);
     return toAutomation(r, token ?? undefined);
   }
-  async list(userId: string, projectId: string): Promise<Automation[]> { await this.ownedProject(userId, projectId); return (await this.q('SELECT * FROM automations WHERE project_id=$1 AND state<>$2 ORDER BY created_at', [projectId, 'deleted'])).map((r) => toAutomation(r)); }
+  async list(userId: string, projectId: string, filter: { state?: unknown; createdBefore?: unknown; createdAfter?: unknown } = {}): Promise<Automation[]> {
+    await this.ownedProject(userId, projectId);
+    const vals: unknown[] = [projectId]; const where = ['project_id=$1'];
+    if (filter.state !== undefined) { if (!['active','paused','deleted'].includes(String(filter.state))) throw new ApiFailure('ValidationFailed', 'invalid automation state filter'); vals.push(String(filter.state)); where.push(`state=$${vals.length}`); }
+    else where.push(`state<>'deleted'`);
+    for (const [key, op] of [['createdBefore','<'],['createdAfter','>=']] as const) if (filter[key] !== undefined) { const d = new Date(String(filter[key])); if (Number.isNaN(d.getTime())) throw new ApiFailure('ValidationFailed', 'invalid creation date filter'); vals.push(d); where.push(`created_at${op}$${vals.length}`); }
+    return (await this.q(`SELECT * FROM automations WHERE ${where.join(' AND ')} ORDER BY created_at`, vals)).map((r) => toAutomation(r));
+  }
   async getOwned(userId: string, automationId: string): Promise<Automation> {
     const [r] = await this.q('SELECT * FROM automations WHERE id=$1 AND owner_id=$2 AND state<>$3', [automationId, userId, 'deleted']);
     if (!r) throw new ApiFailure('NotFound', 'automation not found');
@@ -190,13 +201,17 @@ export class AutomationStore {
       const [old] = await this.q('SELECT * FROM automation_runs WHERE automation_id=$1 AND idempotency_key=$2', [a.id, idem]);
       if (old) return { ...toRun(old), status: 'duplicate' };
     }
-    if (a.state !== 'active' && !force) return this.recordSkipped(a, type, key, payload, idem, 'automation is paused');
+    if (a.state !== 'active') return this.recordSkipped(a, type, key, payload, idem, 'automation is paused');
     const trig = a.triggers.find((t) => t.type === type && (type !== 'github' || t.event === payload.event));
     if (!trig && !force) return this.recordSkipped(a, type, key, payload, idem, 'no matching trigger');
     if (!force && !conditionsMatch(a.conditions, payload)) return this.recordSkipped(a, type, key, payload, idem, 'conditions did not match');
     if (!force && a.runWhen) {
       const ok = await (this.deps.gate ?? (async () => false))({ runWhen: a.runWhen, prompt: a.prompt, payload, model: a.gateModel });
       if (!ok) return this.recordSkipped(a, type, key, payload, idem, 'run_when gate rejected');
+    }
+    if (a.maxRunsPerDay != null) {
+      const [count] = await this.q(`SELECT count(*)::int n FROM automation_runs WHERE automation_id=$1 AND created_at >= date_trunc('day', now()) AND status NOT IN ('skipped','duplicate','cancelled')`, [a.id]);
+      if (Number(count?.n ?? 0) >= a.maxRunsPerDay) return this.recordSkipped(a, type, key, payload, idem, 'max_runs_per_day reached');
     }
     const threadId = await this.ensureThread(a);
     const rid = id('arun');
@@ -223,6 +238,30 @@ export class AutomationStore {
   private async recordSkipped(a: Automation, type: TriggerType, key: string, payload: Record<string, unknown>, idem: string | null, reason: string): Promise<AutomationRun> {
     const [r] = await this.q('INSERT INTO automation_runs (id,automation_id,trigger_type,trigger_key,idempotency_key,status,payload,skip_reason) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *', [id('arun'), a.id, type, key, idem, 'skipped', JSON.stringify(payload), reason]);
     return toRun(r);
+  }
+  async setState(userId: string, automationId: string, state: unknown): Promise<Automation> {
+    if (!['active','paused','deleted'].includes(String(state))) throw new ApiFailure('ValidationFailed', 'state must be active, paused or deleted');
+    if (!(await this.q('SELECT id FROM automations WHERE id=$1 AND owner_id=$2', [automationId, userId])).length) throw new ApiFailure('NotFound', 'automation not found');
+    const [r] = await this.q('UPDATE automations SET state=$3,deleted_at=CASE WHEN $3=$4 THEN now() ELSE NULL END,updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING *', [automationId, userId, String(state), 'deleted']);
+    if (!r) throw new ApiFailure('NotFound', 'automation not found');
+    return toAutomation(r);
+  }
+  async rotateWebhook(userId: string, automationId: string): Promise<Automation> {
+    const a = await this.getOwned(userId, automationId);
+    if (!a.triggers.some((t) => t.type === 'webhook')) throw new ApiFailure('ValidationFailed', 'automation has no webhook trigger');
+    const token = randomUUID() + randomUUID();
+    const [r] = await this.q('UPDATE automations SET webhook_hash=$3,updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING *', [automationId, userId, sha256(token)]);
+    return toAutomation(r, token);
+  }
+  async runs(userId: string, automationId: string): Promise<PublicAutomationRun[]> {
+    const a = await this.getOwned(userId, automationId);
+    return (await this.q('SELECT * FROM automation_runs WHERE automation_id=$1 ORDER BY created_at DESC,id DESC LIMIT 100', [a.id])).map((r) => { const x = toRun(r) as Partial<AutomationRun>; delete x.payload; return x as PublicAutomationRun; });
+  }
+  async cancelRun(userId: string, automationId: string, runId: string): Promise<PublicAutomationRun> {
+    const a = await this.getOwned(userId, automationId);
+    const [r] = await this.q(`UPDATE automation_runs SET status='cancelled',cancelled_at=now(),updated_at=now() WHERE id=$1 AND automation_id=$2 AND status IN ('queued','running') RETURNING *`, [runId, a.id]);
+    if (!r) throw new ApiFailure('NotFound', 'queued or running automation run not found');
+    const x = toRun(r) as Partial<AutomationRun>; delete x.payload; return x as PublicAutomationRun;
   }
   async trigger(userId: string, automationId: string, payload: Record<string, unknown> = {}): Promise<AutomationRun> {
     const a = await this.getOwned(userId, automationId);

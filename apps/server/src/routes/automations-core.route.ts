@@ -13,7 +13,14 @@ export function createAutomationsCoreRoute(store = () => automationStore(undefin
     c.header('x-flotilla-redact-keys', 'webhookToken,webhookUrl');
     return c.json(created, 201);
   });
-  app.get('/projects/:id/automations', async (c) => c.json({ items: await store().list(userId(c), c.req.param('id')) }));
+  app.get('/projects/:id/automations', async (c) => c.json({ items: await store().list(userId(c), c.req.param('id'), { state: c.req.query('state'), createdBefore: c.req.query('createdBefore'), createdAfter: c.req.query('createdAfter') }) }));
+  app.post('/automations/:id/pause', async (c) => c.json(await store().setState(userId(c), c.req.param('id'), 'paused')));
+  app.post('/automations/:id/resume', async (c) => c.json(await store().setState(userId(c), c.req.param('id'), 'active')));
+  app.delete('/automations/:id', async (c) => c.json(await store().setState(userId(c), c.req.param('id'), 'deleted')));
+  app.post('/automations/:id/restore', async (c) => c.json(await store().setState(userId(c), c.req.param('id'), 'active')));
+  app.post('/automations/:id/rotate-webhook', async (c) => c.json(await store().rotateWebhook(userId(c), c.req.param('id'))));
+  app.get('/automations/:id/runs', async (c) => c.json({ items: await store().runs(userId(c), c.req.param('id')) }));
+  app.post('/automations/:id/runs/:run/cancel', async (c) => c.json(await store().cancelRun(userId(c), c.req.param('id'), c.req.param('run'))));
   app.post('/automations/:id/trigger', async (c) => c.json(await store().trigger(userId(c), c.req.param('id'), await body(c)), 202));
   app.post('/automations/:id/github-trigger', async (c) => {
     const b = await body(c);
