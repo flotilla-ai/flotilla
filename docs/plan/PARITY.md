@@ -287,17 +287,17 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-281 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-282 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-283 | Drive | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-284 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-285 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-286 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-287 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-288 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-289 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-290 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-291 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-292 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-293 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-294 | Instructions & rules | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-284 | Instructions & rules | P2 | done | phase2-32 | PRLINK | Org (admin-only) and Personal instructions via `PUT /rules/instructions/{org,me}` plus per-project `PUT /projects/:id/rules` (owner); all are layered into every run prompt (rules.test.ts) and edited on `#/rules` (rules.spec.ts, mocked API). Agent CLIs still read the repo AGENTS.md natively. |
+| CAPY-285 | Instructions & rules | P2 | done | phase2-32 | PRLINK | Root `AGENTS.md` wins over `CLAUDE.md` (fallback, reported `shadowed`); `.cursorrules`, `.windsurfrules`, `.clinerules`, `GEMINI.md`, `.github/copilot-instructions.md` are listed as `deprecated` and never injected. Read through the thread machine transport. |
+| CAPY-286 | Instructions & rules | P2 | done | phase2-32 | PRLINK | A nested `AGENTS.md` is injected on the next turn after an `agent.tool_call` names a path in its subtree (`path`/`file_path`/`filePath`/`notebook_path`/`paths`/`files` inputs). Proven with a synthetic fake-adapter tool call; real vendor tool-input key names are unverified. |
+| CAPY-287 | Instructions & rules | P2 | done | phase2-32 | PRLINK | `.capy/rules` and `.cursor/rules` `.md`/`.mdc` with `globs` (string, comma list or YAML list) or `alwaysApply`; glob rules apply when touched paths match. Injected through one runner `onBeforeRun` hook, so `fake` and `generic-cli` get byte-identical preambles (no adapter-name checks). |
+| CAPY-288 | Instructions & rules | P2 | done | phase2-32 | PRLINK | One shared token budget (`FLOTILLA_RULES_MAX_TOKENS`, default 8000; tokens = ceil(chars/4), an estimate) across layers in order; an oversized layer ends with `[Flotilla truncated this layer: N of M tokens shown; shared context budget B tokens]`, later layers get 0. |
+| CAPY-289 | Instructions & rules | P2 | done | phase2-32 | PRLINK | `GET /rules/guidance` (`RULES_GUIDANCE.whereToPut`, `antiPatterns`), shown on `#/rules`. |
+| CAPY-290 | Instructions & rules | P2 | done | phase2-32 | PRLINK | `RULES_GUIDANCE.migration` covers Claude Code, Cursor and AGENTS.md agents (Codex and others); served by `GET /rules/guidance` and shown on `#/rules`. |
+| CAPY-291 | Instructions & rules | P2 | done | phase2-32 | PRLINK | Kernel layer (no merge/protected push without an explicit ask, no secret exposure, no fabrication) is always first, never truncated and has no API to edit; enforcement stays in code via `assertPushAllowed` and `scrub` (asserted in rules.test.ts). Fabrication is prompt-only. |
+| CAPY-292 | Instructions & rules | P2 | done | phase2-32 | PRLINK | Each run stores a per-layer token breakdown (no rule text) in `rules_context`; `GET /threads/:id/context` (owner) and the `#/rules` Context table show layer, source, tokens (truncated as `N of M`), budget and ignored files. |
+| CAPY-293 | Instructions & rules | P2 | done | phase2-32 | PRLINK | Memory experiment: `POST/GET/DELETE /memory` (user or admin-set org scope), only while the effective Memory flag is on; the 50 newest entries become a `memory` layer in later threads of that user. Teaching is explicit (API/UI), not extracted from chats; Capy retention semantics unverified. |
+| CAPY-294 | Instructions & rules | P2 | done | phase2-32 | PRLINK | `GET/PUT /experiments` stores Memory and Captain flags per user and org (org needs admin); user value overrides org, default off. `#/rules` Experiments checkboxes. The Captain flag is stored and shown but nothing reads it yet. |
 | CAPY-295 | Skills | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-296 | Skills | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-297 | Skills | P2 | pending |  |  | Awaiting phase P2 unit. |
