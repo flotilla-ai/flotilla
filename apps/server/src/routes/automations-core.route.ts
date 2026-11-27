@@ -1,12 +1,12 @@
 import { Hono, type Context } from 'hono';
 import { automationStore } from '../automations-core/index.js';
-import { defaultRunner } from './threads.route.js';
+import { automationRuntimeDeps } from '../automations-core/runtime.js';
 
 const userId = (c: Context) => c.get('userId') as string;
 const body = async (c: Context) => ((await c.req.json().catch(() => null)) ?? {}) as Record<string, unknown>;
 
 /** Stored automation definitions plus manual and GitHub-trigger entrypoints. */
-export function createAutomationsCoreRoute(store = () => automationStore(undefined, { startRun: async ({ threadId, prompt }) => { await defaultRunner().message(threadId, prompt, 'queue'); } })) {
+export function createAutomationsCoreRoute(store = () => automationStore(undefined, automationRuntimeDeps())) {
   const app = new Hono();
   app.post('/projects/:id/automations', async (c) => {
     const created = await store().create(userId(c), c.req.param('id'), await body(c));

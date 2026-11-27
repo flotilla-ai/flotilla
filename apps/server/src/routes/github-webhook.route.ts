@@ -4,9 +4,9 @@ import { getCheckMonitor } from '../github/registry.js';
 import { handleCheckRunWebhook } from '../github/webhook.js';
 import { defaultWakeRouter } from './wakes.route.js';
 import { automationStore } from '../automations-core/index.js';
-import { defaultRunner } from './threads.route.js';
+import { automationRuntimeDeps } from '../automations-core/runtime.js';
 const defaultEvent = async (body: unknown, event: string) => { if (event !== 'check_run') { await defaultWakeRouter().github(event, body as never); return; } const monitor = getCheckMonitor(); if (monitor) await handleCheckRunWebhook(monitor, body as never); await defaultWakeRouter().checksDone(body as never); };
-const defaultAutomation = async (body: Record<string, unknown>, event: string, delivery: string | null) => automationStore(undefined, { startRun: async ({ threadId, prompt }) => { await defaultRunner().message(threadId, prompt, 'queue'); } }).githubEvent(event, { ...body, delivery_id: delivery });
+const defaultAutomation = async (body: Record<string, unknown>, event: string, delivery: string | null) => automationStore(undefined, automationRuntimeDeps()).githubEvent(event, { ...body, delivery_id: delivery });
 export function createGithubWebhookRoute(secret = process.env.GITHUB_WEBHOOK_SECRET ?? '', onEvent?: (body: unknown, event: string) => Promise<void>, onAutomation: (body: Record<string, unknown>, event: string, delivery: string | null) => Promise<unknown> = defaultAutomation) {
   const eventHandler = onEvent ?? defaultEvent; const automationHandler = onEvent ? async () => undefined : onAutomation;
   const app = new Hono();
