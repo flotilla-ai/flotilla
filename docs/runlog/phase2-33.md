@@ -47,10 +47,10 @@ Error: Cannot find module './index.js' imported from '/home/ubuntu/repos/flotill
 ```
 
 ## Done signal
-Branch real-merged `6b5546a` (repair-10/12) on top of `eba906f`, then `2aefb24` (phase2-18; runner keeps both the `createThread` draft/placement changes and `onBeforePrompt`). Final head after the Devin Review fix round (folder size cap on save, binary repo files skipped, shebang files mounted 0755, import uses the root-most `skills` dir and validates every folder before saving any, Skills page project picker; each with a red-first assertion in the focused tests). `pnpm --filter @flotilla/server test` lines from the `make check` run:
+Branch real-merged `6b5546a` (repair-10/12) on top of `eba906f`, then `2aefb24` (phase2-18; runner keeps both the `createThread` draft/placement changes and `onBeforePrompt`), then `9dc39fe` (phase2-29; the skills hook now shares the runner's `project?.repo` cwd rule and repo scans run only for projects with a repo). Final head after the Devin Review fix round (folder size cap on save, binary repo files skipped, shebang files mounted 0755, import uses the root-most `skills` dir and validates every folder before saving any, Skills page project picker; each with a red-first assertion in the focused tests). `pnpm --filter @flotilla/server test` lines from the `make check` run:
 ```
-apps/server test:  Test Files  25 passed (25)
-apps/server test:       Tests  165 passed | 1 skipped (166)
+apps/server test:  Test Files  26 passed (26)
+apps/server test:       Tests  173 passed | 1 skipped (174)
 ```
 `make check` (lint, typecheck, every package's tests):
 ```
@@ -62,7 +62,7 @@ packages/adapters/codex test:       Tests  5 passed (5)
 packages/adapters/claude-code test:       Tests  7 passed (7)
 packages/adapters/generic-cli test:       Tests  4 passed (4)
 packages/adapters/fake test:       Tests  3 passed (3)
-apps/server test:       Tests  165 passed | 1 skipped (166)
+apps/server test:       Tests  173 passed | 1 skipped (174)
 exit=0
 ```
 An earlier `make check` (before repair-12 merged) failed once in phase2-17's CAPY-041 wake timer test (out of scope; 3 isolated reruns passed 13/13; repair-12 since synchronized that test).
