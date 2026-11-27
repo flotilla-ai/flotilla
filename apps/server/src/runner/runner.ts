@@ -142,7 +142,7 @@ export class ThreadRunner {
     const approval = rows.rows[0]; if (!approval) return null;
     if (approval.kind === 'budget' && optionId === 'raise' && value) await this.pool.query(`UPDATE threads SET budget=jsonb_set(budget,'{maxUsd}',to_jsonb($2::int)),status='queued' WHERE id=$1`, [approval.thread_id, value]);
     if (approval.kind === 'budget' && optionId === 'stop') await this.stop(approval.thread_id);
-    if (approval.kind === 'mcp') await this.deps.mcp?.answer(approval, optionId, userId);
+    if (approval.kind === 'mcp') await this.deps.mcp?.answer(approval, optionId, userId).catch(async (err) => { await this.pool.query(`UPDATE approvals SET state='open',answer=NULL WHERE id=$1`, [approvalId]); throw err; });
     if (approval.kind === 'run-out') { await this.deps.runOut?.answer(approval, optionId); if (optionId === 'use') await this.pool.query(`UPDATE threads SET status='queued' WHERE id=$1`, [approval.thread_id]); }
     await this.deps.store.appendEvents(approval.thread_id, [{ runId: null, kind: 'approval.resolved', source: 'kernel', trust: 'trusted', payload: { approvalId, optionId, value } }] as never);
     if (approval.kind === 'run-out' && optionId === 'use') this.kick(approval.thread_id);
@@ -212,7 +212,10 @@ export class ThreadRunner {
     }
     if (runToken && 'copyIn' in this.deps.driver) await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', captainMcpTar(runToken.token)).catch(() => undefined);
     const mcp = !runToken && adapter.manifest.capabilities?.mcp && 'copyIn' in this.deps.driver ? await this.deps.mcp?.prepare(threadId, prepared.env).catch(() => null) ?? null : null;
-    if (mcp) await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', Buffer.concat([secretTar('flotilla/mcp.json', Buffer.from(JSON.stringify(mcp.config)), '0000600'), Buffer.alloc(1024)]));
+    if (mcp) try { await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', Buffer.concat([secretTar('flotilla/mcp.json', Buffer.from(JSON.stringify(mcp.config)), '0000600'), Buffer.alloc(1024)])); } catch (err) {
+      await ((this.deps.driver as Driver & {remove?(id:string):Promise<void>}).remove?.(machine.containerId) ?? this.deps.driver.stop(machine.containerId)).catch(() => undefined);
+      return this.failStart(threadId, runId, new Error('MCP config could not be written to the machine', { cause: err }));
+    }
     let transport: ReturnType<Driver['transport']>;
     try { transport = this.deps.driver.transport(machine.containerId); } catch (err) { tokenService?.endRun(runId); throw err; }
     let usage = { ...zero }; let state: 'completed' | 'cancelled' | 'failed' | 'paused_budget' | 'run_out' = 'completed'; let error: AdapterError | null = null; const started = Date.now();

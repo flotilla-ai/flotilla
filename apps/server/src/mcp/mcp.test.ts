@@ -130,8 +130,8 @@ describe('MCP registry', () => {
   it('CAPY-309: imports Claude Code JSON, Codex TOML, a URL and a command line', async () => {
     const claude = parseImport(JSON.stringify({ mcpServers: { Sentry: { type: 'http', url: 'https://mcp.sentry.dev/mcp', headers: { Authorization: 'Bearer ${SENTRY}' } }, fs: { command: 'npx', args: ['-y', 'srv'], env: { A: 'b' } } } }));
     expect(claude.servers.map((s) => [s.key, s.transport, s.url ?? s.command])).toEqual([['sentry', 'http', 'https://mcp.sentry.dev/mcp'], ['fs', 'stdio', ['npx', '-y', 'srv']]]);
-    const codex = parseImport(`[mcp_servers.context7]\ncommand = "npx"\nargs = ["-y", "@upstash/context7-mcp"]\n\n[mcp_servers.context7.env]\nAPI_KEY = "k"\n\n[mcp_servers.figma]\nurl = 'https://mcp.figma.com/mcp'\nbearer_token_env_var = "FIGMA_TOKEN"\n`);
-    expect(codex.servers).toMatchObject([{ key: 'context7', transport: 'stdio', command: ['npx', '-y', '@upstash/context7-mcp'], env: { API_KEY: 'k' } }, { key: 'figma', transport: 'http', auth: { kind: 'headers', headers: [{ name: 'Authorization', value: 'Bearer ${FIGMA_TOKEN}' }] } }]);
+    const codex = parseImport(`[mcp_servers.context7]\ncommand = "npx"\nargs = ["-y", "@upstash/context7-mcp"]\n\n[mcp_servers.context7.env]\nAPI_KEY = "k"\n\n[mcp_servers.off]\ncommand = "x"\nenabled = false\n\n[mcp_servers.figma]\nurl = 'https://mcp.figma.com/mcp'\nbearer_token_env_var = "FIGMA_TOKEN"\n`);
+    expect(codex.servers).toMatchObject([{ key: 'context7', transport: 'stdio', command: ['npx', '-y', '@upstash/context7-mcp'], env: { API_KEY: 'k' } }, { key: 'off', enabled: false }, { key: 'figma', transport: 'http', auth: { kind: 'headers', headers: [{ name: 'Authorization', value: 'Bearer ${FIGMA_TOKEN}' }] } }]);
     expect(parseImport('https://mcp.linear.app/mcp').servers[0]).toMatchObject({ key: 'linear', transport: 'http' });
     expect(parseImport(`GITHUB_DIR=/w npx -y @modelcontextprotocol/server-filesystem "/my dir"`).servers[0]).toMatchObject({ key: 'server-filesystem', command: ['npx', '-y', '@modelcontextprotocol/server-filesystem', '/my dir'], env: { GITHUB_DIR: '/w' } });
     const saved = await post('/mcp/import', { text: 'https://mcp.notion.com/mcp', projectId: 'prj_m' });
@@ -159,6 +159,7 @@ describe('MCP registry', () => {
   it('CAPY-308/317/519: the agent proposes a missing server or a rename/enable/widen; one-click approval applies it', async () => {
     const t = await thread();
     expect((await post(`/threads/${t}/mcp/proposals`, { action: 'add', server: { key: 'gh', transport: 'http', url: `${base}/mcp`, auth: { kind: 'headers', headers: [{ name: 'X-Key', value: 'literal-secret-1' }] } } })).status).toBe(400);
+    expect((await post(`/threads/${t}/mcp/proposals`, { action: 'add', server: { key: 'mix', transport: 'http', url: base, auth: { kind: 'headers', headers: [{ name: 'Authorization', value: 'Bearer sk-literal-1 ${X}' }] } } })).status).toBe(400);
     const add = (await post(`/threads/${t}/mcp/proposals`, { action: 'add', server: { key: 'sentry', transport: 'http', url: `${base}/mcp`, auth: { kind: 'headers', headers: [{ name: 'Authorization', value: 'Bearer ${SENTRY_TOKEN}' }] } } })).json;
     expect(add).toMatchObject({ kind: 'mcp', state: 'open', blocking: false, options: [{ id: 'approve', label: 'Approve' }, { id: 'decline', label: 'Decline' }], detail: { mcp: { action: 'add' } } });
     expect(add.question).toContain('sentry');
