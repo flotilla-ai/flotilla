@@ -119,6 +119,7 @@ export async function collectAndPush(thread: GitThread, project: GitProject, dri
       if (baseSha && !changed.length) return { pushedSha: null };
       for (const item of changed) {
         await git(['--git-dir', mirror, '-c', 'core.hooksPath=/dev/null', '-c', 'core.fsmonitor=false', 'push', 'origin', `${item.ref}:refs/heads/${item.branch}`], { env: cleanEnv });
+        await git(['--git-dir', mirror, 'update-ref', `refs/heads/${item.branch}`, item.object], { env: cleanEnv });
         sha = item.object;
       }
       return { pushedSha: sha };
