@@ -7,7 +7,7 @@ test('CAPY-292 context breakdown per layer; CAPY-294 Memory/Captain experiments;
  await page.route('**/api/v1/rules/guidance',r=>r.fulfill({json:{whereToPut:[{layer:'user',put:'Personal style'}],antiPatterns:['Secrets in rules'],migration:[{from:'Cursor',steps:'move .cursorrules'}]}}));
  await page.route('**/api/v1/experiments',r=>{if(r.request().method()==='PUT'){const b=r.request().postDataJSON();exp={...exp,user:{...exp.user,memory:b.memory}, effective:{...exp.effective,memory:b.memory}}}return r.fulfill({json:exp})});
  await page.route('**/api/v1/memory',r=>r.fulfill({json:{items:[]}}));
- await page.route('**/api/v1/threads/thr_1/context',r=>r.fulfill({json:ctx}));
+ await page.route('**/api/v1/threads/thr_1/rules-context',r=>r.fulfill({json:ctx}));
  await page.goto('/#/rules');
  await page.getByLabel('personal instructions').fill('be terse');await page.getByRole('button',{name:'Save personal'}).click();expect(puts).toEqual([{text:'be terse'}]);
  await expect(page.getByText('Personal style')).toBeVisible();await expect(page.getByText('Secrets in rules')).toBeVisible();

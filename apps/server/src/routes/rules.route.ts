@@ -14,7 +14,7 @@ export function createRulesRoute(store = () => rulesStore()) {
   app.get('/projects/:id/rules', async (c) => c.json(await store().instructions('project', await store().ownedProject(userId(c), c.req.param('id')))));
   app.put('/projects/:id/rules', async (c) => c.json(await store().putInstructions(userId(c), 'project', await store().ownedProject(userId(c), c.req.param('id')), (await body(c)).text)));
   app.get('/rules/guidance', (c) => c.json(RULES_GUIDANCE));
-  app.get('/threads/:id/context', async (c) => c.json(await store().context(userId(c), c.req.param('id'))));
+  app.get('/threads/:id/rules-context', async (c) => c.json(await store().context(userId(c), c.req.param('id'))));
   app.get('/experiments', async (c) => c.json(await store().experiments(userId(c))));
   app.put('/experiments', async (c) => c.json(await store().setExperiments(userId(c), await body(c))));
   app.get('/memory', async (c) => c.json({ items: await store().memory(userId(c)) }));

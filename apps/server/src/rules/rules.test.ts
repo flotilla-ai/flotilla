@@ -136,12 +136,12 @@ describe('rules in runs', () => {
       expect(prompt).not.toContain('api subtree');
     }
     expect(prompts[ids[0]!]![0]).toBe(prompts[ids[1]!]![0]);
-    const ctx = await json(await call(`/threads/${ids[0]}/context`));
+    const ctx = await json(await call(`/threads/${ids[0]}/rules-context`));
     expect(ctx.layers.map((l: any) => [l.kind, l.source])).toEqual([['kernel', 'flotilla-kernel'], ['org', 'org instructions'], ['user', 'user instructions'], ['project', 'project instructions'], ['repo-root', 'AGENTS.md'], ['glob-rule', '.capy/rules/always.md']]);
     expect(ctx.layers.every((l: any) => Number.isInteger(l.tokens) && l.tokens > 0 && !('text' in l))).toBe(true);
     expect(ctx.budget.usedTokens).toBe(ctx.layers.reduce((n: number, l: any) => n + l.tokens, 0));
     expect(ctx.ignored).toContainEqual({ path: 'packages/api/AGENTS.md', reason: 'not-touched' });
-    expect((await call(`/threads/${ids[0]}/context`, { as: 'member' })).status).toBe(404);
+    expect((await call(`/threads/${ids[0]}/rules-context`, { as: 'member' })).status).toBe(404);
     // CAPY-286 in a run: after the agent touches packages/api, the next turn carries the nested AGENTS.md and the matching glob rule.
     await events.appendEvents(ids[0] as never, [{ runId: null, kind: 'agent.tool_call', source: 'adapter', trust: 'trusted', payload: { t: 'tool_call', id: 'c1', name: 'Edit', input: { file_path: '/workspace/repo/packages/api/src/a.ts' } } }] as never);
     await runner.message(ids[0]!, 'next step', 'queue', owner); await waitRuns(ids[0]!, 2);

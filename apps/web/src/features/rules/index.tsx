@@ -3,7 +3,7 @@ type Layer={kind:string;source:string;tokens:number;fullTokens:number;truncated:
 type Context={runId:string;budget:{maxTokens:number;usedTokens:number};ignored:{path:string;reason:string}[];layers:Layer[]}|null;
 type Flags={memory:boolean|null;captain:boolean|null};type Exp={org:Flags;user:Flags;effective:{memory:boolean;captain:boolean}};
 type Guidance={whereToPut:{layer:string;put:string}[];antiPatterns:string[];migration:{from:string;steps:string}[]};
-export function ContextBreakdown({threadId}:{threadId:string}){const[ctx,setCtx]=useState<Context>(null);useEffect(()=>{api(`/threads/${threadId}/context`).then(setCtx).catch(()=>setCtx(null))},[threadId]);
+export function ContextBreakdown({threadId}:{threadId:string}){const[ctx,setCtx]=useState<Context>(null);useEffect(()=>{api(`/threads/${threadId}/rules-context`).then(setCtx).catch(()=>setCtx(null))},[threadId]);
  if(!ctx)return <small>no run yet</small>;
  return <div><table aria-label='context breakdown'><tbody><tr><th>Layer</th><th>Source</th><th>Tokens</th></tr>{ctx.layers.map((l,i)=><tr key={i}><td>{l.kind}</td><td>{l.source}</td><td>{l.truncated?`${l.tokens} of ${l.fullTokens} (truncated)`:l.tokens}</td></tr>)}</tbody></table>
   <small>{ctx.budget.usedTokens} of {ctx.budget.maxTokens} tokens</small>{ctx.ignored.map(x=><div key={x.path}><small>{x.path} {x.reason}</small></div>)}</div>}
