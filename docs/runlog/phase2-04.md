@@ -149,3 +149,15 @@ apps/server test:  Test Files  19 passed (19)
 apps/server test:       Tests  110 passed | 1 skipped (111)
 exit=0
 ```
+
+## After merging `origin/flotilla/p1` `ea9ec15` (phase2-09 previews)
+
+PROGRESS.md-only conflict; both unit entries kept.
+
+```text
+$ make check
+apps/web test:       Tests  6 passed (6)
+apps/server test:  Test Files  20 passed (20)
+apps/server test:       Tests  118 passed | 1 skipped (119)
+exit=0
+```
