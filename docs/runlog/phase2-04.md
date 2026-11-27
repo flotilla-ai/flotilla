@@ -88,5 +88,21 @@ $ cd apps/server && npx vitest run src/git/mirror.test.ts
 - CAPY-337: `codex login && codex exec --json --model gpt-6 -c model_context_window=1050000 'say ok'` — model id and window are unverified; ship a catalog row only after checking.
 - CAPY-484: `claude auth login`, connect the subscription, run a Claude-model thread without `ANTHROPIC_API_KEY`.
 - CAPY-485: `ANTHROPIC_BASE_URL=<gateway> claude -p ok --bare` with the operator's key; Codex honouring `OPENAI_BASE_URL` unverified. Web connection editor is absent (blocked with CAPY-332).
-- CAPY-338: no title/PR-summary generator exists yet to call the background resolver (blocked).
+- CAPY-338: phase2-07 titles use the offline heuristic `TitleGenerator`; no model-backed title/PR-summary generator calls the background resolver yet (blocked).
 - Diff budget: 13 code/test files plus the 4 required ledger files (17 total); the 15-file budget is exceeded only by the ledgers.
+
+## After merging `origin/flotilla/p1` `e07a117` (phase2-07, repair-6)
+
+```text
+$ pnpm --filter @flotilla/server test
+ Test Files  17 passed (17)
+      Tests  90 passed | 1 skipped (91)
+exit=0
+```
+
+```text
+$ make check   (after the merge)
+apps/server test:  Test Files  17 passed (17)
+apps/server test:       Tests  90 passed | 1 skipped (91)
+exit=0
+```
