@@ -198,8 +198,10 @@ describe('machine core', () => {
     expect(rebuilt).toMatchObject({ fresh: true, woke: true }); await core.release(t);
     clock += 3 * MIN; await core.tick();
     failNextStart = true; calls.length = 0;
-    expect(await core.boot(t, null, () => driver.startThreadContainer({}), driver as never)).toMatchObject({ fresh: true });
-    expect(calls).toEqual(['start undefined undefined', `delete-workspace ${t}`, 'start undefined undefined']);
+    await expect(core.boot(t, null, () => driver.startThreadContainer({}), driver as never)).rejects.toThrow('resume failed');
+    expect(calls).toEqual(['start undefined undefined']);
+    expect((await lease(t)).state).toBe('sleeping');
+    expect(await core.boot(t, null, () => driver.startThreadContainer({}), driver as never)).toMatchObject({ fresh: false, woke: true });
     await core.release(t);
   });
 });

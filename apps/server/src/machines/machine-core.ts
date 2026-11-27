@@ -144,9 +144,10 @@ export class MachineCore {
     let fresh = !prev || prev === 'deleted'; let containerId: string;
     const { memMb, cpus } = MACHINE_SIZES[size];
     try { ({ containerId } = await start(memMb, cpus)); } catch (err) {
-      if (fresh) { await this.restore(threadId, prev); throw err; }
-      await (this.hooks.driver ?? driver).deleteWorkspace?.(threadId).catch(() => undefined); fresh = true;
-      try { ({ containerId } = await start(memMb, cpus)); } catch (e) { await this.restore(threadId, 'deleted'); throw e; }
+      // Never destroy the workspace volume as a side effect of a failed wake. Until the
+      // pre-delete WIP capture exists, a corrupt or unstartable workspace must fail closed.
+      await this.restore(threadId, prev);
+      throw err;
     }
     await this.q(`UPDATE machine_leases SET state='awake',container_id=$2,awake_since=$3,idle_since=NULL,slept_at=NULL,warned_at=NULL,updated_at=$3 WHERE thread_id=$1`, [threadId, containerId, this.at()]);
     await seed?.(containerId, fresh);
@@ -212,9 +213,17 @@ export class MachineCore {
     return true;
   }
   private async delete(r: Row): Promise<void> {
+    if (!this.hooks.beforeDelete) {
+      await this.hooks.emit?.(r.thread_id, { state: 'delete-blocked', reason: 'wip-capture-unavailable' }).catch(() => undefined);
+      return;
+    }
     const [won] = await this.q(`UPDATE machine_leases SET state='deleted',container_id=NULL,updated_at=$2 WHERE thread_id=$1 AND state='sleeping' AND slept_at=$3 RETURNING thread_id`, [r.thread_id, this.at(), r.slept_at]);
     if (!won) return;
-    await this.hooks.beforeDelete?.(r.thread_id).catch(() => undefined);
+    try { await this.hooks.beforeDelete(r.thread_id); } catch (err) {
+      await this.q(`UPDATE machine_leases SET state='sleeping',updated_at=$2 WHERE thread_id=$1 AND state='deleted'`, [r.thread_id, this.at()]);
+      await this.hooks.emit?.(r.thread_id, { state: 'delete-blocked', reason: (err as Error).message }).catch(() => undefined);
+      return;
+    }
     await this.dispose(r);
     await this.hooks.driver?.deleteWorkspace?.(r.thread_id).catch(() => undefined);
     await this.hooks.emit?.(r.thread_id, { state: 'deleted' }).catch(() => undefined);
