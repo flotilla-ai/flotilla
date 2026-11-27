@@ -15,7 +15,7 @@ async function upload(f:File):Promise<Attachment>{
 
 export function CommandPalette(){
  const[open,setOpen]=useState(false);const[q,setQ]=useState('');const[hits,setHits]=useState<Ref[]>([]);
- useEffect(()=>{const k=(e:KeyboardEvent)=>{const target=e.target as HTMLElement|null;if(target?.closest('input,textarea,select,[contenteditable=true]'))return;const mac=navigator.platform.toLowerCase().includes('mac');if(keyEventAction(loadShortcuts(localStorage),e.key,{ctrl:e.ctrlKey,alt:e.altKey,shift:e.shiftKey,meta:e.metaKey},mac)==='commandMenu'){e.preventDefault();setOpen(o=>!o)}if(e.key==='Escape')setOpen(false)};addEventListener('keydown',k);return()=>removeEventListener('keydown',k)},[]);
+ useEffect(()=>{const k=(e:KeyboardEvent)=>{if(e.key==='Escape'){setOpen(false);return}const target=e.target as HTMLElement|null;if(target?.closest('input,textarea,select,[contenteditable=true]'))return;const mac=navigator.platform.toLowerCase().includes('mac');if(keyEventAction(loadShortcuts(localStorage),e.key,{ctrl:e.ctrlKey,alt:e.altKey,shift:e.shiftKey,meta:e.metaKey},mac)==='commandMenu'){e.preventDefault();setOpen(o=>!o)}};addEventListener('keydown',k);return()=>removeEventListener('keydown',k)},[]);
  useEffect(()=>{if(open&&q)void lookup(q).then(setHits);else setHits([])},[open,q]);
  if(!open)return null;
  const go=(t:Ref)=>{location.hash=`#/threads/${t.id}`;setOpen(false);setQ('')};
