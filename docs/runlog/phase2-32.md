@@ -32,68 +32,75 @@ The browser spec was written before `features/rules/index.tsx`, but the Vite dev
 
 ## Focused (after)
 ```
- ✓ src/rules/rules.test.ts > rules loader > CAPY-285: root AGENTS.md wins, CLAUDE.md is the fallback, deprecated per-agent files are not read 30ms
- ✓ src/rules/rules.test.ts > rules loader > CAPY-286: a nested AGENTS.md is injected only once its subtree has been touched 2ms
- ✓ src/rules/rules.test.ts > rules loader > CAPY-287: .capy/rules and .cursor/rules .md/.mdc apply by globs or alwaysApply 1ms
+✓ src/rules/rules.test.ts > rules loader > CAPY-285: root AGENTS.md wins, CLAUDE.md is the fallback, deprecated per-agent files are not read 31ms
+ ✓ src/rules/rules.test.ts > rules loader > CAPY-286: a nested AGENTS.md is injected only once its subtree has been touched 1ms
+ ✓ src/rules/rules.test.ts > rules loader > CAPY-287: .capy/rules and .cursor/rules .md/.mdc apply by globs or alwaysApply 15ms
  ✓ src/rules/rules.test.ts > rules loader > CAPY-288: layers share one context budget; an oversized layer is truncated with a visible marker 0ms
- ✓ src/rules/rules.test.ts > rules loader > CAPY-291: the three kernel rules come first, are never truncated or overridable, and are enforced in code 17ms
+ ✓ src/rules/rules.test.ts > rules loader > CAPY-291: the three kernel rules come first, are never truncated or overridable, and are enforced in code 11ms
  ✓ src/rules/rules.test.ts > rules loader > CAPY-289/290: guidance on what goes where, anti-patterns and migration notes is served 3ms
- ✓ src/rules/rules.test.ts > rules in runs > CAPY-284/287/292: org + personal + project instructions and repo rules are injected for every adapter; the context page lists tokens per layer 487ms
- ✓ src/rules/rules.test.ts > rules in runs > CAPY-293/294: Memory is an experiment per user or org; what you teach in one thread reaches the next 451ms
+ ✓ src/rules/rules.test.ts > rules in runs > CAPY-284/287/292: org + personal + project instructions and repo rules are injected for every adapter; the context page lists tokens per layer 383ms
+ ✓ src/rules/rules.test.ts > rules in runs > CAPY-293/294: Memory is an experiment per user or org; what you teach in one thread reaches the next 487ms
  Test Files  1 passed (1)
       Tests  8 passed (8)
 ```
 
 ## Browser (`pnpm exec playwright test e2e/rules.spec.ts`)
 ```
-  ✓  1 e2e/rules.spec.ts:3:1 › CAPY-292 context breakdown per layer; CAPY-294 Memory/Captain experiments; CAPY-284 personal instructions; CAPY-289 guidance (678ms)
+✓  1 e2e/rules.spec.ts:3:1 › CAPY-292 context breakdown per layer; CAPY-294 Memory/Captain experiments; CAPY-284 personal instructions; CAPY-289 guidance (644ms)
   1 passed (1.7s)
 ```
 
-## `pnpm --filter @flotilla/server test` (after merging `origin/flotilla/p1` `6b5546a`)
+## Devin Review round 1 (commit `1517355`)
+- Route clash: `GET /threads/:id/context` shadowed the phase2-05 context meter; moved to `/threads/:id/rules-context`.
+- Repo-supplied globs compiled to a backtracking regex; replaced by `globMatch`, a memoized DP (O(glob x path), globs over 256 chars never match). Test covers a 40x `**/` + 40x `*a` glob against a 1400-char path.
+- `#/rules` Save buttons stay disabled until instructions load (no blank overwrite on load failure).
+- `#/rules` guidance reads `use`/`notes` (the served shape); the mocked e2e now uses that shape.
+- Experiments use inherit/on/off selects; `inherit` sends `null`, so org changes reach the user again.
+
+## `pnpm --filter @flotilla/server test` (after merging `origin/flotilla/p1` `6b5546a` and review fixes)
 ```
  Test Files  24 passed (24)
       Tests  155 passed | 1 skipped (156)
 EXIT 0
 ```
 
-## `make check` (after merge)
+## `make check` (after merge and review fixes)
 ```
 apps/gate typecheck: Done
 packages/core typecheck: Done
 packages/adapters/host typecheck: Done
-packages/adapters/fake typecheck: Done
-apps/web typecheck: Done
 packages/adapters/claude-code typecheck: Done
 packages/adapters/codex typecheck: Done
+packages/adapters/fake typecheck: Done
+apps/web typecheck: Done
 packages/adapters/generic-cli typecheck: Done
 apps/server typecheck: Done
-apps/gate test:  Test Files  2 passed (2)
-apps/gate test:       Tests  5 passed (5)
 packages/core test:  Test Files  6 passed (6)
 packages/core test:       Tests  15 passed (15)
+apps/gate test:  Test Files  2 passed (2)
+apps/gate test:       Tests  5 passed (5)
 packages/adapters/host test:  Test Files  1 passed (1)
 packages/adapters/host test:       Tests  3 passed (3)
 apps/web test:  Test Files  6 passed (6)
 apps/web test:       Tests  16 passed (16)
-packages/adapters/claude-code test:  Test Files  1 passed (1)
-packages/adapters/claude-code test:       Tests  7 passed (7)
 packages/adapters/codex test:  Test Files  1 passed (1)
 packages/adapters/codex test:       Tests  5 passed (5)
+packages/adapters/claude-code test:  Test Files  1 passed (1)
+packages/adapters/claude-code test:       Tests  7 passed (7)
 packages/adapters/generic-cli test:  Test Files  1 passed (1)
 packages/adapters/generic-cli test:       Tests  4 passed (4)
 packages/adapters/fake test:  Test Files  1 passed (1)
 packages/adapters/fake test:       Tests  3 passed (3)
 apps/server test:  Test Files  24 passed (24)
 apps/server test:       Tests  155 passed | 1 skipped (156)
-apps/gate lint: Done
 packages/core lint: Done
+apps/gate lint: Done
 apps/web lint: Done
 packages/adapters/host lint: Done
-packages/adapters/fake lint: Done
-packages/adapters/generic-cli lint: Done
-packages/adapters/claude-code lint: Done
 packages/adapters/codex lint: Done
+packages/adapters/generic-cli lint: Done
+packages/adapters/fake lint: Done
+packages/adapters/claude-code lint: Done
 apps/server lint: Done
 EXIT 0
 ```
