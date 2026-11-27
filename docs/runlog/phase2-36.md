@@ -21,7 +21,7 @@ Branch `flotilla/phase2-36-usage-billing-api` from `origin/flotilla/p1` (`eba906
    × CAPY-352/353/635 ... → expected undefined to be 'month'
    × CAPY-353/636 ... → expected { error: 'route not found', …(1) } to match object { bucket: 'day', by: 'member' }
    × CAPY-346/637 ... → expected 404 to be 403
-   × CAPY-481 ... (timed out waiting for a run-out card: keep-going switched to free silently)
+   × CAPY-481 ... (5002 ms timeout waiting for a run-out card; inferred cause: keep-going switched to free without asking)
    × CAPY-639 ... → expected 404 to be 200
       Tests  6 failed (6)
 ```
@@ -38,7 +38,7 @@ CAPY-639 failed only on its last assertion (`/usage/balance` with the API key); 
 
 ## Done signal (after merge)
 `pnpm --filter @flotilla/server test` (before merge): `Test Files 24 passed (24)`, `Tests 152 passed | 1 skipped (153)`.
-`make check` (after merge, exit 0): server `Test Files 24 passed (24)`, `Tests 153 passed | 1 skipped (154)`; gate 5, core 15, web 16, host 3, codex 5, claude-code 7, generic-cli 4, fake 3 passed.
+`make check` (after merge, exit 0): server `Test Files 24 passed (24)`, `Tests 153 passed | 1 skipped (154)`; gate 5, core 15, web 17, host 3, codex 5, claude-code 7, generic-cli 4, fake 3 passed.
 `pnpm -r lint`: exit 0.
 
 ## Unverified
