@@ -26,3 +26,12 @@
 - 2026-11-27: the gate resolves the compose-scoped `gate-edge` alias and treats only that interface as the deployment edge plane for admin/preview bearer checks; thread-network interfaces remain non-edge even across container restarts. Undo: use explicitly allocated edge IPs if compose networking becomes static.
 
 - 2026-11-27: phase 2 is planned as 37 small vertical units rather than one unit per Appendix A area; row-specific expected lines quote the exact row behavior and the Appendix A implementation direction so coverage can be validated mechanically before implementation. Undo: split oversized units further if their first PRs exceed the diff budget.
+
+- 2026-11-27: phase2-01 resolves API keys and idempotency inside `requireSession` (the single auth gate) instead of a new loader hook; a request that already has a principal skips re-auth so stacked `/api/v1` gates do not double-count rate limits or idempotency. Undo: move principal resolution into a loader-level middleware.
+- 2026-11-27: typed errors keep the existing `error` string and add `code: "flotilla/<Name>"` (Capy uses `capy/*`), so current web callers keep working. Undo: switch to a nested `{ error: { code, message } }` shape in a versioned API.
+- 2026-11-27: public SSE frame types are opt-in via `?frames=public`; the default stream keeps internal event kinds because the web UI subscribes by kind. `turn` maps user.message/control.*; unknown kinds map to `transcript` (inferred, not from Capy fixtures). Undo: make public frames default after the web UI switches.
+- 2026-11-27: uploads store bytes in Postgres `bytea` (cap `FLOTILLA_UPLOAD_MAX_BYTES`, default 25 MiB) with a single-use 15-minute presigned PUT URL; Drive (phase2-30) may move storage to disk/S3. Undo: replace `api_files.data` with an object-store key.
+- 2026-11-27: the automation webhook endpoint only looks up a sha256 of the URL secret and appends to `automation_webhook_deliveries`; Idempotency-Key, HMAC option and run creation belong to phase2-26. Undo: drop the inbox table if phase2-26 consumes webhooks directly.
+- 2026-11-27: Flotilla never had a `/tasks` API; for Capy-style legacy clients `/api/v1/tasks/*` answers 308 to `/api/v1/threads/*` with `Deprecation: true`. Undo: remove the alias route.
+- 2026-11-27: service users are `users` rows with role `service` and `created_by` = the minting human; API rate limit is an in-process fixed window per key (`FLOTILLA_API_RATE_PER_MIN`, default 600), not shared across server replicas. Undo: move counters to Postgres when the server scales out.
+

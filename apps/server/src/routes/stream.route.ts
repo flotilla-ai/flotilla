@@ -1,9 +1,12 @@
 import { Hono } from 'hono';
 import type { Event } from '@flotilla/core/types';
 import { EventStore } from '../events/store.js';
+import { SSE_RETRY_MS, frameType } from '../api-platform/types.js';
 
-function sse(event: Event): Uint8Array {
-  return new TextEncoder().encode(`id: ${event.seq}\nevent: ${event.kind}\ndata: ${JSON.stringify(event)}\n\n`);
+function sse(event: Event, publicFrames: boolean, first: boolean): Uint8Array {
+  const type = frameType(event.kind);
+  const data = publicFrames ? { type, ...event } : event;
+  return new TextEncoder().encode(`${first ? `retry: ${SSE_RETRY_MS}\n` : ''}id: ${event.seq}\nevent: ${publicFrames ? type : event.kind}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
 export function createStreamRoute(store: EventStore): { basePath: string; app: Hono; public: boolean } {
@@ -14,7 +17,9 @@ export function createStreamRoute(store: EventStore): { basePath: string; app: H
       const owner = await store.pool.query('SELECT 1 FROM threads WHERE id=$1 AND owner_id=$2', [threadId, userId]);
       if (!owner.rows[0]) return c.json({ error: 'not found' }, 404);
     }
-    const after = Number.parseInt(c.req.query('after') ?? '0', 10) || 0;
+    const after = Number.parseInt(c.req.header('last-event-id') ?? c.req.query('after') ?? '0', 10) || 0;
+    const publicFrames = c.req.query('frames') === 'public';
+    let first = true;
     const subscription = await store.subscribe(threadId, after);
     const iterator = subscription[Symbol.asyncIterator]();
     const body = new ReadableStream<Uint8Array>({
@@ -24,7 +29,8 @@ export function createStreamRoute(store: EventStore): { basePath: string; app: H
             for (;;) {
               const next = await iterator.next();
               if (next.done) break;
-              controller.enqueue(sse(next.value));
+              controller.enqueue(sse(next.value, publicFrames, first));
+              first = false;
             }
             controller.close();
           } catch (err) {

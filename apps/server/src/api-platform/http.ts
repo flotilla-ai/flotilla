@@ -1,0 +1,27 @@
+import type { Context, Next } from 'hono';
+import { apiPlatformStore } from './store.js';
+import { apiError, type ApiPrincipal } from './types.js';
+
+/** Replays a create with the same requestId (body) or Idempotency-Key (header) for the same principal. */
+export async function withIdempotency(c: Context, next: Next): Promise<Response | void> {
+  if (c.req.method !== 'POST') return next();
+  const body = (await c.req.json().catch(() => null)) as { requestId?: unknown } | null;
+  const requestId = typeof body?.requestId === 'string' && body.requestId ? body.requestId : c.req.header('idempotency-key');
+  if (!requestId) return next();
+  if (requestId.length > 200) return apiError(c, 'ValidationFailed', 'requestId too long');
+  const principal = c.get('principal') as ApiPrincipal;
+  const store = apiPlatformStore();
+  const begun = await store.beginRequest(principal.userId, requestId, c.req.method, c.req.path);
+  if (begun.state === 'conflict') return apiError(c, 'Conflict', 'requestId was already used for a different request');
+  if (begun.state === 'pending') return apiError(c, 'RequestInProgress', 'a request with this requestId is still in progress');
+  if (begun.state === 'replay') return new Response(begun.body, { status: begun.status, headers: { 'content-type': begun.contentType, 'idempotent-replayed': 'true' } });
+  try {
+    await next();
+  } catch (err) {
+    await store.finishRequest(principal.userId, requestId, null);
+    throw err;
+  }
+  const type = c.res.headers.get('content-type') ?? 'application/json';
+  const ok = c.res.status >= 200 && c.res.status < 300 && !type.includes('event-stream');
+  await store.finishRequest(principal.userId, requestId, ok ? { status: c.res.status, body: await c.res.clone().text(), contentType: type } : null);
+}

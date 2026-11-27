@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { Hono } from 'hono';
 import { requireSession } from './auth/requireSession.js';
+import { ApiFailure, apiError } from './api-platform/types.js';
 
 type Logger = Pick<Console, 'info' | 'warn' | 'error'>;
 export type RouteModule = { basePath: string; app: Hono; public?: boolean };
@@ -51,6 +52,12 @@ function assertBasePath(basePath: string): void {
 
 export async function createApp(opts: { routesDir?: string } = {}): Promise<Hono> {
   const app = new Hono();
+  app.notFound((c) => (c.req.path.startsWith('/api/') ? apiError(c, 'NotFound', 'route not found') : c.text('404 Not Found', 404)));
+  app.onError((err, c) => {
+    if (err instanceof ApiFailure) return apiError(c, err.kind, err.message);
+    console.error(err);
+    return apiError(c, 'Internal', 'internal error');
+  });
   for (const route of await loadRoutes(opts.routesDir)) {
     assertBasePath(route.basePath);
     if (!route.public) {
