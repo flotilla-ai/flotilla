@@ -101,9 +101,9 @@ export class McpStore {
   }
   private async token(r: Row, bag: Bag, form: Record<string, string>): Promise<void> {
     const o = (r.config as Row).oauth;
-    const res = await fetch(o.tokenUrl, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' }, body: new URLSearchParams({ client_id: o.clientId, ...(bag.clientSecret ? { client_secret: bag.clientSecret } : {}), ...form }) });
+    const res = await fetch(o.tokenUrl, { method: 'POST', signal: AbortSignal.timeout(10_000), headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' }, body: new URLSearchParams({ client_id: o.clientId, ...(bag.clientSecret ? { client_secret: bag.clientSecret } : {}), ...form }) });
     const j = (await res.json().catch(() => ({}))) as Row;
-    if (!res.ok || typeof j.access_token !== 'string') throw new ApiFailure('Unauthorized', scrubString(`token endpoint returned ${res.status}: ${JSON.stringify(j).slice(0, 300)}`, named(bag)));
+    if (!res.ok || typeof j.access_token !== 'string') throw new ApiFailure('Unauthorized', scrubString(`token endpoint returned ${res.status}: ${JSON.stringify(j)}`, named(bag)).slice(0, 300));
     const next = { ...bag, accessToken: j.access_token, refreshToken: typeof j.refresh_token === 'string' ? j.refresh_token : bag.refreshToken };
     await this.saveBag(r, next, new Date(Date.now() + (Number(j.expires_in) || 3600) * 1000));
     Object.assign(bag, next);
@@ -148,7 +148,7 @@ export class McpStore {
       const res = await fetch(r.url, { method: 'POST', signal: AbortSignal.timeout(10_000), headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream', ...(session ? { 'mcp-session-id': session } : {}), ...this.headers(bag, {}) }, body: JSON.stringify({ jsonrpc: '2.0', method, params, ...(notify ? {} : { id: ++n }) }) });
       session = res.headers.get('mcp-session-id') ?? session; httpStatus = res.status;
       const text = await res.text();
-      if (!res.ok) return { status: res.status, error: text.slice(0, 500) };
+      if (!res.ok) return { status: res.status, error: scrubString(text, named(bag)).slice(0, 500) };
       const data = res.headers.get('content-type')?.includes('text/event-stream') ? text.split('\n').filter((l) => l.startsWith('data:')).map((l) => l.slice(5).trim()).find((l) => l.includes('"id"')) : text;
       return { status: res.status, json: data ? JSON.parse(data) as Row : null };
     };
@@ -175,7 +175,7 @@ export class McpStore {
     let p: McpProposal; let question: string;
     if (raw.action === 'add') {
       const server = parseServerInput({ ...raw.server, projectId: t.project_id, enabled: true });
-      const literal = server.auth?.kind === 'headers' && server.auth.headers.some((h) => !/^[^$]*(\$\{[A-Za-z_][A-Za-z0-9_]*\}[^$]*)+$/.test(h.value));
+      const literal = server.auth?.kind === 'headers' && server.auth.headers.some((h) => { const rest = h.value.replace(/\$\{[A-Za-z_][A-Za-z0-9_]*\}/g, '').trim(); return !placeholders(h.value).length || (rest !== '' && !/^(Bearer|Basic|Token)$/i.test(rest)); });
       if (literal || Object.keys(server.env ?? {}).length || (server.auth?.kind === 'oauth' && server.auth.clientSecret)) throw new ApiFailure('ValidationFailed', 'proposals cannot carry secret values; use ${VAR} placeholders and set the value yourself');
       p = { action: 'add', server }; question = `Add MCP server ${server.key} (${server.url ?? server.command!.join(' ')})?`;
     } else {
