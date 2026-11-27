@@ -68,17 +68,28 @@ export function parseRuleFile(raw: string): { globs: string[]; alwaysApply: bool
   const globs = (meta.globs ?? '').replace(/^\[|\]$/g, '').split(',').map((g) => g.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
   return { globs, alwaysApply: meta.alwaysApply === 'true', description: (meta.description ?? '').replace(/^["']|["']$/g, ''), body };
 }
-export function globToRegExp(glob: string): RegExp {
+const MAX_GLOB = 256;
+/** Glob match (double star, double star + slash, star, ?) by memoized DP: O(glob x path), no regex backtracking on repo-supplied globs. */
+export function globMatch(glob: string, path: string): boolean {
+  if (glob.length > MAX_GLOB || path.length > 4096) return false;
   const g = glob.includes('/') ? glob.replace(/^\.?\//, '') : `**/${glob}`;
-  let re = '';
+  const tok: string[] = [];
   for (let i = 0; i < g.length; i++) {
-    const c = g[i]!;
-    if (c === '*' && g[i + 1] === '*') { if (g[i + 2] === '/') { re += '(?:.*/)?'; i += 2; } else { re += '.*'; i++; } }
-    else if (c === '*') re += '[^/]*';
-    else if (c === '?') re += '[^/]';
-    else re += /[\\^$.|+()[\]{}]/.test(c) ? `\\${c}` : c;
+    if (g[i] === '*' && g[i + 1] === '*') { if (g[i + 2] === '/') { if (tok.at(-1) !== '**/') tok.push('**/'); i += 2; } else { tok.push('**'); i++; } }
+    else tok.push(g[i]!);
   }
-  return new RegExp(`^${re}$`);
+  const P = path.length; const memo = new Map<number, boolean>();
+  const m = (i: number, j: number): boolean => {
+    const key = i * (P + 1) + j; const hit = memo.get(key); if (hit !== undefined) return hit;
+    let r: boolean; const t = tok[i];
+    if (t === undefined) r = j === P;
+    else if (t === '**') r = m(i + 1, j) || (j < P && m(i, j + 1));
+    else if (t === '**/') r = m(i + 1, j) || (j < P && ((path[j] === '/' && m(i + 1, j + 1)) || m(i, j + 1)));
+    else if (t === '*') r = m(i + 1, j) || (j < P && path[j] !== '/' && m(i, j + 1));
+    else r = j < P && (t === '?' ? path[j] !== '/' : path[j] === t) && m(i + 1, j + 1);
+    memo.set(key, r); return r;
+  };
+  return m(0, 0);
 }
 export const normalizePath = (p: string) => p.replace(/^\/workspace\/repo\//, '').replace(/^\.\//, '');
 
@@ -97,7 +108,7 @@ export function buildBundle(input: BundleInput): RulesBundle {
     if (f.path === 'CLAUDE.md' || (f.path.endsWith('/CLAUDE.md') && !RULE_DIRS.some((d) => f.path.startsWith(d)))) { ignored.push({ path: f.path, reason: f.path === 'CLAUDE.md' ? 'shadowed' : 'deprecated' }); continue; }
     if (RULE_DIRS.some((d) => f.path.startsWith(d)) && /\.mdc?$/.test(f.path)) {
       const r = parseRuleFile(f.text);
-      if (r.alwaysApply || r.globs.some((g) => touched.some((t) => globToRegExp(g).test(t)))) rules.push({ source: f.path, text: r.body, always: r.alwaysApply });
+      if (r.alwaysApply || r.globs.some((g) => touched.some((t) => globMatch(g, t)))) rules.push({ source: f.path, text: r.body, always: r.alwaysApply });
       else ignored.push({ path: f.path, reason: 'no-match' });
       continue;
     }

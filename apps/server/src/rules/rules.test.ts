@@ -13,7 +13,7 @@ import type { AgentAdapter, ProcessHandle, ProcessTransport, StartInput } from '
 import { migrate } from '../db/migrate.js';
 import { EventStore } from '../events/store.js';
 import { onBeforeRun, ThreadRunner } from '../runner/runner.js';
-import { KERNEL_RULES, RULES_GUIDANCE, buildBundle, globToRegExp, parseRuleFile } from './types.js';
+import { KERNEL_RULES, RULES_GUIDANCE, buildBundle, globMatch, parseRuleFile } from './types.js';
 import { readRepoRules, rulesBeforeRun, type RulesStore } from './store.js';
 
 const exec = promisify(execFile);
@@ -84,7 +84,8 @@ describe('rules loader', () => {
   it('CAPY-287: .capy/rules and .cursor/rules .md/.mdc apply by globs or alwaysApply', () => {
     expect(parseRuleFile(files['.cursor/rules/ts.mdc']!)).toMatchObject({ globs: ['packages/api/**/*.ts'], alwaysApply: false, description: 'TS style' });
     expect(parseRuleFile(files['.capy/rules/sql.md']!).globs).toEqual(['*.sql']);
-    expect(globToRegExp('*.sql').test('apps/server/src/db/0020.sql')).toBe(true); expect(globToRegExp('packages/api/**/*.ts').test('packages/web/a.ts')).toBe(false);
+    expect(globMatch('*.sql', 'apps/server/src/db/0020.sql')).toBe(true); expect(globMatch('packages/api/**/*.ts', 'packages/web/a.ts')).toBe(false); expect(globMatch('packages/api/**/*.ts', 'packages/api/a.ts')).toBe(true);
+    const t0 = Date.now(); expect(globMatch(`${'**/'.repeat(40)}${'*a'.repeat(40)}b`, `${'a/'.repeat(200)}${'a'.repeat(1000)}`)).toBe(false); expect(Date.now() - t0).toBeLessThan(1000);
     const repoFiles = Object.entries(files).map(([path, text]) => ({ path, text }));
     const none = buildBundle({ instructions: [], repo: repoFiles, touched: [], memory: [], maxTokens: 8000 });
     expect(none.layers.filter((l) => l.kind === 'glob-rule').map((l) => [l.source, l.text])).toEqual([['.capy/rules/always.md', 'always answer briefly']]);
