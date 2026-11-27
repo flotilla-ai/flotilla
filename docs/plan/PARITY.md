@@ -113,23 +113,23 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-107 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-108 | Pull requests & autofix | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate with a real GitHub PAT: create a test project/thread, let it push and open a PR. |
 | CAPY-109 | Pull requests & autofix | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-110 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-111 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-112 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-113 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-114 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-115 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-110 | Pull requests & autofix | P2 | done | phase2-23 |  | Branch prefix setting is durable and release/release/* is rejected. |
+| CAPY-111 | Pull requests & autofix | P2 | blocked | phase2-23 |  | Org/personal draft defaults are durable, but per-PR draft changes by asking the agent are not wired. |
+| CAPY-112 | Pull requests & autofix | P2 | blocked | phase2-23 |  | Open-in-Flotilla preference is durable, but PR creation does not yet write the button into descriptions. |
+| CAPY-113 | Pull requests & autofix | P2 | blocked | phase2-23 |  | Pulls exist at /pulls, but exact /pull/<owner>/<repo>/<n> routing and Cmd+K lookup are outside the implemented slice. |
+| CAPY-114 | Pull requests & autofix | P2 | blocked | phase2-23 |  | Pull detail exposes chat/new-thread links, but they do not yet create a thread preloaded with PR context. |
+| CAPY-115 | Pull requests & autofix | P2 | needs-human-login | phase2-23 |  | Fixture gateway proves merge methods/comment/update/auto-merge and blocked reasons; live GitHub mutation still requires a connected account. |
 | CAPY-116 | Pull requests & autofix | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-117 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-117 | Pull requests & autofix | P2 | needs-human-login | phase2-23 |  | Fixture gateway receives the connected-login actor vs flotilla fallback; live posting identity needs GitHub verification. |
 | CAPY-118 | Pull requests & autofix | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate with live GitHub CI: failing and passing checks wake the owning thread. |
 | CAPY-119 | Pull requests & autofix | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-120 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-120 | Pull requests & autofix | P2 | done | phase2-23 |  | Open PRs with no CI wake their owning thread once about 30 minutes after the last push. |
 | CAPY-121 | Pull requests & autofix | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-122 | Pull requests & autofix | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-123 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-123 | Pull requests & autofix | P2 | needs-human-login | phase2-23 |  | Fixture gateway proves summary/comment/request-changes/approve actor selection; live review submission needs GitHub verification. |
 | CAPY-124 | Pull requests & autofix | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-125 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-126 | Pull requests & autofix | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-125 | Pull requests & autofix | P2 | done | phase2-23 |  | /pulls lists installed-repository PRs and supports author:/repo:/status:/label:/since: filters. |
+| CAPY-126 | Pull requests & autofix | P2 | blocked | phase2-23 |  | PR status exists in pull data but the thread sidebar has no extension point inside this unit scope. |
 | CAPY-127 | Pull requests & autofix | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-128 | Pull requests & autofix | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | measure live CI pickup latency with a real GitHub check suite. |
 | CAPY-129 | Pull requests & autofix | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate Actions log reading and rerun permissions with a real GitHub token. |
