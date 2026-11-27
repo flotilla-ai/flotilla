@@ -30,6 +30,10 @@ it('CAPY-399/400/401/402/405/518: multiple accounts, managed installations, comm
   expect(personal.status).toBe(201); expect(personal.json).toMatchObject({ login: 'user-login', kind: 'personal', commitIdentity: 'you-capy-coauthor', commitEmail: 'user@example.com' });
   const org = await call('POST', '/github/accounts', { login: 'acme', kind: 'organization', tokenRef: 'vault:acme' });
   expect(org.status).toBe(201);
+  expect((await call('POST', '/github/accounts', { login: 'plaintext', tokenRef: 'ghp_plaintext-token' })).status).toBe(400);
+  expect((await call('PUT', `/github/accounts/${org.json.id}/commit-identity`, { identity: 'capy' })).status).toBe(200);
+  const refresh = await call('POST', '/github/accounts', { login: 'ACME', tokenRef: 'vault:acme-refreshed' });
+  expect(refresh.status).toBe(201); expect(refresh.json).toMatchObject({ id: org.json.id, login: 'acme', kind: 'organization', commitIdentity: 'capy', tokenRef: 'vault:acme-refreshed' });
   expect((await call('GET', '/github/accounts')).json.items.map((x: any) => x.login)).toEqual(['acme', 'user-login']);
 
   const missing = await call('POST', `/github/accounts/${org.json.id}/installations`, { installationId: 'inst-missing', subject: 'acme', permissions: { ...REQUIRED_PERMISSIONS, contents: 'read' } });
@@ -44,8 +48,15 @@ it('CAPY-399/400/401/402/405/518: multiple accounts, managed installations, comm
   expect((await call('PUT', `/github/accounts/${personal.json.id}/commit-identity`, { identity: 'robot' })).status).toBe(400);
   expect((await call('PUT', '/github/pulls/acme/app/12/commit-identity', { identity: 'you' })).json).toEqual({ repo: 'acme/app', number: 12, identity: 'you' });
   expect((await call('PUT', '/github/pulls/acme/app/12/commit-identity', { identity: 'bad' })).status).toBe(400);
+  expect((await call('PUT', '/github/pulls/acme/other/12/commit-identity', { identity: 'you' })).status).toBe(404);
+  expect((await call('PUT', '/github/pulls/acme/app/12/commit-identity', { identity: 'capy' }, 'usr_other')).status).toBe(404);
 
   expect((await call('DELETE', `/github/accounts/${org.json.id}`, undefined, 'usr_other')).status).toBe(404);
+  expect((await call('DELETE', `/github/accounts/${org.json.id}`, undefined, 'usr_admin')).status).toBe(204);
+  const relink = await call('POST', '/github/accounts', { login: 'acme', kind: 'organization', tokenRef: 'vault:acme-relinked' });
+  expect(relink.status).toBe(201); expect(relink.json.id).toBe(org.json.id);
+  const reattach = await call('POST', `/github/accounts/${org.json.id}/installations`, { installationId: 'inst-1', subject: 'acme', repositories: ['acme/app'], permissions: REQUIRED_PERMISSIONS });
+  expect(reattach.status).toBe(201); expect(reattach.json.revokedAt).toBeNull();
   expect((await call('DELETE', `/github/accounts/${org.json.id}`, undefined, 'usr_admin')).status).toBe(204);
   expect((await call('GET', '/github/accounts')).json.items.map((x: any) => x.login)).toEqual(['user-login']);
 });
