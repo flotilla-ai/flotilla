@@ -1,6 +1,8 @@
 FROM node:22-bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends git python3 ca-certificates util-linux wget \
   && rm -rf /var/lib/apt/lists/* \
+  && npm install -g @anthropic-ai/claude-code@2.1.332 @openai/codex@0.172.0 \
+  && npm cache clean --force \
   && mkdir -p /opt/flotilla/bin /workspace /run/flotilla \
   && chmod 1777 /run/flotilla \
   && chown -R node:node /workspace
