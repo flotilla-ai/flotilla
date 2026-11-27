@@ -1,11 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 2, waves 3-6 continuing in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-Current `flotilla/p1` head before this PR: `8a1ea5b` (phase2-23 PR autofix).
+Current `flotilla/p1` head before this PR: `f89b0ca` (phase2-25 review policy).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after phase2-24: done 279, pending 241, needs-human-login 22, n-a 22, blocked 72.
+Counted in `docs/plan/PARITY.md` after phase2-22 and phase2-25: done 286, pending 232, needs-human-login 23, n-a 22, blocked 73.
 
 ## Unit table
 
@@ -55,10 +55,11 @@ Counted in `docs/plan/PARITY.md` after phase2-24: done 279, pending 241, needs-h
 | repair-19-runner-requeue | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/72 | failed starts requeue claimed input instead of cancelling user messages |
 | phase2-28-automation-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/73 | automation REST CRUD, run/batch controls, state transitions; see `docs/runlog/phase2-28.md` |
 | phase2-23-pr-autofix | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/74 | PR settings/list/actions/review actor and no-CI wake foundation; see `docs/runlog/phase2-23.md` |
-| phase2-24-review-core | in review | 1 |  | durable review rounds/findings/triage/readiness/posting policy; see `docs/runlog/phase2-24.md` |
+| phase2-24-review-core | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/75 | durable review rounds/findings/triage/readiness/posting policy; see `docs/runlog/phase2-24.md` |
+| phase2-25-review-policy | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/76 | review context/policy/guides/evidence/stack detection; see `docs/runlog/phase2-25.md` |
 ## Next action
 
-1. Merge phase2-23 after its gate, then integrate review core/policy and continue Captain/device/dock units directly in the parent session.
+1. Merge phase2-22 after its gate, then continue device execution and dock CLI units directly in the parent session.
 2. Keep live GitHub rows fixture-backed and marked needs-human-login until a real operator login verifies them.
 
 ## Phase 1 summary (preserved)
