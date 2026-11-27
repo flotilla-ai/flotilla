@@ -59,20 +59,43 @@ describe('github client and autofix wake logic', () => {
     expect(await monitor.process('o/r', 1, 'thr_1', 'sha')).toBe('failed');
     expect(wakes).toHaveLength(2);
   });
-  it('does not wake an archived thread for green or autofix CI results', async () => {
+  it('does not wake an archived thread, but does not consume green/autofix wakes', async () => {
     const wakes: string[] = []; const events: unknown[] = [];
+    let archived: Date | null = new Date();
     let checks = [{ status: 'completed', conclusion: 'success', name: 'check' }];
     const monitor = new CheckMonitor({
-      pool: { query: async () => ({ rows: [{ archived_at: new Date() }] }) } as never,
+      pool: { query: async () => ({ rows: [{ archived_at: archived }] }) } as never,
       store: { appendEvents: async (_id: string, evs: unknown[]) => { events.push(...evs); } } as never,
       clientFor: () => ({ checkRuns: async () => checks, checkLog: async () => 'error same failure' }) as never,
       wake: async (_id: string, text: string) => { wakes.push(text); }
     });
     expect(await monitor.process('o/r', 1, 'thr_archived', 'sha')).toBe('green');
-    checks = [{ status: 'completed', conclusion: 'failure', name: 'check' }];
+    archived = null;
+    expect(await monitor.process('o/r', 1, 'thr_archived', 'sha')).toBe('green');
+    expect(wakes).toEqual(['CI passed for o/r#1']);
+    expect(events).toHaveLength(1);
+
+    archived = new Date(); checks = [{ status: 'completed', conclusion: 'failure', name: 'check' }];
     expect(await monitor.process('o/r', 1, 'thr_archived', 'sha')).toBe('failed');
+    expect(monitor.attempts.get('o/r#1') ?? []).toEqual([]);
+    archived = null;
+    expect(await monitor.process('o/r', 1, 'thr_archived', 'sha')).toBe('failed');
+    expect(monitor.attempts.get('o/r#1')).toHaveLength(1);
+    expect(wakes.filter((w) => w.includes('Autofix attempt 1'))).toHaveLength(1);
+    expect(events).toHaveLength(3);
+  });
+
+  it('re-checks archived state after fetching a failing check log', async () => {
+    const wakes: string[] = []; let archived: Date | null = null;
+    const monitor = new CheckMonitor({
+      pool: { query: async () => ({ rows: [{ archived_at: archived }] }) } as never,
+      store: { appendEvents: async () => undefined } as never,
+      clientFor: () => ({ checkRuns: async () => [{ status: 'completed', conclusion: 'failure', name: 'check' }], checkLog: async () => { archived = new Date(); return 'error same failure'; } }) as never,
+      wake: async (_id: string, text: string) => { wakes.push(text); }
+    });
+    expect(await monitor.process('o/r', 1, 'thr_race', 'sha')).toBe('failed');
     expect(wakes).toEqual([]);
-    expect(events).toHaveLength(2);
+    expect(monitor.attempts.get('o/r#1') ?? []).toEqual([]);
   });
   it('routes check_run webhooks to the owning thread', async () => {
     const seen: string[] = [];
