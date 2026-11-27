@@ -8,7 +8,7 @@ import type { GitDriver } from '../git/mirror.js';
 import { seedWorkspace } from '../git/mirror.js';
 import type { AgentAdapter } from '@flotilla/core/types';
 import { getRunTokenService } from '../captain/tools/registry.js';
-import { captainMcpTar } from '../captain/tools/mcpConfig.js';
+import { captainMcpTar, tarFile } from '../captain/tools/mcpConfig.js';
 import { secretsTar, type SecretsStore } from '../secrets/store.js';
 import type { EnvVarMutation, PreparedSecrets } from '../secrets/types.js';
 import { ApiFailure } from '../api-platform/types.js';
@@ -69,9 +69,9 @@ export class ThreadRunner {
   async message(threadId: string, text: string, mode: DeliveryMode = 'queue', userId?: string, attachments: string[] = []): Promise<{ item: ThreadInboxItem | null; sideThreadId?: string }> {
     if (!DELIVERY_MODES.includes(mode)) throw new ApiFailure('ValidationFailed', 'mode must be queue, steer or interrupt');
     const thread = await this.thread(threadId); if (!thread || (userId && thread.owner_id!==userId)) throw new ApiFailure('NotFound', 'thread not found');
-    const cmd = parseCommand(text);
+    const parsed = parseCommand(text); const cmd = parsed.kind === 'side' && !userId ? { kind: null, body: text } : parsed;
     if (cmd.kind === 'side') {
-      const side = await this.createThread({ ownerId: thread.owner_id as string, parentId: threadId, projectId: thread.project_id as string | null, title: `btw: ${cmd.body.slice(0, 60)}`, prompt: cmd.body, engine: thread.engine as Thread['engine'] });
+      const side = await this.createThread({ ownerId: thread.owner_id as string, parentId: threadId, projectId: thread.project_id as string | null, title: `btw: ${cmd.body.slice(0, 60)}`, prompt: cmd.body, engine: thread.engine as Thread['engine'], maxUsd: (thread.budget as { maxUsd: number | null } | null)?.maxUsd ?? null });
       await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'thread.side', source: 'kernel', trust: 'trusted', payload: { threadId: side.id } }] as never);
       return { item: null, sideThreadId: side.id as string };
     }
@@ -138,7 +138,7 @@ export class ThreadRunner {
     await this.deps.store.appendEvents(approval.thread_id, [{ runId: null, kind: 'approval.resolved', source: 'kernel', trust: 'trusted', payload: { approvalId, optionId, value } }] as never);
     if (approval.gate === 'plan') {
       const owner = (await this.thread(approval.thread_id))!.owner_id as string;
-      if (optionId === 'approve') { await this.pool.query(`UPDATE threads SET plan_mode=false,status='queued',needs_you='[]' WHERE id=$1`, [approval.thread_id]); await this.inbox.add({ threadId: approval.thread_id, text: 'Plan approved. Implement the plan now.', mode: 'queue', by: null, ownerId: owner, priority: 1 }); }
+      if (optionId === 'approve') { await this.pool.query(`UPDATE threads SET plan_mode=false,status='queued',needs_you='[]' WHERE id=$1`, [approval.thread_id]); await this.inbox.add({ threadId: approval.thread_id, text: await this.approvedPlan(approval.thread_id), mode: 'queue', by: null, ownerId: owner, priority: 1 }); }
       else await this.pool.query(`UPDATE threads SET status='queued',needs_you='[]' WHERE id=$1`, [approval.thread_id]);
       this.kick(approval.thread_id);
     }
@@ -208,10 +208,12 @@ export class ThreadRunner {
     const scrubber = createDeltaScrubber(eventSecrets);
     const item = await this.inbox.claim(threadId, runId); const planRun = item?.plan === true || thread.plan_mode === true;
     if (item?.plan && !thread.plan_mode) await this.pool.query('UPDATE threads SET plan_mode=true WHERE id=$1', [threadId]);
-    const prompt = item ? `${planRun ? PLAN_PROMPT : ''}${item.text}` : '';
+    const files = item?.attachments.length ? await this.copyAttachments(machine.containerId, item.attachments) : [];
+    const prompt = item ? `${planRun ? PLAN_PROMPT : ''}${item.text}${files.length ? `\n\nAttached files:\n${files.map((f) => `- ${f}`).join('\n')}` : ''}` : '';
+    const eng = thread.engine as { model?: string | null; effort?: string | null };
     this.live.set(threadId, { runId, adapter, sessionId: null });
     let stream: AsyncIterable<AdapterEvent>;
-    try { stream = adapter.start({ runId: runId as never, threadId: threadId as never, prompt, cwd: project ? '/workspace/repo' : '/workspace', env: prepared.env, transport, resumeSessionId: null, vendorBudget: { maxMicroUsd: policy.maxUsd }, auth: { kind: 'none' }, mcpConfigPath: runToken ? '/run/flotilla/mcp.json' : null, images: [] } as never); } catch (err) { tokenService?.endRun(runId); throw err; }
+    try { stream = adapter.start({ runId: runId as never, threadId: threadId as never, prompt, cwd: project ? '/workspace/repo' : '/workspace', env: prepared.env, transport, resumeSessionId: null, attachments: files, model: eng.model ?? null, effort: eng.effort ?? null, vendorBudget: { maxMicroUsd: policy.maxUsd }, auth: { kind: 'none' }, mcpConfigPath: runToken ? '/run/flotilla/mcp.json' : null, images: [] } as never); } catch (err) { tokenService?.endRun(runId); throw err; }
     try {
       for await (const event of stream) {
         if (this.cancelled.has(threadId)) { state = 'cancelled'; await adapter.cancel(runId as never).catch(() => undefined); break; }
@@ -250,11 +252,32 @@ export class ThreadRunner {
     if (kind) await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind, source: 'adapter', trust: 'trusted', payload: scrub(event, eventSecrets) }] as never);
   }
   /** Plan mode ends every turn at a blocking gate; nothing else runs and no after-run hook (push, PR) fires until it is approved. */
+  /** Runs start fresh sessions, so the implementation turn gets the request and the plan text. */
+  private async approvedPlan(threadId: string): Promise<string> {
+    const req = await this.inbox.lastDelivered(threadId);
+    const plan = (await this.pool.query(`SELECT string_agg(payload->>'text', '' ORDER BY seq) AS text FROM events WHERE thread_id=$1 AND kind='agent.delta' AND run_id=$2`, [threadId, req?.runId ?? null])).rows[0]?.text as string | null;
+    return `Plan approved. Implement the plan now.${req ? `\n\nRequest:\n${req.text}` : ''}${plan ? `\n\nApproved plan:\n${plan}` : ''}`;
+  }
   private async openPlanGate(thread: Row, runId: string): Promise<void> {
     const approvalId = id('apr');
     await this.pool.query(`UPDATE threads SET status='paused',needs_you=$2 WHERE id=$1`, [thread.id, JSON.stringify([approvalId])]);
     await this.pool.query(`INSERT INTO approvals (id,thread_id,captain_id,kind,question,options,blocking,state,gate) VALUES ($1,$2,$3,'decision','Approve the plan?',$4,true,'open','plan')`, [approvalId, thread.id, thread.crew_of ?? null, JSON.stringify([{ id: 'approve', label: 'Approve plan' }, { id: 'revise', label: 'Keep planning' }])]);
     await this.deps.store.appendEvents(thread.id as Thread['id'], [{ runId: runId as never, kind: 'approval.requested', source: 'kernel', trust: 'trusted', payload: { approvalId, kind: 'decision', gate: 'plan' } }] as never);
+  }
+  private async copyAttachments(containerId: string, ids: string[]): Promise<string[]> {
+    const rows = (await this.pool.query('SELECT id,name,data FROM api_files WHERE id = ANY($1::text[]) AND uploaded_at IS NOT NULL', [ids])).rows as { id: string; name: string; data: Buffer }[];
+    const copyIn = (this.deps.driver as Driver & { copyIn?(id: string, dir: string, tar: Buffer): Promise<void> }).copyIn;
+    if (!copyIn) return [];
+    const paths: string[] = [];
+    for (const f of rows) { const rel = `flotilla/attachments/${f.id}-${f.name.replace(/[^\w.-]/g, '_')}`; await copyIn.call(this.deps.driver, containerId, '/run', tarFile(rel, f.data)); paths.push(`/run/${rel}`); }
+    return paths;
+  }
+  /** At startup, runs without ended_at belong to a dead process: end them and re-queue the messages they had claimed. */
+  async recoverClaimed(): Promise<void> {
+    const rows = await this.pool.query(`WITH orphan AS (UPDATE runs SET state='failed',ended_at=now() WHERE ended_at IS NULL RETURNING id),
+      items AS (UPDATE thread_inbox SET state='pending',delivered_at=NULL,run_id=NULL WHERE state='delivered' AND run_id IN (SELECT id FROM orphan) RETURNING thread_id)
+      SELECT DISTINCT thread_id FROM items`);
+    for (const r of rows.rows) this.kick(r.thread_id as string);
   }
   private async failStart(threadId: string, runId: string, err: unknown): Promise<never> {
     await this.inbox.cancelAll(threadId);

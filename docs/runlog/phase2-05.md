@@ -101,3 +101,13 @@ TypeError: Cannot read properties of undefined (reading 'state')
 ```
 
 Cause: the budget approval is now inserted after the status update, so it can appear while run 1 is still finishing. The test's `message()` then only queued the item, and the paused thread never started run 2. The fix is test-only: wait for run 1 to leave `running` before sending the message, which is the scenario the row describes. `npx vitest run src/runner` then passed 14/14 in 3 runs out of 3.
+
+## Devin Review round 1 (commit 4df6dc1)
+
+- Fixed: `/btw` now only opens a side thread for an owner-sent message. Captain/kernel messages (no `userId`) are delivered as plain text. Side threads inherit the parent's `maxUsd`.
+- Fixed: inbox attachments are copied into the machine at `/run/flotilla/attachments/<id>-<name>`. Their paths go to `StartInput.attachments` and are listed in the prompt.
+- Fixed: the plan-approval message now carries the original request and the plan run's `agent.delta` text, because each run starts a fresh session.
+- Fixed: `StartInput.model`/`effort` now come from `threads.engine`, so a retry on another model uses that model. `connectionId` is saved but not yet used: there are no connection credentials in this phase (`auth` is still `none`).
+- Fixed: on startup, `recoverClaimed()` ends runs without `ended_at` as `failed` and re-queues the inbox items they had claimed. Delivery is at-least-once after a crash.
+
+`npx vitest run src/runner`: Tests 16 passed (16). `make check` failed only on the known `git/mirror.test.ts` fsmonitor test; every other server test passed.

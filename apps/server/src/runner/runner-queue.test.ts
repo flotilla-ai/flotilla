@@ -15,17 +15,18 @@ import { ApiFailure, apiError } from '../api-platform/types.js';
 const exec = promisify(execFile);
 function lines(stream: NodeJS.ReadableStream): AsyncIterable<string> { return (async function*(){let rest='';for await(const c of stream){rest+=c.toString();const p=rest.split('\n');rest=p.pop()!;for(const x of p)yield x;}if(rest)yield rest;})(); }
 const localTransport: ProcessTransport = { spawn(argv,opts) { const child=spawn(argv[0],argv.slice(1),{cwd:process.cwd(),env:{...process.env,...opts.env},detached:true,stdio:['ignore','pipe','pipe']}); return { stdout:lines(child.stdout!),stderr:lines(child.stderr!),exit:new Promise((r)=>child.once('exit',(code,signal)=>r({code,signal}))),signal:async(sig)=>{if(child.pid)process.kill(-child.pid,sig)} } satisfies ProcessHandle; } };
-const driver = { startThreadContainer: async()=>({containerId:'fake'}), transport:()=>localTransport, copyIn:async()=>undefined, copyOut:async()=>Buffer.from(''), stop:async()=>undefined };
+const copied: string[] = [];
+const driver = { startThreadContainer: async()=>({containerId:'fake'}), transport:()=>localTransport, copyIn:async(_id: string, dir: string, tar: Buffer)=>{ copied.push(`${dir}/${tar.subarray(0, 100).toString().replace(/\0.*$/s, '')}`); }, copyOut:async()=>Buffer.from(''), stop:async()=>undefined };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Scripted fixture adapter: every start is recorded; `hold` runs wait until steered, cancelled or released. */
 function scripted(caps: Partial<AdapterCapabilities & { compaction: boolean }>, events: (n: number, input: StartInput) => AdapterEvent[], hold = false) {
   const a = {
-    starts: [] as string[], steered: [] as string[], release: () => {},
+    starts: [] as string[], inputs: [] as StartInput[], steered: [] as string[], release: () => {},
     manifest: { ...fakeAdapter.manifest, capabilities: { ...fakeAdapter.manifest.capabilities, ...caps } },
     probe: fakeAdapter.probe.bind(fakeAdapter),
     start(input: StartInput): AsyncIterable<AdapterEvent> {
-      a.starts.push(input.prompt); const n = a.starts.length;
+      a.starts.push(input.prompt); a.inputs.push(input); const n = a.starts.length;
       return (async function*() { yield { t: 'session', adapterSessionId: `s${n}` } as AdapterEvent; for (const e of events(n, input)) yield e; if (hold) await new Promise<void>((r) => { a.release = r; }); yield { t: 'done', stopReason: 'end_turn' } as AdapterEvent; })();
     },
     resume(input: StartInput) { return a.start(input); },
@@ -38,7 +39,8 @@ const steerer = scripted({ steerMidTurn: true }, () => [], true);
 const holder = scripted({}, () => [], true);
 const flaky = scripted({}, (n) => n === 1 ? [{ t: 'done', stopReason: 'error', error: 'API overloaded (529)' }] : [{ t: 'text', delta: 'ok' }]);
 const coder = scripted({ compaction: true }, () => [{ t: 'tool_call', id: 'c1', name: 'codemode', input: { program: 'read()' } }, { t: 'tool_call', id: 'c2', name: 'read_file', input: { path: 'a' }, parentId: 'c1' } as AdapterEvent, { t: 'tool_result', id: 'c2', ok: true, output: 'x', parentId: 'c1' } as AdapterEvent, { t: 'usage', inputTokens: 1200, outputTokens: 300, cumulative: true }], true);
-const adapters = new Map<string, AgentAdapter>([['fake', fakeAdapter], ['steerer', steerer], ['holder', holder], ['flaky', flaky], ['coder', coder]]);
+const plain = scripted({}, () => []);
+const adapters = new Map<string, AgentAdapter>([['fake', fakeAdapter], ['plain', plain], ['steerer', steerer], ['holder', holder], ['flaky', flaky], ['coder', coder]]);
 const engine = (adapter: string) => ({ adapter, model: null, effort: null, connectionId: null }) as never;
 
 let container = ''; let url = ''; let pool: pg.Pool; let runner: ThreadRunner; let api: Hono;
@@ -110,7 +112,7 @@ describe('runner queue', () => {
     expect(runner.running.has(t.id)).toBe(false);
     const n = holder.starts.length; await runner.answerApproval(gate.id, 'approve', undefined, 'usr_q');
     await until(async () => holder.starts.length, (x) => x > n);
-    expect(holder.starts[n]).toMatch(/^Plan approved/); holder.release();
+    expect(holder.starts[n]).toMatch(/^Plan approved/); expect(holder.starts[n]).toContain('Request:\nadd a cache'); holder.release();
     await until(async () => holder.starts.length, (x) => x > n + 1); expect(holder.starts[n + 1]).toBe('also docs'); holder.release();
     await until(async () => hooked.includes(t.id), Boolean); off(); await runner.stop(t.id);
   }, 20_000);
@@ -124,7 +126,7 @@ describe('runner queue', () => {
   }, 20_000);
 
   it('CAPY-467: a message sent while its file uploads waits durably and goes out after upload, even after a restart', async () => {
-    const t = await make('fake'); await until(() => runs(t.id), (r) => r[0]?.state === 'completed');
+    const t = await make('plain'); await until(() => runs(t.id), (r) => r[0]?.state === 'completed');
     await pool.query(`INSERT INTO api_files (id,owner_id,name,content_type,size,upload_token_hash,upload_expires_at) VALUES ('fil_up','usr_q','a.png','image/png',1,'h',now()+interval '1 hour'),('fil_o','usr_o','b.png','image/png',1,'h',now()+interval '1 hour')`);
     expect((await call('POST', `/threads/${t.id}/inbox`, { text: 'see file', attachments: ['fil_o'] })).status).toBe(400);
     const r = await call('POST', `/threads/${t.id}/inbox`, { text: 'see file', attachments: ['fil_up'] });
@@ -134,6 +136,8 @@ describe('runner queue', () => {
     await restarted.resumePending();
     await until(() => runs(t.id), (x) => x.length === 2 && x[1].state === 'completed');
     expect((await pool.query('SELECT state FROM thread_inbox WHERE id=$1', [r.json.item.id])).rows[0].state).toBe('delivered');
+    expect(copied).toContain('/run/flotilla/attachments/fil_up-a.png');
+    expect(plain.inputs.at(-1)).toMatchObject({ attachments: ['/run/flotilla/attachments/fil_up-a.png'] }); expect(plain.starts.at(-1)).toContain('Attached files:\n- /run/flotilla/attachments/fil_up-a.png');
     await restarted.drain(); await restarted.pool.end();
   }, 20_000);
 
@@ -144,7 +148,7 @@ describe('runner queue', () => {
     const r = await call('POST', `/threads/${t.id}/retry`, { model: 'other-model', connectionId: 'con_own' });
     expect(r.status).toBe(202);
     await until(() => runs(t.id), (x) => x[1]?.state === 'completed');
-    expect(flaky.starts).toEqual(['do it', 'do it']);
+    expect(flaky.starts).toEqual(['do it', 'do it']); expect(flaky.inputs.map((i) => i.model)).toEqual([null, 'other-model']);
     expect((await pool.query('SELECT engine FROM threads WHERE id=$1', [t.id])).rows[0].engine).toMatchObject({ model: 'other-model', connectionId: 'con_own' });
     expect((await call('POST', `/threads/${t.id}/retry`, {})).status).toBe(409);
   }, 20_000);
@@ -181,5 +185,26 @@ describe('runner queue', () => {
     await runner.message(t.id, 'more', 'queue', 'usr_q');
     const r = await until(() => runs(t.id), (x) => x.length === 2 && x[1].state !== 'starting');
     expect(r[1].state).toBe('paused_budget'); expect(r[1].ended_at).not.toBeNull();
+  }, 20_000);
+
+  it('/btw from a Captain or kernel message is plain text, not a new side thread', async () => {
+    const t = await make('plain'); await until(() => runs(t.id), (r) => r[0]?.state === 'completed');
+    expect((await runner.message(t.id, '/btw spawn more', 'queue')).sideThreadId).toBeUndefined();
+    expect((await pool.query('SELECT 1 FROM threads WHERE parent_id=$1', [t.id])).rows).toHaveLength(0);
+    await until(() => runs(t.id), (x) => x[1]?.state === 'completed'); expect(plain.starts.at(-1)).toBe('/btw spawn more');
+  }, 20_000);
+
+  it('a message claimed by a run that died with its process is re-queued on startup', async () => {
+    for (const a of [steerer, holder, coder]) a.release(); await runner.drain();
+    const t = await make('plain'); await until(() => runs(t.id), (r) => r[0]?.state === 'completed');
+    await pool.query(`INSERT INTO runs (id,thread_id,ordinal,trigger,state,usage) VALUES ('run_dead',$1,99,'{}','running','{}')`, [t.id]);
+    const { item } = await runner.message(t.id, 'lost?', 'queue', 'usr_q'); await runner.drain();
+    await pool.query(`UPDATE runs SET ended_at=NULL WHERE id='run_dead'`); await pool.query(`UPDATE thread_inbox SET state='delivered',run_id='run_dead' WHERE id=$1`, [item!.id]);
+    const restarted = new ThreadRunner({ store: new EventStore(url), driver: driver as never, adapters });
+    await restarted.recoverClaimed(); await restarted.drain();
+    expect((await pool.query(`SELECT state,ended_at FROM runs WHERE id='run_dead'`)).rows[0]).toMatchObject({ state: 'failed', ended_at: expect.any(Date) });
+    expect((await pool.query('SELECT state,run_id FROM thread_inbox WHERE id=$1', [item!.id])).rows[0].run_id).not.toBe('run_dead');
+    expect(plain.starts.filter((p) => p === 'lost?').length).toBe(2);
+    await restarted.pool.end();
   }, 20_000);
 });

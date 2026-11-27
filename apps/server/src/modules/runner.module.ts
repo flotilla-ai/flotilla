@@ -4,7 +4,7 @@ export default {
   async start() {
     const runner = defaultRunner();
     const resume = async () => { try { await runner.resumePending(); } catch { /* database not ready */ } };
-    void resume(); const inbox = setInterval(resume, 2_000);
+    void runner.recoverClaimed().catch(() => undefined).then(resume); const inbox = setInterval(resume, 2_000);
     const timer = setInterval(async () => {
       try {
         const rows = await runner.pool.query(`SELECT id FROM runs WHERE state IN ('starting','running') AND started_at < now() - interval '10 seconds'`);
