@@ -69,12 +69,12 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-063 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-064 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-065 | Subagents & forks | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-066 | Captains | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-066 | Captains | P1 | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-067 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-068 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-069 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-070 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-071 | Captains | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-071 | Captains | P1 | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-072 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-073 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-074 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
@@ -82,14 +82,14 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-076 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-077 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-078 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-079 | Captains | P1 | done | phase1fix-01 | https://github.com/flotilla-ai/flotilla/pull/20 | Restart-safe wake persistence/coalescing proved by real Postgres fake-clock test. |
+| CAPY-079 | Captains | P1 | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Restart-safe wake persistence/coalescing proved by real Postgres fake-clock test. |
 | CAPY-080 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-081 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-082 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-083 | Captains | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-084 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-085 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-086 | Captains | P1 | done | phase1fix-01 | https://github.com/flotilla-ai/flotilla/pull/20 | Restart-safe wake persistence/coalescing proved by real Postgres fake-clock test. |
+| CAPY-086 | Captains | P1 | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Restart-safe wake persistence/coalescing proved by real Postgres fake-clock test. |
 | CAPY-087 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-088 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-089 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
@@ -100,7 +100,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-094 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-095 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-096 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-097 | Captains | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
+| CAPY-097 | Captains | P1 | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-098 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-099 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-100 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |

@@ -14,7 +14,7 @@ Initialized in `docs/plan/PARITY.md`: P2/P3/P4 rows are pending; phase 1 rows ar
 | phase1 units 01-17 | merged | 1+ | see phase-1 summary below | compose, fake thread, cost and budget approval proven |
 | plan-p234 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/19 | run rules, parity ledger, coverage script |
 | phase1fix-01 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/20 | scheduler restart recovery; real Postgres fake-clock restart test passes |
-| phase1fix-02 | running | 1 | | Captain five-crew fake relay |
+| phase1fix-02 | running | 1 | https://github.com/flotilla-ai/flotilla/pull/21 | Captain five-crew fake relay |
 | phase1fix-03 | pending | 0 | | egress/preview local fixtures |
 
 ## Next action
