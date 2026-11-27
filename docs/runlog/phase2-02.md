@@ -62,3 +62,20 @@ AssertionError: expected [ 'fs', true ] to deeply equal [ 'fs', false ]
 - Live Docker: `/run/flotilla/secrets.env` mode/owner inside a real thread container (fake driver only). Command: `docker compose up -d --build`, create a thread with `environmentVariables`, then `docker exec <thread-container> stat -c '%a %u' /run/flotilla/secrets.env` (expect `600 1000`).
 - API paths/body shapes are inferred, not from Capy fixtures.
 - The two pre-existing `make check` failures above.
+
+## Review round 1 (Devin Review on b6926e2)
+
+Fixed: malformed env bodies now return 400 (028217c); vault failures fail closed, leaving no orphan thread, run row, budget hold or retry loop (c9b8632). Escalated: master key persistence in compose, core scrub 8-character minimum, prompt redaction of saved values versus CAPY-385, unkeyed idempotency fingerprint in api-platform. All four are outside phase2-02 scope or need a product decision.
+
+```text
+$ pnpm --filter @flotilla/server test
+ Test Files  14 passed (14)
+      Tests  60 passed | 1 skipped (61)
+exit=0
+$ make check   (local; same pre-existing failures as above)
+apps/server test:    × git mirror > collects and pushes without token in mirror config or agent hooks/config running 250ms
+apps/server test: Error: Cannot use a pool after calling end on the pool
+apps/server test:       Tests  1 failed | 59 passed | 1 skipped (61)
+exit 2
+```
+GitHub CI `check` on b6926e2: passed.
