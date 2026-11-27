@@ -155,21 +155,21 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-149 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-150 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-151 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-152 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-153 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-154 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-155 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-152 | Automations | P2 | done | phase2-26 |  | Stored prompt/project automation with 1-20 OR triggers; runs create normal threads through the runner. |
+| CAPY-153 | Automations | P2 | blocked | phase2-26 |  | Automation API exists, but neither an Automations page nor agent-accessible full management tools are implemented. |
+| CAPY-154 | Automations | P2 | done | phase2-26 |  | 5-field cron + IANA timezone validation, 5-minute floor, timezone-correct matching and coalesced catch-up scans. |
+| CAPY-155 | Automations | P2 | done | phase2-26 |  | Signed GitHub webhook events map PR/comment/review/label/check/push/workflow_run fixtures into automation runs. |
 | CAPY-156 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-157 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-158 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-159 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-160 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-161 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-162 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-163 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-164 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-165 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-166 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-159 | Automations | P2 | done | phase2-26 |  | Per-automation hashed webhook capability URL, optional HMAC, Idempotency-Key duplicate handling and 256 KB cap. |
+| CAPY-160 | Automations | P2 | done | phase2-26 |  | Webhook batches collect events and support list, flush and cancel. |
+| CAPY-161 | Automations | P2 | done | phase2-26 |  | Manual automation trigger API creates a run. |
+| CAPY-162 | Automations | P2 | done | phase2-26 |  | Trigger conditions cover equality, lists, substring and regex across repository/branch/author/label/text payload fields. |
+| CAPY-163 | Automations | P2 | blocked | phase2-26 |  | run_when is stored and injectable for fixture proof, but production has no configurable free fast-model gate adapter wired yet. |
+| CAPY-164 | Automations | P2 | done | phase2-26 |  | Pinned models fail closed when unavailable; unpinned models may resolve to the free default. |
+| CAPY-165 | Automations | P2 | done | phase2-26 |  | Thread mode supports new threads and a single standing thread. |
+| CAPY-166 | Automations | P2 | done | phase2-26 |  | Runs may target an existing thread or create private threads. |
 | CAPY-167 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-168 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-169 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
@@ -500,7 +500,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-497 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-498 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-499 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-500 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-500 | Automations | P2 | done | phase2-26 |  | Multiple schedule triggers per automation are stored and scanned independently. |
 | CAPY-501 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-502 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | Usage is summed as bigint; a Drive at >2 GiB accepts saves up to its quota (drive-core.test.ts, sizes recorded without writing 2 GiB). |
 | CAPY-503 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | Mount/save failures insert a non-blocking `approvals` card with `detail.drive={code,title,nextStep}`; the run still starts (drive-core.test.ts). |
