@@ -25,8 +25,17 @@ it('CAPY-169/170/171/172/173/175/501: automation control, caps, state, rotation,
  expect((await call('POST',`/automations/${made.json.id}/resume`)).json.state).toBe('active');
  const rotated=await call('POST',`/automations/${made.json.id}/rotate-webhook`);expect(rotated.json.webhookToken).toBeTruthy();expect(rotated.json.webhookToken).not.toBe(made.json.webhookToken);
  expect((await pool.query('SELECT webhook_hash FROM automations WHERE id=$1',[made.json.id])).rows[0].webhook_hash).not.toBe(rotated.json.webhookToken);
+ const got=await call('GET',`/automations/${made.json.id}`);expect(got.status).toBe(200);expect(got.json.id).toBe(made.json.id);
+ const updated=await call('PUT',`/automations/${made.json.id}`,{name:'Ops renamed',prompt:'updated stored prompt',machineSize:'xlarge',maxRunsPerDay:null,driveScope:{drive:'automation',path:'/new-state'},conditions:{repo:'acme/api'}});
+ expect(updated.status).toBe(200);expect(updated.json).toMatchObject({name:'Ops renamed',prompt:'updated stored prompt',machineSize:'xlarge',maxRunsPerDay:null,driveScope:{drive:'automation',path:'/new-state'},conditions:{repo:'acme/api'}});
+ expect((await call('PUT',`/automations/${made.json.id}`,{triggers:[]})).status).toBe(400);
+ const batchAutomation=await call('POST','/projects/prj_ctl/automations',{name:'Batch API',prompt:'batch prompt',triggers:[{type:'webhook',batch:true}],model:{pinned:false}});
+ await pool.query(`INSERT INTO automation_batches (id,automation_id) VALUES ('bat_api1','${batchAutomation.json.id}'),('bat_api2','${batchAutomation.json.id}')`);
+ expect((await call('GET',`/automations/${batchAutomation.json.id}/batches`)).json.items).toHaveLength(2);
+ expect((await call('POST',`/automations/${batchAutomation.json.id}/batches/bat_api1/flush`)).status).toBe(202);
+ expect((await call('POST',`/automations/${batchAutomation.json.id}/batches/bat_api2/cancel`)).json.state).toBe('cancelled');
  const filtered=await call('GET','/projects/prj_ctl/automations?state=active&createdAfter=2000-01-01');expect(filtered.json.items.map((x:any)=>x.id)).toContain(made.json.id);expect((await call('GET','/projects/prj_ctl/automations?state=paused')).json.items).toHaveLength(0);expect((await call('GET','/projects/prj_ctl/automations?createdBefore=2000-01-01')).json.items).toHaveLength(0);
- const deleted=await call('DELETE',`/automations/${made.json.id}`);expect(deleted.json.state).toBe('deleted');expect((await call('GET','/projects/prj_ctl/automations')).json.items).toHaveLength(0);expect((await call('GET','/projects/prj_ctl/automations?state=deleted')).json.items).toHaveLength(1);
+ const deleted=await call('DELETE',`/automations/${made.json.id}`);expect(deleted.json.state).toBe('deleted');expect((await call('GET','/projects/prj_ctl/automations')).json.items.map((x:any)=>x.id)).toEqual([batchAutomation.json.id]);expect((await call('GET','/projects/prj_ctl/automations?state=deleted')).json.items).toHaveLength(1);
  expect((await call('POST',`/automations/${made.json.id}/restore`)).json.state).toBe('active');
  expect((await pool.query('SELECT count(*)::int n FROM automation_runs WHERE automation_id=$1',[made.json.id])).rows[0].n).toBeGreaterThanOrEqual(3);
 },30000);

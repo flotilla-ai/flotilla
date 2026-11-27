@@ -239,6 +239,22 @@ export class AutomationStore {
     const [r] = await this.q('INSERT INTO automation_runs (id,automation_id,trigger_type,trigger_key,idempotency_key,status,payload,skip_reason) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *', [id('arun'), a.id, type, key, idem, 'skipped', JSON.stringify(payload), reason]);
     return toRun(r);
   }
+  async update(userId: string, automationId: string, input: Record<string, unknown>): Promise<Automation> {
+    const existing = await this.getOwned(userId, automationId);
+    const vals: unknown[] = [automationId, userId]; const sets: string[] = [];
+    const set = (column: string, value: unknown) => { vals.push(value); sets.push(`${column}=$${vals.length}`); };
+    if (input.name !== undefined) { if (!String(input.name).trim()) throw new ApiFailure('ValidationFailed', 'name is required'); set('name', String(input.name)); }
+    if (input.prompt !== undefined) { if (!String(input.prompt).trim()) throw new ApiFailure('ValidationFailed', 'prompt is required'); set('prompt', String(input.prompt)); }
+    if (input.triggers !== undefined) set('triggers', JSON.stringify(triggerList(input.triggers)));
+    if (input.conditions !== undefined) { if (!input.conditions || typeof input.conditions !== 'object' || Array.isArray(input.conditions)) throw new ApiFailure('ValidationFailed', 'conditions must be an object'); set('conditions', JSON.stringify(input.conditions)); }
+    if (input.runWhen !== undefined) set('run_when', input.runWhen == null ? null : String(input.runWhen));
+    if (input.machineSize !== undefined) set('machine_size', String(input.machineSize));
+    if (input.maxRunsPerDay !== undefined) { const n = input.maxRunsPerDay == null ? null : Number(input.maxRunsPerDay); if (n != null && (!Number.isInteger(n) || n < 1)) throw new ApiFailure('ValidationFailed', 'maxRunsPerDay must be a positive integer'); set('max_runs_per_day', n); }
+    if (input.driveScope !== undefined) { if (!input.driveScope || typeof input.driveScope !== 'object' || Array.isArray(input.driveScope)) throw new ApiFailure('ValidationFailed', 'driveScope must be an object'); set('drive_scope', JSON.stringify(input.driveScope)); }
+    if (!sets.length) return existing;
+    const [r] = await this.q(`UPDATE automations SET ${sets.join(',')},updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING *`, vals);
+    return toAutomation(r);
+  }
   async setState(userId: string, automationId: string, state: unknown): Promise<Automation> {
     if (!['active','paused','deleted'].includes(String(state))) throw new ApiFailure('ValidationFailed', 'state must be active, paused or deleted');
     if (!(await this.q('SELECT id FROM automations WHERE id=$1 AND owner_id=$2', [automationId, userId])).length) throw new ApiFailure('NotFound', 'automation not found');
