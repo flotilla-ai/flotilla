@@ -59,6 +59,21 @@ describe('github client and autofix wake logic', () => {
     expect(await monitor.process('o/r', 1, 'thr_1', 'sha')).toBe('failed');
     expect(wakes).toHaveLength(2);
   });
+  it('does not wake an archived thread for green or autofix CI results', async () => {
+    const wakes: string[] = []; const events: unknown[] = [];
+    let checks = [{ status: 'completed', conclusion: 'success', name: 'check' }];
+    const monitor = new CheckMonitor({
+      pool: { query: async () => ({ rows: [{ archived_at: new Date() }] }) } as never,
+      store: { appendEvents: async (_id: string, evs: unknown[]) => { events.push(...evs); } } as never,
+      clientFor: () => ({ checkRuns: async () => checks, checkLog: async () => 'error same failure' }) as never,
+      wake: async (_id: string, text: string) => { wakes.push(text); }
+    });
+    expect(await monitor.process('o/r', 1, 'thr_archived', 'sha')).toBe('green');
+    checks = [{ status: 'completed', conclusion: 'failure', name: 'check' }];
+    expect(await monitor.process('o/r', 1, 'thr_archived', 'sha')).toBe('failed');
+    expect(wakes).toEqual([]);
+    expect(events).toHaveLength(2);
+  });
   it('routes check_run webhooks to the owning thread', async () => {
     const seen: string[] = [];
     const monitor = { deps: { pool: { query: async () => ({ rows: [{ thread_id: 'thr_owner' }] }) } }, process: async (_r: string, _n: number, thread: string) => { seen.push(thread); return 'green'; } };
