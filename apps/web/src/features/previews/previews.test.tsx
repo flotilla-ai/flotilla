@@ -6,6 +6,7 @@ describe('previews in-app browser',()=>{
   expect(html).toContain('Open 3000');expect(html).not.toContain('Open 8080');
   expect(html).toContain('Reserved, never previewed: 3128, 3129, 8080, 8081, 8082');
   expect(html).toMatch(/<iframe title="preview" src="http:\/\/flo\.test:8081\/p\/FLO-9\/5173\/\?token=one"/);
+  expect(html).toContain('sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"');expect(html).not.toContain('allow-top-navigation');
   expect(feature.path).toBe('/previews');
  });
 });
