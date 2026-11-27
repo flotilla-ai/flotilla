@@ -163,7 +163,8 @@ describe('environments', () => {
     const t = await thread(p);
     const files: Record<string, string> = { '/workspace/repo/.flotilla/setup.json': JSON.stringify(spec(4100)) };
     const copied: string[] = [];
-    const size = (path: string) => (path in files ? (path.includes('.capy') ? 10_000_000 : Buffer.byteLength(files[path])) : null);
+    let big = false;
+    const size = (path: string) => (path in files ? (path.includes('.capy') && !big ? 10_000_000 : Buffer.byteLength(files[path])) : null);
     const driver = {
       copyOut: async (_id: string, path: string) => { copied.push(path); if (!files[path]) throw new Error('missing'); return tarFile(path.split('/').pop()!, files[path]); },
       transport: () => ({ spawn: (argv: string[], opts: { cwd: string }) => local.spawn(['bash', '-c', size(argv.at(-1)!) === null ? 'exit 1' : `echo ${size(argv.at(-1)!)}`], { cwd: opts.cwd, env: {} }) })
@@ -171,6 +172,10 @@ describe('environments', () => {
     expect(await store.importFromMachine({ thread: { id: t, project_id: p }, containerId: 'c', driver })).toMatchObject({ version: 2, source: 'repo-file', note: '.flotilla/setup.json' });
     expect(await store.importFromMachine({ thread: { id: t, project_id: p }, containerId: 'c', driver })).toBeNull();
     delete files['/workspace/repo/.flotilla/setup.json']; files['/workspace/repo/.capy/setup.json'] = JSON.stringify(capy); copied.length = 0;
+    expect(await store.importFromMachine({ thread: { id: t, project_id: p }, containerId: 'c', driver })).toBeNull();
+    expect(copied).toEqual([]);
+    files['/workspace/repo/.flotilla/setup.json'] = 'x'.repeat(70_000); files['/workspace/repo/.capy/setup.json'] = JSON.stringify({ ...capy, refresh: 'other' });
+    big = true;
     expect(await store.importFromMachine({ thread: { id: t, project_id: p }, containerId: 'c', driver })).toBeNull();
     expect(copied).toEqual([]);
   });

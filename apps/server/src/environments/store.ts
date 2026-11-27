@@ -128,7 +128,8 @@ export class EnvironmentStore {
     for (const path of SETUP_FILES) {
       const full = `/workspace/repo/${path}`;
       const size = await fileSize(x.driver.transport(x.containerId), full).catch(() => null);
-      if (size === null || size > MAX_SETUP_FILE) continue;
+      if (size === null) continue;
+      if (size > MAX_SETUP_FILE) return null;
       const content = await x.driver.copyOut(x.containerId, full).then(untarFirst).catch(() => null);
       if (content === null) continue;
       const spec = parseSetupFile(path, content);
