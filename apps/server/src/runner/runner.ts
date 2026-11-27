@@ -108,7 +108,7 @@ export class ThreadRunner {
     const sent = await this.inbox.lastDelivered(threadId);
     if (last?.state !== 'failed' || !sent || this.running.has(threadId)) throw new ApiFailure('Conflict', 'nothing to retry');
     if (engine.model !== undefined || engine.connectionId !== undefined || engine.effort !== undefined) {
-      const next: Row = { ...(thread.engine as Row), ...(engine.model !== undefined ? { model: engine.model, effort: engine.effort ?? null } : {}), ...(engine.effort !== undefined ? { effort: engine.effort } : {}), ...(engine.connectionId !== undefined ? { connectionId: engine.connectionId } : {}) };
+      const next: Row = { ...(thread.engine as Row), ...(engine.model !== undefined ? { model: engine.model } : {}), ...(engine.model !== undefined && engine.model !== (thread.engine as Row).model ? { effort: null } : {}), ...(engine.effort !== undefined ? { effort: engine.effort } : {}), ...(engine.connectionId !== undefined ? { connectionId: engine.connectionId } : {}) };
       // The catalog checks the user owns an enabled connection that offers the model; the vault then injects its key at run start.
       const r = this.deps.resolveEngine ? await this.deps.resolveEngine(userId, next) : null;
       await this.pool.query('UPDATE threads SET engine=engine || $2::jsonb WHERE id=$1', [threadId, JSON.stringify(r ? { adapter: r.adapter, model: r.model, effort: r.effort, connectionId: r.connectionId } : next)]);

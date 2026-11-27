@@ -159,6 +159,10 @@ describe('runner queue', () => {
     await until(() => runs(t.id), (x) => x[1]?.state === 'completed');
     expect(flaky.starts).toEqual(['do it', 'do it']); expect(flaky.inputs.map((i) => i.model)).toEqual([null, 'other-model']);
     expect((await pool.query('SELECT engine FROM threads WHERE id=$1', [t.id])).rows[0].engine).toMatchObject({ model: 'other-model', connectionId: 'con_own', effort: null });
+    await pool.query(`UPDATE threads SET engine=engine || '{"effort":"high"}' WHERE id=$1`, [t.id]); await pool.query(`UPDATE runs SET state='failed' WHERE thread_id=$1 AND ordinal=2`, [t.id]);
+    expect((await call('POST', `/threads/${t.id}/retry`, { model: 'other-model', connectionId: 'con_two' })).status).toBe(202);
+    await until(() => runs(t.id), (x) => x[2]?.state === 'completed');
+    expect((await pool.query('SELECT engine FROM threads WHERE id=$1', [t.id])).rows[0].engine).toMatchObject({ model: 'other-model', connectionId: 'con_two', effort: 'high' });
     expect((await call('POST', `/threads/${t.id}/retry`, {})).status).toBe(409);
   }, 20_000);
 

@@ -124,3 +124,4 @@ Cause: the budget approval is now inserted after the status update, so it can ap
 - Fixed: `copyAttachments` loads one uploaded file at a time instead of the whole batch, and caps the archive path at the 100-byte tar name field (it keeps the end of the name, so the extension survives). The path the agent gets is the path Docker creates.
 - Fixed: plan approval carries the plan request's attachments into the implementation message.
 - Fixed: a retry that changes the model clears the old `effort` unless the caller passes `effort`. Retry now accepts `effort` too.
+- Round 3 fix: effort is cleared only when the retry picks a different model; same-model retries (e.g. switching connection) keep it.
