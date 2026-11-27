@@ -73,6 +73,9 @@ describe('wake router', () => {
     await runner.message(child, '/plan design it'); await waitFor(`SELECT 1 FROM approvals WHERE thread_id=$1 AND state='open'`, [child]);
     expect((await waitFor(`SELECT 1 FROM events WHERE thread_id=$1 AND kind='user.message' AND payload->>'text' LIKE 'Subagent%is blocked%'`, [parent])).length).toBe(1);
     await idle(parent);
+    const captain = await thread('captain'); await pool.query(`UPDATE threads SET role='captain' WHERE id=$1`, [captain]);
+    await thread('crew', 'usr_a', captain); await sleep(300);
+    expect((await messages(captain)).some((m) => m.startsWith('Subagent'))).toBe(false);
   }, 30_000);
 
   it('CAPY-041: timers up to 7 days fire from the DB sweep; capped threads never wake', async () => {
