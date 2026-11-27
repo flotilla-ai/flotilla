@@ -1,12 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 3, wave 1 starting in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-Current `flotilla/p1` head before this PR: `8793677` (phase3-14 merge).
+Current `flotilla/p1` head before this PR: `b7b1615` (phase3-16 merge).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after this unit: done 383, pending 126, needs-human-login 24, n-a 22, blocked 84.
-
+Counted in `docs/plan/PARITY.md` after this unit: done 391, pending 107, needs-human-login 24, n-a 22, blocked 95.
 
 ## Unit table
 
@@ -70,13 +69,13 @@ Counted in `docs/plan/PARITY.md` after this unit: done 383, pending 126, needs-h
 | phase3-09-billing-usage | merged | 1 | #87 | usage analytics; see `docs/runlog/phase3-09.md` |
 | phase3-07-mcp-plugins | merged | 1 | #88 | plugin lifecycle; see `docs/runlog/phase3-07.md` |
 | phase3-14-ui-navigation | merged | 1 | #89 | navigation foundation; see `docs/runlog/phase3-14.md` |
-| phase3-16-keyboard-notifications | in review | 1 |  | shortcuts and notifications; see `docs/runlog/phase3-16.md` |
+| phase3-16-keyboard-notifications | merged | 1 | #90 | shortcuts and notifications; see `docs/runlog/phase3-16.md` |
+| phase3-15-ui-viewers | merged | 1 | #91 | viewer/explore web foundation; see `docs/runlog/phase3-15.md` |
+| phase3-01-thread-media | in review | 1 | #92 | thread media/annotations; see `docs/runlog/phase3-01.md` |
 
 ## Next action
 
-| phase3-07-mcp-plugins | merged | 1 | #88 | plugin lifecycle; see `docs/runlog/phase3-07.md` |
-| phase3-14-ui-navigation | merged | 1 | #89 | navigation foundation; see `docs/runlog/phase3-14.md` |
-| phase3-16-keyboard-notifications | in review | 1 |  | shortcuts and notifications; see `docs/runlog/phase3-16.md` |
+1. Merge phase3-01 after its gate, then continue independent phase-3 units.
 
 2. Keep external/vendor integration rows fixture-backed and mark exact needs-human-login commands.
 3. Continue without child sessions in free-mode parent.

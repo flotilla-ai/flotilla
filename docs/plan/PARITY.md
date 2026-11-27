@@ -31,10 +31,10 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-025 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-026 | Threads | P2 | blocked | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | Server/API proven in runner-queue.test.ts: GET/PATCH `/threads/:id/context`: used tokens from the last run; Compact at is editable only when the adapter declares `compaction`. Blocked: web UI (context meter and Compact-at control) not built in phase2-05 (server-only slice within diff budget); needs a web unit. |
 | CAPY-027 | Threads | P2 | done | phase2-06 | https://github.com/flotilla-ai/flotilla/pull/40 | Agent replies split into heading sections with a Reply button that quotes the section into the composer; tool calls and other work between messages fold into one `Worked · N tool calls` line (unit + browser). |
-| CAPY-028 | Threads | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-029 | Threads | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-030 | Threads | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-031 | Threads | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-028 | Threads | P3 | done | phase3-01 |  | fenced chart/HTML visuals and inline thread rendering are fixture-tested.  |
+| CAPY-029 | Threads | P3 | blocked | phase3-01 |  | inline Mermaid flowchart fixture exists, but Slack image posting is not implemented.  |
+| CAPY-030 | Threads | P3 | done | phase3-01 |  | durable owner-scoped pin/box media annotations are fixture-tested.  |
+| CAPY-031 | Threads | P3 | blocked | phase3-01 |  | no Gemini adapter or adapter-contract video/audio capability exists.  |
 | CAPY-032 | Threads | P2 | done | phase2-06 | https://github.com/flotilla-ai/flotilla/pull/40 | Composer `No project` creates a thread with `projectId: null` (browser); the fake adapter runs it in `/workspace` with no repo or branch (thread-composer.test.ts). This Mac pairing belongs to the host adapter units. |
 | CAPY-033 | Threads | P2 | done | phase2-06 | https://github.com/flotilla-ai/flotilla/pull/40 | Left-edge ticks, one per human message, scroll to that message (thread-composer.spec.ts). |
 | CAPY-034 | Threads | P2 | done | phase2-06 | https://github.com/flotilla-ai/flotilla/pull/40 | Reading place (`thread_reading_places`, migration 0013) is saved per viewer on scroll and restored on open, and it does not move when a turn closes (thread-composer.test.ts + spec). |
@@ -438,14 +438,14 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-432 | UI surfaces | P3 | done | phase3-14 |  |  Thread pane tab vocabulary is represented in the tab/pane navigation slice.  |
 | CAPY-433 | UI surfaces | P3 | done | phase3-14 |  |  Tab close others/right/all, reopen closed and middle-click close behavior is implemented.  |
 | CAPY-434 | UI surfaces | P3 | done | phase3-14 |  |  Split right/down pane operations are implemented.  |
-| CAPY-435 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-436 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-437 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-438 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-439 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-440 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-441 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-442 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-435 | UI surfaces | P3 | blocked | phase3-15 |  | viewer classification/CSV/source-cap foundations exist, but XLSX/PDF/media/3D/CAD/G-code renderers are not implemented.  |
+| CAPY-436 | UI surfaces | P3 | blocked | phase3-15 |  | no in-app browser or machine Desktop stream integration exists.  |
+| CAPY-437 | UI surfaces | P3 | done | phase3-15 |  | built-in/custom theme validation, persisted theme, code font size and scroll-new-message preferences are fixture-tested.  |
+| CAPY-438 | UI surfaces | P3 | done | phase3-15 |  | Explore lists plugins/skills/themes while excluding private entries.  |
+| CAPY-439 | UI surfaces | P3 | done | phase3-15 |  | settings search and grouped settings map are fixture-tested.  |
+| CAPY-440 | UI surfaces | P3 | blocked | phase3-15 |  | phone browser/PWA push is not implemented app-wide.  |
+| CAPY-441 | UI surfaces | P3 | blocked | phase3-15 |  | native iOS replacement responsive/PWA shell is not implemented app-wide.  |
+| CAPY-442 | UI surfaces | P3 | blocked | phase3-15 |  | Markdown twin helpers exist but no docs site serves them.  |
 | CAPY-443 | Keyboard shortcuts | P3 | done | phase3-16 |  | Default/remappable command-menu, navigation and settings shortcuts are modeled and exposed in `/settings/shortcuts`.  |
 | CAPY-444 | Keyboard shortcuts | P3 | done | phase3-16 |  | Thread jump/step shortcuts are represented in the remappable shortcut map.  |
 | CAPY-445 | Keyboard shortcuts | P3 | done | phase3-16 |  | Shell, side-chat and tab shortcuts are represented in the remappable shortcut map.  |
@@ -456,6 +456,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-450 | Notifications | P3 | done | phase3-16 |  | Captain/user @-mentions create durable mention notifications for matching users.  |
 | CAPY-451 | Notifications | P3 | done | phase3-16 |  | Unread-count API and web badge/title helper are fixture-tested.  |
 | CAPY-452 | Notifications | P3 | blocked | phase3-16 |  | Blocked: deterministic PR follow-up copy exists, but Slack DM delivery needs the missing Slack vendor integration.  |
+
 | CAPY-453 | API (platform) | P2 | done | phase2-01 | https://github.com/flotilla-ai/flotilla/pull/25 | flt_ bearer keys minted only from a session; optional expiresAt; no rotate verb (api-platform.test.ts). |
 | CAPY-454 | API (platform) | P2 | done | phase2-01 | https://github.com/flotilla-ai/flotilla/pull/25 | Keys resolve to user or service principal; authorId = minting human; service-key project owned by service user. |
 | CAPY-455 | API (platform) | P2 | done | phase2-01 | https://github.com/flotilla-ai/flotilla/pull/25 | requestId/Idempotency-Key replay in requireSession; reuse on another path = flotilla/Conflict. |
@@ -507,16 +508,16 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-501 | Automations | P2 | done | phase2-27 |  | Automation list API filters by state and creation date; project scoping is inherent in the project list endpoint. |
 | CAPY-502 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | Usage is summed as bigint; a Drive at >2 GiB accepts saves up to its quota (drive-core.test.ts, sizes recorded without writing 2 GiB). |
 | CAPY-503 | Drive | P2 | done | phase2-30 | https://github.com/flotilla-ai/flotilla/pull/51 | Mount/save failures insert a non-blocking `approvals` card with `detail.drive={code,title,nextStep}`; the run still starts (drive-core.test.ts). |
-| CAPY-504 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-505 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-506 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-507 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-504 | UI surfaces | P3 | blocked | phase3-15 |  | word-level diff exists but Word document page rendering is not implemented.  |
+| CAPY-505 | UI surfaces | P3 | blocked | phase3-15 |  | waveform calculation exists but multi-track audio mode is not implemented.  |
+| CAPY-506 | UI surfaces | P3 | done | phase3-15 |  | terminal links, find hits and colored exit-line classes are fixture-tested.  |
+| CAPY-507 | UI surfaces | P3 | blocked | phase3-15 |  | pinned-note validation exists but no 3D renderer surface exists.  |
 | CAPY-508 | UI surfaces | P3 | done | phase3-14 |  |  Pages-at-top, collapsible/hideable sidebar sections and customization preferences persist locally.  |
 | CAPY-509 | UI surfaces | P3 | done | phase3-14 |  |  Preview tabs close when moving on and double-click/keep semantics are modeled.  |
-| CAPY-510 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-511 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-510 | UI surfaces | P3 | done | phase3-15 |  | Popular and stack-matched Recommended Explore ordering is fixture-tested.  |
+| CAPY-511 | UI surfaces | P3 | blocked | phase3-15 |  | local theme persistence exists but cross-device sync needs server settings outside scope.  |
 | CAPY-512 | UI surfaces | P3 | done | phase3-14 |  |  Onboarding steps persist locally and joiners skip organization setup.  |
-| CAPY-513 | UI surfaces | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-513 | UI surfaces | P3 | done | phase3-15 |  | single-HTML generated page shell uses viewport and baseline Flotilla styling.  |
 | CAPY-514 | SSO & sign-in | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-515 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-516 | Slack | P3 | pending |  |  | Awaiting phase P3 unit. |
