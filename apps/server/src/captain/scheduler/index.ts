@@ -43,13 +43,18 @@ export class CaptainScheduler {
       `SELECT id,reasons FROM captain_wakes WHERE captain_id=$1 AND kind='event' AND processed_at IS NULL ORDER BY created_at LIMIT 1`,
       [captainId]
     )).rows[0];
+    const insertWake = async () => this.deps.pool.query(
+      'INSERT INTO captain_wakes (id,captain_id,kind,due_at,reasons) VALUES ($1,$2,$3,to_timestamp($4/1000.0),$5)',
+      [id(), captainId, 'event', dueAt, JSON.stringify(t.reasons)]
+    );
     if (pending) {
-      await this.deps.pool.query('UPDATE captain_wakes SET reasons=$2 WHERE id=$1', [pending.id, JSON.stringify(mergeReasons(pending.reasons, t.reasons))]);
-    } else {
-      await this.deps.pool.query(
-        'INSERT INTO captain_wakes (id,captain_id,kind,due_at,reasons) VALUES ($1,$2,$3,to_timestamp($4/1000.0),$5)',
-        [id(), captainId, 'event', dueAt, JSON.stringify(t.reasons)]
+      const updated = await this.deps.pool.query(
+        'UPDATE captain_wakes SET reasons=$2 WHERE id=$1 AND processed_at IS NULL',
+        [pending.id, JSON.stringify(mergeReasons(pending.reasons, t.reasons))]
       );
+      if ((updated as { rowCount?: number }).rowCount === 0) await insertWake();
+    } else {
+      await insertWake();
     }
     await this.deps.pool.query('INSERT INTO captain_scheduler_state (captain_id) VALUES ($1) ON CONFLICT DO NOTHING', [captainId]);
     await this.refreshDigest(captainId);
@@ -77,8 +82,8 @@ export class CaptainScheduler {
       await this.refreshDigest(wake.captain_id);
       await this.deps.wake(wake.captain_id, await this.wakePrompt(wake.captain_id, wake.kind === 'heartbeat' ? ['heartbeat'] : reasons));
       const claimed = await this.deps.pool.query(
-        'UPDATE captain_wakes SET processed_at=to_timestamp($1/1000.0) WHERE id=$2 AND processed_at IS NULL',
-        [this.now(), wake.id]
+        'UPDATE captain_wakes SET processed_at=to_timestamp($1/1000.0) WHERE id=$2 AND processed_at IS NULL AND reasons=$3::jsonb',
+        [this.now(), wake.id, JSON.stringify(reasons)]
       );
       if ((claimed as { rowCount?: number }).rowCount === 0) continue;
       await this.deps.pool.query(
