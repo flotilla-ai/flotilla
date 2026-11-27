@@ -20,3 +20,12 @@ The focused test proves Captain create/list/get, concurrency validation, crew-th
 ## Unverified
 
 Real Captain machine sleep/wake placement is covered only as metadata in this unit; paired devices do not exist yet. Photo rendering in a web page is not implemented here because this unit's rows are API/profile behavior.
+
+Full verification after review-ready implementation:
+
+```text
+Test Files  37 passed (37)
+Tests  242 passed | 1 skipped (243)
+apps/server lint: Done
+CHECK_RC=0
+```
