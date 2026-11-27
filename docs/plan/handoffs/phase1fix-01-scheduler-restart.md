@@ -12,6 +12,7 @@ SCOPE:
 - `apps/server/src/db/migrations/0003_event_ordering.sql`
 - `apps/server/src/events/store.ts`
 - `apps/server/src/captain/tools/service.ts`
+- `apps/server/src/routes/read.route.ts`
 - `docs/plan/handoffs/phase1fix-01-scheduler-restart.md`
 - `docs/runlog/phase1fix-01.md`
 - `docs/plan/PROGRESS.md`
