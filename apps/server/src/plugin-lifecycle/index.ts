@@ -4,7 +4,7 @@ import { ApiFailure } from '../api-platform/types.js';
 import { localKms, type Kms } from '../secrets/vault.js';
 
 type Row = Record<string, any>;
-export interface PluginServerSpec { key: string; url?: string; command?: string[]; scopes?: string[]; keys?: string[] }
+export interface PluginServerSpec { key: string; url?: string; command?: string[]; headers?: Record<string,string>; scopes?: string[]; keys?: string[] }
 export interface PluginManifest { specVersion: '1.0.0' | '1.1.0'; key: string; name: string; version: string; mcpServers: PluginServerSpec[] }
 export interface PluginView { id: string; scope: 'organization' | 'user'; projectId: string | null; key: string; name: string; repo: string; path: string; ref: string; version: string; connectionMode: 'shared' | 'each-member'; privateThreadsOnly: boolean; autoUpdate: boolean; updateState: string; keyNames: string[]; serverKeys: string[] }
 export interface ResolvedPlugin extends PluginView { requiresConnection: boolean }
@@ -17,8 +17,8 @@ export function manifest(v: unknown): PluginManifest {
   if (!v || typeof v !== 'object' || Array.isArray(v)) throw new ApiFailure('ValidationFailed', 'plugin manifest must be an object');
   const x = v as Row; const servers = x.mcpServers;
   if (!['1.0.0', '1.1.0'].includes(String(x.specVersion)) || !keyRe.test(String(x.key ?? '')) || typeof x.name !== 'string' || typeof x.version !== 'string' || !Array.isArray(servers) || !servers.length) throw new ApiFailure('ValidationFailed', 'plugin manifest must be spec 1.0.0/1.1.0 with key, name, version and mcpServers');
-  for (const s of servers) { if (!keyRe.test(String(s.key ?? '')) || (s.scopes && !Array.isArray(s.scopes)) || (s.keys && !Array.isArray(s.keys))) throw new ApiFailure('ValidationFailed', 'plugin server keys, scopes and keys are invalid') }
-  return { specVersion: x.specVersion, key: x.key, name: x.name, version: x.version, mcpServers: servers.map((s) => ({ key: s.key, ...(s.url ? { url: String(s.url) } : {}), ...(s.command ? { command: s.command.map(String) } : {}), scopes: (s.scopes ?? []).map(String), keys: (s.keys ?? []).map(String) })) };
+  for (const s of servers) { if (!keyRe.test(String(s.key ?? '')) || (s.scopes && !Array.isArray(s.scopes)) || (s.keys && !Array.isArray(s.keys)) || (s.headers && (typeof s.headers !== 'object' || Array.isArray(s.headers) || Object.values(s.headers).some((v) => typeof v !== 'string')))) throw new ApiFailure('ValidationFailed', 'plugin server keys, scopes, keys and headers are invalid') }
+  return { specVersion: x.specVersion, key: x.key, name: x.name, version: x.version, mcpServers: servers.map((s) => ({ key: s.key, ...(s.url ? { url: String(s.url) } : {}), ...(s.command ? { command: s.command.map(String) } : {}), ...(s.headers ? { headers: Object.fromEntries(Object.entries(s.headers).map(([k,v])=>[String(k),String(v)])) } : {}), scopes: (s.scopes ?? []).map(String), keys: (s.keys ?? []).map(String) })) };
 }
 export async function fetchManifest(input: { repo: string; path: string; ref: string }, fetchImpl: typeof fetch = fetch): Promise<PluginManifest> {
   const base = `https://raw.githubusercontent.com/${input.repo}/${input.ref}/${input.path ? `${input.path.replace(/^\/+|\/+$/g, '')}/` : ''}`;
@@ -55,7 +55,7 @@ export class PluginLifecycleStore {
   async list(userId: string): Promise<{ items: PluginView[] }> { return { items: (await this.q(`SELECT * FROM mcp_plugins WHERE owner_id=$1 OR scope='organization' ORDER BY scope,key`, [userId])).map((r) => this.view(r)) } }
   async sync(userId: string, idv: string): Promise<PluginView> {
     const r = await this.mutableRow(userId, idv); const next = await fetchManifest({ repo: r.repo, path: r.path, ref: r.ref }, this.fetchImpl);
-    const old = r.spec as PluginManifest; const widened = next.mcpServers.some((n) => { const o = old.mcpServers.find((x) => x.key === n.key); return !o || widen(o.scopes, n.scopes) || widen(o.keys, n.keys) });
+    const old = r.spec as PluginManifest; const widened = next.mcpServers.some((n) => { const o = old.mcpServers.find((x) => x.key === n.key); return !o || widen(o.scopes, n.scopes) || widen(o.keys, n.keys) || o.url !== n.url || JSON.stringify(o.command ?? null) !== JSON.stringify(n.command ?? null) });
     if (widened) await this.q(`UPDATE mcp_plugins SET pending_spec=$2,update_state='needs-you',updated_at=now() WHERE id=$1`, [r.id, JSON.stringify(next)]);
     else await this.apply(userId, r.id, next, false);
     return this.view((await this.q('SELECT * FROM mcp_plugins WHERE id=$1', [r.id]))[0]);

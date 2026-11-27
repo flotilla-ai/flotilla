@@ -228,7 +228,7 @@ export class McpStore {
 
   /** The runner's MCP config for a thread: enabled servers for its project (or all projects), values decrypted. */
   async prepare(threadId: string, env: Record<string, string>): Promise<{ config: McpAdapterConfig; secrets: Record<string, string> } | null> {
-    const [t] = await this.q('SELECT owner_id,project_id FROM threads WHERE id=$1', [threadId]);
+    const [t] = await this.q('SELECT owner_id,project_id,visibility FROM threads WHERE id=$1', [threadId]);
     if (!t) return null;
     const rows = await this.q(`${SELECT} WHERE s.owner_id=$1 AND s.enabled AND (s.project_id IS NULL OR s.project_id=$2) ORDER BY s.key`, [t.owner_id, t.project_id ?? '']);
     const pluginRows = await this.q(`SELECT * FROM mcp_plugins WHERE enabled AND (project_id IS NULL OR project_id=$2) AND (scope='organization' OR owner_id=$1) ORDER BY scope DESC,project_id NULLS LAST`, [t.owner_id, t.project_id ?? '']).catch(() => [] as Row[]);
@@ -238,18 +238,25 @@ export class McpStore {
     const config: McpAdapterConfig = { mcpServers: {} }; const secrets: Record<string, string> = {};
     for (const r of plugins.values()) {
       if (r.private_threads_only && t.visibility !== 'private') continue;
-      const spec = r.spec as { key: string; mcpServers: { key: string; url?: string; command?: string[]; keys?: string[] }[] };
+      const spec = r.spec as { key: string; mcpServers: { key: string; url?: string; command?: string[]; headers?: Record<string,string>; keys?: string[] }[] };
       for (const server of spec.mcpServers) {
+        const required = server.keys ?? [];
+        const [c] = await this.q('SELECT * FROM mcp_plugin_connections WHERE plugin_id=$1 AND user_id=$2 AND server_key=$3', [r.id, t.owner_id, server.key]);
         let keys: Record<string, string> = {};
-        if (r.connection_mode === 'each-member') {
-          const [c] = await this.q('SELECT * FROM mcp_plugin_connections WHERE plugin_id=$1 AND user_id=$2 AND server_key=$3', [r.id, t.owner_id, server.key]);
-          if (!c) continue;
-          keys = JSON.parse(this.kms.open(c.sealed, `mcp-plugin-connection:${r.id}:${t.owner_id}:${server.key}`).toString('utf8')) as Record<string, string>;
-        } else keys = JSON.parse(this.kms.open(r.sealed, `mcp-plugin:${r.id}`).toString('utf8')) as Record<string, string>;
+        if (c) keys = JSON.parse(this.kms.open(c.sealed, `mcp-plugin-connection:${r.id}:${t.owner_id}:${server.key}`).toString('utf8')) as Record<string, string>;
+        else {
+          if (r.connection_mode === 'each-member') continue;
+          if (r.scope === 'organization' && r.owner_id !== t.owner_id && required.length) continue;
+          keys = JSON.parse(this.kms.open(r.sealed, `mcp-plugin:${r.id}`).toString('utf8')) as Record<string, string>;
+        }
+        if (required.some((k) => !(k in keys))) continue;
         const key = slug(`${r.key}-${server.key}`);
         for (const [k, v] of Object.entries(keys)) secrets[`mcp-plugin:${r.key}:${server.key}:${k}`] = v;
-        if (server.url) config.mcpServers[key] = { type: 'http', url: server.url, headers: {} };
-        else if (server.command?.length) config.mcpServers[key] = { type: 'stdio', command: server.command[0], args: server.command.slice(1), env: keys };
+        const substitute = (v: string) => v.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (_, n) => keys[n] ?? '');
+        if (server.url) {
+          const template = server.headers ?? (keys.API_KEY ? { Authorization: 'Bearer ${API_KEY}' } : {});
+          config.mcpServers[key] = { type: 'http', url: server.url, headers: Object.fromEntries(Object.entries(template).map(([k, v]) => [k, substitute(v)])) };
+        } else if (server.command?.length) config.mcpServers[key] = { type: 'stdio', command: server.command[0], args: server.command.slice(1), env: keys };
       }
     }
     for (const r of rows) {
