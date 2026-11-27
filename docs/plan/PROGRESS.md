@@ -1,11 +1,11 @@
 # Flotilla progress
 
 Current phase: phase 2, wave 1 (serialized foundations) and wave 2 (core threads and runner).
-Current `flotilla/p1` head: `ea9ec15` (phase2-03, phase2-05, phase2-07, phase2-08 and phase2-09 merged; merged into phase2-04).
+Current `flotilla/p1` head: `6b5546a` (phase2-03 to phase2-10, phase2-17 and repair-7/8/9/10/12 merged; merged into phase2-18).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` on this branch: done 122, pending 448, needs-human-login 16, n-a 22, blocked 24 (phase2-33 adds 7 done Skills rows; phase2-05 adds 4 done rows and 10 blocked web-UI rows; phase2-08 adds 11 done rows; the remaining P2/P3/P4 rows are pending); phase 1 rows are done except live vendor/GitHub rows marked `needs-human-login`; n/a rows carry Appendix A's reason.
+Counted in `docs/plan/PARITY.md` on this branch: done 131, pending 439, needs-human-login 16, n-a 22, blocked 24 (phase2-33 adds 7 done Skills rows; phase2-17 rows are as merged on `flotilla/p1`; phase2-18 adds 9 done rows and 2 blocked rows; phase2-05 adds 4 done rows and 10 blocked web-UI rows; phase2-08 adds 11 done rows; the remaining P2/P3/P4 rows are pending); phase 1 rows are done except live vendor/GitHub rows marked `needs-human-login`; n/a rows carry Appendix A's reason.
 
 ## Unit table
 
@@ -28,7 +28,8 @@ Counted in `docs/plan/PARITY.md` on this branch: done 122, pending 448, needs-hu
 | phase2-05-runner-queue | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/34 | durable inbox, steer/queue, versions, retry, /plan gate; 4 rows done, 10 web-UI rows blocked |
 | phase2-08-thread-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/37 | public REST verbs + status frames for 11 lifecycle rows; collaborator read access; see `docs/runlog/phase2-08.md` |
 | phase2-09-previews | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/32 | preview lifecycle and sharing; 7 rows done |
-| phase2-04-model-policy-api | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/36 | model policy + model API; 2 rows done (335, 336), 3 needs-human-login (333, 337, 484), 2 blocked (338 no model-backed title/summary generator, 485 no web connections editor) |
+| phase2-04-model-policy-api | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/36 | model policy + model API; 2 rows done (335, 336), 3 needs-human-login (333, 337, 484), 2 blocked (338 no model-backed title/summary generator, 485 no web connections editor) |
+| phase2-18-subagent-core | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/44 | subagent drafts, placement, modes, budget slice, parent wake; 9 rows done (052-060), 2 blocked (061 no paired-device driver, 062 no agent-callable tool for non-Captain threads); see `docs/runlog/phase2-18.md` |
 | phase2-10-environments | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/39 | environments model/store/executor seams; 2 rows done, 7 blocked on phase2-11/phase2-12 wiring; see `docs/runlog/phase2-10.md` |
 | phase2-17-wakes | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/45 | wake router, watches/timers, background jobs, cross-thread peek/send, held messages; 9 rows done, 4 blocked; see `docs/runlog/phase2-17.md` |
 | phase2-33-skills | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/52 | skills discovery (built-in, repo `.agents`/`.claude`, Drive, plugin), mount into agent-native folders, `$`/`/`/`@`/words invocation + records, Not loaded / Replaced-by markers and web `#/skills`, copy-import; 7 rows done; see `docs/runlog/phase2-33.md` |
@@ -37,9 +38,8 @@ Counted in `docs/plan/PARITY.md` on this branch: done 122, pending 448, needs-hu
 
 ## Next action
 
-1. Review and merge phase2-04-model-policy-api (branched from `flotilla/p1` `914854c`, merged with `ea9ec15`).
-2. Wave 1 serialized foundations are complete after phase2-04 merges.
-3. Wave 2 units may start after wave 1 dependencies merge.
+1. Review and merge phase2-18-subagent-core (branched from `flotilla/p1` `ea9ec15`, merged with `6b5546a`).
+2. CAPY-061 needs a paired-device placement target; CAPY-062 needs an agent-callable subagent tool for non-Captain threads.
 
 ## Phase 1 summary (preserved)
 
@@ -51,4 +51,4 @@ None.
 
 ## Unverified items
 
-See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. Unverified items for phase2-01 through phase2-05 and phase2-07 through phase2-10 are listed in `docs/runlog/phase2-0{1,2,3,4,5,7,8,9}.md` `docs/runlog/phase2-10.md` and `docs/runlog/phase2-17.md`, `docs/runlog/phase2-33.md` (phase2-05 web UI display is not built); phase2-04 live commands (`claude auth login`, `codex login`, GPT-6 context window, Base URL gateways) are in `docs/runlog/phase2-04.md`.
+See `docs/runlog/P1-EXIT.md`; live-service rows are enumerated in `docs/plan/PARITY.md` as `needs-human-login`. Unverified items for phase2-01 through phase2-05 and phase2-07 through phase2-10 are listed in `docs/runlog/phase2-0{1,2,3,4,5,7,8,9}.md`, `docs/runlog/phase2-10.md` and `docs/runlog/phase2-17.md` (phase2-05 web UI display is not built); phase2-18 unverified items are in `docs/runlog/phase2-18.md`; phase2-33 unverified items are in `docs/runlog/phase2-33.md`; phase2-04 live commands (`claude auth login`, `codex login`, GPT-6 context window, Base URL gateways) are in `docs/runlog/phase2-04.md`.
