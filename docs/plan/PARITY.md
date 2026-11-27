@@ -353,12 +353,12 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-347 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-348 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-349 | Billing & plans | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-350 | Billing & plans | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-350 | Billing & plans | P3 | done | phase3-09 |  |  Workspace API reports Personal or Team from install membership with no billing attached.  |
 | CAPY-351 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-352 | Usage & analytics | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `/usage` web page (apps/web/src/features/usage-billing-api) shows window spend/tokens, budget windows and tables by member/model/thread/billing item (machine/free/subscription/key). Render test only; no browser e2e. |
 | CAPY-353 | Usage & analytics | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `GET /usage` report and `GET /usage/series?bucket=hour|day&by=member|item|thread|model` and `GET /usage/balance`; admins see the org, members only their own usage. |
-| CAPY-354 | Usage & analytics | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-355 | Usage & analytics | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-354 | Usage & analytics | P3 | done | phase3-09 |  |  Activity analytics expose counts/cost metadata only and never private thread titles.  |
+| CAPY-355 | Usage & analytics | P3 | done | phase3-09 |  |  Activity page shows Flotilla share of merged PRs, review-found issues, contributed PRs and agent hours.  |
 | CAPY-356 | Usage & analytics | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-357 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-358 | Org, members & access | P3 | pending |  |  | Awaiting phase P3 unit. |
@@ -490,7 +490,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-484 | Models & connections | P2 | needs-human-login | phase2-04 | https://github.com/flotilla-ai/flotilla/pull/36 | Proven offline: one list row per Claude model; a connected Claude subscription is first in run order (before an API key added earlier) and resolve picks it; production `defaultRunner` now registers the claude-code and codex adapters. Live: `claude auth login`, connect the subscription, run a thread on a Claude model and confirm it runs without ANTHROPIC_API_KEY. |
 | CAPY-485 | Models & connections | P2 | blocked | phase2-04 | https://github.com/flotilla-ai/flotilla/pull/36 | Proven offline: PATCH `/api/v1/connections/:id` `{baseUrl}` (http/https only) reaches the next run as `ANTHROPIC_BASE_URL`/`OPENAI_BASE_URL` (manifest `baseUrlEnvVar`). Blocked: no web connections editor yet (same web unit as CAPY-332). Live gateway: `ANTHROPIC_BASE_URL=<gateway> claude -p ok --bare` with the operator's key, unverified. |
 | CAPY-486 | Models & connections | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
-| CAPY-487 | Usage & analytics | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-487 | Usage & analytics | P3 | done | phase3-09 |  |  By-member analytics rank by cost or tokens while cached tokens are reported separately rather than double-counted.  |
 | CAPY-488 | Devices & desktop app | P2 | done | phase2-15 |  |  Worktree folder policy is stored per paired device and exposed by the API.  |
 | CAPY-489 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-490 | Devices & desktop app | P2 | blocked | phase2-15 |  |  Placement API distinguishes cloud/paired device and waiting-reconnect, but thread rows do not yet render that placement or execute the reconnect handoff.  |

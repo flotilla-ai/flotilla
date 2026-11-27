@@ -5,7 +5,7 @@ Current `flotilla/p1` head before this PR: `1fb66da` (phase3-17 merge record).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after all phase-2 units: done 332, pending 179, needs-human-login 24, n-a 22, blocked 82.
+Counted in `docs/plan/PARITY.md` after all phase-2 units: done 336, pending 175, needs-human-login 24, n-a 22, blocked 82.
 
 ## Unit table
 
@@ -64,9 +64,10 @@ Counted in `docs/plan/PARITY.md` after all phase-2 units: done 332, pending 179,
 | plan3+4 | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/81 | exact handoff coverage for 192 P3 and 22 P4 rows |
 | phase3-17-api-folders-files | merged | 1 | #82 | public folders/pins/files download/users API; see `docs/runlog/phase3-17.md` |
 | phase3-18-api-issues | in review | 1 |  | public issues/comments/timeline/relations/files/states/labels/prefix API; see `docs/runlog/phase3-18.md` |
+| phase3-09-billing-usage | in review | 1 |  | workspace/activity/by-member analytics API and web page; see `docs/runlog/phase3-09.md` |
 ## Next action
 
-1. Merge phase3-18 after its gate, then continue independent phase-3 API/core units.
+1. Merge open phase-3 units after their gates, then continue independent phase-3 units.
 2. Keep external/vendor integration rows fixture-backed and mark exact needs-human-login commands.
 3. Continue without child sessions in free-mode parent.
 
