@@ -1,11 +1,12 @@
 # Flotilla progress
 
 Current phase: phase 3, wave 1 starting in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-Current `flotilla/p1` head before this PR: `1d5434d` (phase3-07 merge).
+Current `flotilla/p1` head before this PR: `8793677` (phase3-14 merge).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after all phase-2 units: done 372, pending 137, needs-human-login 24, n-a 22, blocked 84.
+Counted in `docs/plan/PARITY.md` after this unit: done 383, pending 126, needs-human-login 24, n-a 22, blocked 84.
+
 
 ## Unit table
 
@@ -68,10 +69,15 @@ Counted in `docs/plan/PARITY.md` after all phase-2 units: done 372, pending 137,
 | phase3-19-api-tasks-reviews | merged | 1 | #85 | tasks/reviews API; see `docs/runlog/phase3-19.md` |
 | phase3-09-billing-usage | merged | 1 | #87 | usage analytics; see `docs/runlog/phase3-09.md` |
 | phase3-07-mcp-plugins | merged | 1 | #88 | plugin lifecycle; see `docs/runlog/phase3-07.md` |
+| phase3-14-ui-navigation | merged | 1 | #89 | navigation foundation; see `docs/runlog/phase3-14.md` |
 | phase3-16-keyboard-notifications | in review | 1 |  | shortcuts and notifications; see `docs/runlog/phase3-16.md` |
+
 ## Next action
 
-1. Merge phase3-16 after its gate, then continue independent phase-3 units.
+| phase3-07-mcp-plugins | merged | 1 | #88 | plugin lifecycle; see `docs/runlog/phase3-07.md` |
+| phase3-14-ui-navigation | merged | 1 | #89 | navigation foundation; see `docs/runlog/phase3-14.md` |
+| phase3-16-keyboard-notifications | in review | 1 |  | shortcuts and notifications; see `docs/runlog/phase3-16.md` |
+
 2. Keep external/vendor integration rows fixture-backed and mark exact needs-human-login commands.
 3. Continue without child sessions in free-mode parent.
 
