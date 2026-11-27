@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { Context, Next } from 'hono';
 import { apiPlatformStore } from './store.js';
 import { apiError, type ApiPrincipal } from './types.js';
@@ -12,7 +13,8 @@ export async function withIdempotency(c: Context, next: Next): Promise<Response 
   if (requestId.length > 200) return apiError(c, 'ValidationFailed', 'requestId too long');
   const principal = c.get('principal') as ApiPrincipal;
   const store = apiPlatformStore();
-  const begun = await store.beginRequest(principal.userId, requestId, c.req.method, c.req.path);
+  const fingerprint = createHash('sha256').update(JSON.stringify(body ?? null)).digest('hex');
+  const begun = await store.beginRequest(principal.userId, requestId, c.req.method, c.req.path, fingerprint);
   if (begun.state === 'conflict') return apiError(c, 'Conflict', 'requestId was already used for a different request');
   if (begun.state === 'pending') return apiError(c, 'RequestInProgress', 'a request with this requestId is still in progress');
   if (begun.state === 'replay') return new Response(begun.body, { status: begun.status, headers: { 'content-type': begun.contentType, 'idempotent-replayed': 'true' } });

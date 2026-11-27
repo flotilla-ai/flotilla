@@ -91,6 +91,9 @@ describe('api platform', () => {
     expect(second.headers.get('idempotent-replayed')).toBe('true');
     expect((await second.json() as { id: string }).id).toBe((await first.json() as { id: string }).id);
     expect((await pool.query(`SELECT count(*)::int n FROM projects WHERE name='idem'`)).rows[0].n).toBe(1);
+    const changed = await call('/api/v1/projects', { method: 'POST', bearer: token, json: { ...body, name: 'idem-other' } });
+    expect(changed.status).toBe(409);
+    expect(await changed.json()).toMatchObject({ code: 'flotilla/Conflict' });
     const reused = await call('/api/v1/files', { method: 'POST', bearer: token, json: { name: 'a', contentType: 'text/plain', size: 1, requestId: 'req-idem-1' } });
     expect(reused.status).toBe(409);
     expect(await reused.json()).toMatchObject({ code: 'flotilla/Conflict' });

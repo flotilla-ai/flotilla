@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS api_idempotency (
   request_id text NOT NULL,
   method text NOT NULL,
   path text NOT NULL,
+  fingerprint text NOT NULL DEFAULT '',
   status integer,
   body text,
   content_type text,
