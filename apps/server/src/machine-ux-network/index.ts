@@ -15,6 +15,7 @@ export interface WorkspaceDriver {
 }
 const id = (p: string) => `${p}_${randomBytes(8).toString('hex')}`;
 const rowToCommand = (r: Record<string, any>): BackgroundCommand => ({ id: r.id, threadId: r.thread_id, command: r.command, cwd: r.cwd, pid: r.pid, state: r.state, exitCode: r.exit_code, output: r.output, createdAt: r.created_at?.toISOString?.() ?? '', endedAt: r.ended_at?.toISOString?.() ?? null });
+const sqlText = (text: string): string => text.replace(/\0/g, '\\0');
 const cleanPath = (path: string): string => {
   if (path.includes('\0') || path.startsWith('/') || path.split('/').includes('..')) throw new ApiFailure('ValidationFailed', 'path must stay inside the workspace');
   return path.replace(/^\.\//, '');
@@ -68,7 +69,7 @@ export class MachineUxStore {
     const launcher = transport.spawn(['sh', '-c', script], { cwd, env: { CMD_B64: encoded, BGDIR: dir } });
     const launched = await output(launcher);
     if (launched.code !== 0) {
-      await this.q(`UPDATE machine_background_commands SET state='exited',exit_code=coalesce($2,-1),output=$3,ended_at=now() WHERE id=$1`, [rowId, launched.code, launched.text.slice(-8192)]);
+      await this.q(`UPDATE machine_background_commands SET state='exited',exit_code=coalesce($2,-1),output=$3,ended_at=now() WHERE id=$1`, [rowId, launched.code, sqlText(launched.text.slice(-8192))]);
       return { ...(rowToCommand((await this.q('SELECT * FROM machine_background_commands WHERE id=$1', [rowId]))[0])), autoBackground: false };
     }
     const deadline = Date.now() + Math.max(1, timeoutMs);
@@ -76,7 +77,7 @@ export class MachineUxStore {
       const exitText = (await execText(transport, ['sh', '-c', `cat '${dir}/exit' 2>/dev/null`], cwd)).trim();
       if (/^-?\d+$/.test(exitText)) {
         const out = (await execText(transport, ['sh', '-c', `tail -c 8192 '${dir}/out' 2>/dev/null`], cwd)).slice(-8192);
-        await this.q(`UPDATE machine_background_commands SET state='exited',exit_code=$2,output=$3,ended_at=now() WHERE id=$1`, [rowId, Number(exitText), out]);
+        await this.q(`UPDATE machine_background_commands SET state='exited',exit_code=$2,output=$3,ended_at=now() WHERE id=$1`, [rowId, Number(exitText), sqlText(out)]);
         return { ...(rowToCommand((await this.q('SELECT * FROM machine_background_commands WHERE id=$1', [rowId]))[0])), autoBackground: false };
       }
       if (Date.now() >= deadline) {
@@ -90,11 +91,13 @@ export class MachineUxStore {
   private async refreshRunning(threadId: string, transport: ProcessTransport): Promise<void> {
     const rows = await this.q(`SELECT * FROM machine_background_commands WHERE thread_id=$1 AND state='running' ORDER BY created_at DESC LIMIT 50`, [threadId]);
     for (const row of rows) {
-      const dir = `/tmp/flotilla-bg/${String(row.id).replace(/[^a-zA-Z0-9_]/g, '')}`;
-      const exitText = (await execText(transport, ['sh', '-c', `cat '${dir}/exit' 2>/dev/null`], row.cwd)).trim();
-      if (!/^-?\d+$/.test(exitText)) continue;
-      const out = (await execText(transport, ['sh', '-c', `tail -c 8192 '${dir}/out' 2>/dev/null`], row.cwd)).slice(-8192);
-      await this.q(`UPDATE machine_background_commands SET state='exited',exit_code=$2,output=$3,ended_at=now() WHERE id=$1`, [row.id, Number(exitText), out]);
+      try {
+        const dir = `/tmp/flotilla-bg/${String(row.id).replace(/[^a-zA-Z0-9_]/g, '')}`;
+        const exitText = (await execText(transport, ['sh', '-c', `cat '${dir}/exit' 2>/dev/null`], row.cwd)).trim();
+        if (!/^-?\d+$/.test(exitText)) continue;
+        const out = (await execText(transport, ['sh', '-c', `tail -c 8192 '${dir}/out' 2>/dev/null`], row.cwd)).slice(-8192);
+        await this.q(`UPDATE machine_background_commands SET state='exited',exit_code=$2,output=$3,ended_at=now() WHERE id=$1`, [row.id, Number(exitText), sqlText(out)]);
+      } catch { /* one unreadable command must not block the rest of the list */ }
     }
   }
   async commands(threadId: string, transport?: ProcessTransport): Promise<BackgroundCommand[]> {

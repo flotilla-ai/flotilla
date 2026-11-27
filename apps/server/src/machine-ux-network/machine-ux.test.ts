@@ -9,6 +9,7 @@ import { migrate } from '../db/migrate.js';
 import { EventStore } from '../events/store.js';
 import { ThreadRunner } from '../runner/runner.js';
 import { MachineCore, machineCapFromEnv, MACHINE_SIZES } from '../machines/machine-core.js';
+import { DockerExecTransport } from '../machines/transport.js';
 import { createMachineCoreRoute } from '../routes/machine-core.route.js';
 import { ApiFailure, apiError } from '../api-platform/types.js';
 
@@ -74,10 +75,10 @@ it('CAPY-214/215/477/478/479: network posture, web shell semantics, resize, slee
 
   const quick = await json(await call('/threads/thr_mux/machine/shell', { method: 'POST', json: { command: 'printf quick-ok', timeoutMs: 1000 } }));
   expect(quick).toMatchObject({ state: 'exited', exitCode: 0, autoBackground: false }); expect(quick.output).toContain('quick-ok');
-  const finishing = await json(await call('/threads/thr_mux/machine/shell', { method: 'POST', json: { command: 'sleep 0.2; printf finished-output', timeoutMs: 20 } }));
+  const finishing = await json(await call('/threads/thr_mux/machine/shell', { method: 'POST', json: { command: `sleep 0.2; printf 'pre\\0post'`, timeoutMs: 20 } }));
   expect(finishing).toMatchObject({ state: 'running', autoBackground: true });
   await new Promise((r) => setTimeout(r, 500));
-  expect((await json(await call('/threads/thr_mux/machine/background'))).items.find((x: any) => x.id === finishing.id)).toMatchObject({ state: 'exited', exitCode: 0, output: expect.stringContaining('finished-output') });
+  expect((await json(await call('/threads/thr_mux/machine/background'))).items.find((x: any) => x.id === finishing.id)).toMatchObject({ state: 'exited', exitCode: 0, output: expect.stringContaining('pre\\0post') });
 
   const long = await json(await call('/threads/thr_mux/machine/shell', { method: 'POST', json: { command: 'sleep 17; printf done', timeoutMs: 20 } }));
   expect(long).toMatchObject({ state: 'running', autoBackground: true }); expect(long.pid).toBeGreaterThan(0);
@@ -85,5 +86,8 @@ it('CAPY-214/215/477/478/479: network posture, web shell semantics, resize, slee
   expect((await json(await call(`/threads/thr_mux/machine/background/${long.id}/stop`, { method: 'POST' }))).state).toBe('stopped');
   await new Promise((r) => setTimeout(r, 100));
   expect((await exec('sh', ['-c', "ps -eo args | grep '^sleep 17$' || true"])).stdout.trim()).toBe('');
+  const failingDocker = { getContainer: () => ({ exec: async () => { throw new Error('missing cwd'); } }) };
+  const failingTransport = new DockerExecTransport(failingDocker as never, 'missing-container');
+  await expect((async () => { for await (const line of failingTransport.spawn(['true'], { cwd: '/missing', env: {} }).stdout) void line; })()).rejects.toThrow('missing cwd');
   expect((await call('/threads/thr_mux/machine/desktop', { method: 'POST', json: {} })).status).toBe(409);
 }, 30_000);
