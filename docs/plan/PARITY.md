@@ -7,13 +7,13 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-001 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-002 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-003 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-004 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-004 | Threads | P2 | done | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | Steer goes to the live adapter via `steer()` when `steerMidTurn`; otherwise it waits in the durable `thread_inbox` for the turn end (runner-queue.test.ts). |
 | CAPY-005 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-006 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-007 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-008 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-009 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-010 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-009 | Threads | P2 | blocked | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | Server/API proven in runner-queue.test.ts: PATCH/DELETE `/threads/:id/inbox/:item` edit or discard a pending message; 409 once the agent read it. Blocked: web UI (edit/discard control on queued messages) not built in phase2-05 (server-only slice within diff budget); needs a web unit. |
+| CAPY-010 | Threads | P2 | blocked | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | Server/API proven in runner-queue.test.ts: POST `/threads/:id/inbox/:item/versions` adds version n+1 (same root) and continues from it in a new session (no adapter rewind yet). Blocked: web UI (sent-message edit and version switcher) not built in phase2-05 (server-only slice within diff budget); needs a web unit. |
 | CAPY-011 | Threads | P4 | pending |  |  | Awaiting phase P4 unit. |
 | CAPY-012 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-013 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
@@ -29,7 +29,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-023 | Threads | P2 | done | phase2-07 |  | Takeover makes the actor owner; prior owner stays a member. Inbox UI e2e: `apps/web/e2e/thread-lifecycle.spec.ts`. |
 | CAPY-024 | Threads | P2 | done | phase2-07 |  | Transfer via share-dialog actions; connectionId reset, personal secrets never move. Inbox UI e2e: `apps/web/e2e/thread-lifecycle.spec.ts`. |
 | CAPY-025 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-026 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-026 | Threads | P2 | blocked | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | Server/API proven in runner-queue.test.ts: GET/PATCH `/threads/:id/context`: used tokens from the last run; Compact at is editable only when the adapter declares `compaction`. Blocked: web UI (context meter and Compact-at control) not built in phase2-05 (server-only slice within diff budget); needs a web unit. |
 | CAPY-027 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-028 | Threads | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-029 | Threads | P3 | pending |  |  | Awaiting phase P3 unit. |
@@ -468,18 +468,18 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-462 | API (platform) | P2 | done | phase2-01 | https://github.com/flotilla-ai/flotilla/pull/25 | POST /files presigned PUT grant, single-use upload, attachFiles(fileIds) resolver; composer wiring in phase2-06. |
 | CAPY-463 | Support | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-464 | Support | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-465 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-466 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-467 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-468 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-469 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-470 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-465 | Threads | P2 | blocked | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | Server/API proven in runner-queue.test.ts: `/plan` prefixes PLAN_PROMPT, opens a blocking `gate='plan'` approval, skips after-run hooks and holds the inbox until approved. Blocked: web UI (/plan composer command and plan-approval card) not built in phase2-05 (server-only slice within diff budget); needs a web unit. |
+| CAPY-466 | Threads | P2 | blocked | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | Server/API proven in runner-queue.test.ts: `/btw <q>` creates a child thread (`parent_id`) and emits `thread.side` on the parent. Blocked: web UI (/btw side-thread panel) not built in phase2-05 (server-only slice within diff budget); needs a web unit. |
+| CAPY-467 | Threads | P2 | blocked | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | Server/API proven in runner-queue.test.ts: Messages with un-uploaded owned files wait as `waiting_upload` and are released by `resumePending()` (also after restart). Blocked: web UI (pending-upload indicator on the composer) not built in phase2-05 (server-only slice within diff budget); needs a web unit. |
+| CAPY-468 | Threads | P2 | blocked | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | Server/API proven in runner-queue.test.ts: GET `/threads/:id/inbox` returns `queuedCount` and `folded` (>=2). Blocked: web UI (folded queue count) not built in phase2-05 (server-only slice within diff budget); needs a web unit. |
+| CAPY-469 | Threads | P2 | blocked | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | Server/API proven in runner-queue.test.ts: Adapter errors are classified (`runs.error`, `run.ended.error`); POST `/threads/:id/retry` re-sends the last message, optionally with another model/connection. Blocked: web UI (retry/error card with model switch) not built in phase2-05 (server-only slice within diff budget); needs a web unit. |
+| CAPY-470 | Threads | P2 | blocked | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | Server/API proven in runner-queue.test.ts: POST `/approvals/:id/later` (snooze) and `/dismiss`, POST `/captains/:id/approvals/dismiss`; each emits `approval.updated`. Blocked: web UI (request cards with Later/Dismiss and Captain dismiss-all) not built in phase2-05 (server-only slice within diff budget); needs a web unit. |
 | CAPY-471 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-472 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-473 | Threads | P2 | done | phase2-07 |  | Idle auto-archive off by default; skips pinned/open-PR/active/needs-you. Inbox UI e2e: `apps/web/e2e/thread-lifecycle.spec.ts`. |
 | CAPY-474 | Threads | P2 | done | phase2-07 |  | Mark all read includes archived. Inbox UI e2e: `apps/web/e2e/thread-lifecycle.spec.ts`. |
 | CAPY-475 | Threads | P2 | done | phase2-07 |  | Cost by token kind, model and machine. Inbox UI e2e: `apps/web/e2e/thread-lifecycle.spec.ts`. |
-| CAPY-476 | Threads | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-476 | Threads | P2 | blocked | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | Server/API proven in runner-queue.test.ts: Nested tool calls/results keep `parentId` in live `agent.tool_*` events. Blocked: web UI (nested codemode tool-call display) not built in phase2-05 (server-only slice within diff budget); needs a web unit. |
 | CAPY-477 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-478 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-479 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
@@ -604,10 +604,10 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-598 | API: tasks | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-599 | API: messages | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-600 | API: messages | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-601 | API: messages | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-601 | API: messages | P2 | done | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | GET `/threads/:id/inbox/:item/versions` lists all versions of a message. |
 | CAPY-602 | API: messages | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-603 | API: messages | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-604 | API: messages | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-603 | API: messages | P2 | done | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | DELETE `/threads/:id/inbox/:item` cancels a queued message. |
+| CAPY-604 | API: messages | P2 | done | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | POST `/threads/:id/inbox/:item/send` jumps the queue and interrupts (or steers) the current turn. |
 | CAPY-605 | API: files | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-606 | API: attachments | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-607 | API: attachments | P3 | pending |  |  | Awaiting phase P3 unit. |
