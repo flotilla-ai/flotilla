@@ -1,9 +1,19 @@
-import { createHash } from 'node:crypto';
+import { createHmac, randomBytes } from 'node:crypto';
 import type { Context, Next } from 'hono';
+import { masterKey } from '../secrets/vault.js';
 import { apiPlatformStore } from './store.js';
 import { apiError, type ApiPrincipal } from './types.js';
 
 const canonical = (v: unknown): string => Array.isArray(v) ? `[${v.map(canonical).join(',')}]` : v && typeof v === 'object' ? `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canonical((v as Record<string, unknown>)[k])}`).join(',')}}` : JSON.stringify(v ?? null);
+let processKey: Buffer | undefined;
+function idempotencyKey(): Buffer {
+  if (processKey) return processKey;
+  try { return (processKey = masterKey()); } catch { return (processKey = randomBytes(32)); }
+}
+/** Keyed so a database reader cannot brute-force low-entropy request fields (notably env values) from the fingerprint. */
+export function idempotencyFingerprint(body: unknown): string {
+  return createHmac('sha256', idempotencyKey()).update(canonical(body)).digest('hex');
+}
 
 /** Replays a create with the same requestId (body) or Idempotency-Key (header) for the same principal. */
 export async function withIdempotency(c: Context, next: Next): Promise<Response | void> {
@@ -15,7 +25,7 @@ export async function withIdempotency(c: Context, next: Next): Promise<Response 
   if (requestId.length > 200) return apiError(c, 'ValidationFailed', 'requestId too long');
   const principal = c.get('principal') as ApiPrincipal;
   const store = apiPlatformStore();
-  const fingerprint = createHash('sha256').update(canonical(body)).digest('hex');
+  const fingerprint = idempotencyFingerprint(body);
   const begun = await store.beginRequest(principal.userId, requestId, c.req.method, c.req.path, fingerprint);
   if (begun.state === 'conflict') return apiError(c, 'Conflict', 'requestId was already used for a different request');
   if (begun.state === 'pending') return apiError(c, 'RequestInProgress', 'a request with this requestId is still in progress');

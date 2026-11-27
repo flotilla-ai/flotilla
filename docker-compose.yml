@@ -31,6 +31,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - data:/data
       - gate-secret:/run/flotilla-gate
+      - secrets:/run/secrets
   gate:
     build: { context: ., dockerfile: deploy/server.Dockerfile }
     command: ["node", "apps/gate/dist/main.js"]
@@ -50,3 +51,4 @@ volumes:
   pgdata: {}
   data: {}
   gate-secret: {}
+  secrets: {}

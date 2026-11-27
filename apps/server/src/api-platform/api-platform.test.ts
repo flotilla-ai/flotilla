@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { migrate } from '../db/migrate.js';
 
 const exec = promisify(execFile);
+const canonical = (v: unknown): string => Array.isArray(v) ? `[${v.map(canonical).join(',')}]` : v && typeof v === 'object' ? `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canonical((v as Record<string, unknown>)[k])}`).join(',')}}` : JSON.stringify(v ?? null);
 let container = ''; let url = ''; let pool: pg.Pool; let app: Hono;
 let cookie = ''; let csrf = ''; let humanId = '';
 let platform: typeof import('./store.js');
@@ -91,6 +92,9 @@ describe('api platform', () => {
     expect(second.headers.get('idempotent-replayed')).toBe('true');
     expect((await second.json() as { id: string }).id).toBe((await first.json() as { id: string }).id);
     expect((await pool.query(`SELECT count(*)::int n FROM projects WHERE name='idem'`)).rows[0].n).toBe(1);
+    const stored = (await pool.query(`SELECT fingerprint FROM api_idempotency WHERE request_id='req-idem-1'`)).rows[0];
+    expect(stored.fingerprint).toMatch(/^[0-9a-f]{64}$/);
+    expect(stored.fingerprint).not.toBe(createHash('sha256').update(canonical(body)).digest('hex'));
     const reordered = await call('/api/v1/projects', { method: 'POST', bearer: token, json: { requestId: body.requestId, repo: { name: 'r', owner: 'o' }, name: body.name } });
     expect(reordered.headers.get('idempotent-replayed')).toBe('true');
     const changed = await call('/api/v1/projects', { method: 'POST', bearer: token, json: { ...body, name: 'idem-other' } });
