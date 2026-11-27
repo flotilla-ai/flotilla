@@ -1,0 +1,23 @@
+import {expect,test} from '@playwright/test';
+test('CAPY-276 Drive page browses, edits, uploads and deletes; CAPY-279 shows the Drive is full card',async({page})=>{
+ const files:Record<string,string>={'notes.md':'hello','docs/a.md':'in docs'};const puts:string[]=[];let full=false;
+ const item=(p:string)=>({id:`drv_${p}`,path:p,name:p.split('/').pop(),type:'file',size:files[p].length,version:1});
+ await page.route('**/api/v1/drive/scopes',r=>r.fulfill({json:{items:[{scope:{kind:'user',id:'usr_1'},usedBytes:2*1048576,limitBytes:10*1048576,full:false},{scope:{kind:'org'},usedBytes:0,limitBytes:10*1048576,full:false}]}}));
+ await page.route('**/api/v1/drive/items?*',r=>{const parent=new URL(r.request().url()).searchParams.get('parent')??'';const kids=Object.keys(files).filter(p=>p.split('/').slice(0,-1).join('/')===parent).map(item);const folders=parent?[]:[...new Set(Object.keys(files).filter(p=>p.includes('/')).map(p=>p.split('/')[0]))].map(f=>({id:`drv_${f}`,path:f,name:f,type:'folder',size:0,version:0}));return r.fulfill({json:{items:[...folders,...kids]}})});
+ await page.route('**/api/v1/drive/items/*/content',r=>r.fulfill({body:files[decodeURIComponent(r.request().url().split('/').at(-2)!.slice(4))]}));
+ await page.route('**/api/v1/drive/items/drv_*',r=>{if(r.request().method()==='DELETE'){delete files[decodeURIComponent(r.request().url().split('/').at(-1)!.slice(4))];return r.fulfill({status:204})}return r.fallback()});
+ await page.route('**/api/v1/drive/files?*',r=>{const u=new URL(r.request().url());const p=u.searchParams.get('path')!;puts.push(`${p}@${u.searchParams.get('baseVersion')??'-'}`);if(full)return r.fulfill({status:413,json:{error:'full',code:'flotilla/PayloadTooLarge',card:{code:'drive_full',title:'Drive is full',nextStep:'Delete files or versions you no longer need.'}}});files[p]=r.request().postDataBuffer()?.toString()??'';return r.fulfill({json:item(p)})});
+ await page.goto('/#/drive');
+ await expect(page.getByText('2.0 MiB of 10.0 MiB')).toBeVisible();
+ await page.getByRole('button',{name:'docs/',exact:true}).click();await expect(page.getByRole('button',{name:'a.md',exact:true})).toBeVisible();await page.getByRole('button',{name:'Up',exact:true}).click();
+ await page.getByRole('button',{name:'notes.md',exact:true}).click();await expect(page.getByLabel('file content')).toHaveValue('hello');
+ await page.getByLabel('file content').fill('hello edited');await page.getByRole('button',{name:'Save',exact:true}).click();
+ await expect.poll(()=>files['notes.md']).toBe('hello edited');
+ await page.getByLabel('upload').setInputFiles({name:'up.txt',mimeType:'text/plain',buffer:Buffer.from('uploaded')});
+ await expect(page.getByRole('button',{name:'up.txt',exact:true})).toBeVisible();expect(files['up.txt']).toBe('uploaded');
+ await page.getByRole('button',{name:'delete up.txt',exact:true}).click();await expect(page.getByRole('button',{name:'up.txt',exact:true})).toHaveCount(0);
+ full=true;await page.getByLabel('new file name').fill('more.md');await page.getByRole('button',{name:'New file',exact:true}).click();
+ const alert=page.getByRole('alert');await expect(alert.getByText('Drive is full')).toBeVisible();await expect(alert.getByText('Delete files or versions you no longer need.')).toBeVisible();
+ expect(await alert.evaluate(e=>getComputedStyle(e).borderColor)).toBe('rgb(242, 140, 40)');
+ expect(puts).toEqual(['notes.md@1','up.txt@-','more.md@-']);
+});
