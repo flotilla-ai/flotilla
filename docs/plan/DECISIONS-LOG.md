@@ -19,3 +19,4 @@
 
 - 2026-11-27: phase1fix-01 makes wake delivery at-least-once by marking wake rows processed only after delivery; a crash can duplicate a wake but not lose it. Undo: move to transactional outbox delivery if duplicate wakes become harmful.
 - 2026-11-27: wake coalescing now delays a new event wake until the end of the 30 second window instead of dropping wake-worthy events that arrive just after a delivered wake. Undo: make the window configurable per captain wake policy.
+- 2026-11-27: a wake acknowledgement is conditional on the exact reasons snapshot delivered; if a scan merges another reason during delivery the row stays pending and may be delivered again. Undo: replace polling with a transactional outbox once the runner has a durable inbox.
