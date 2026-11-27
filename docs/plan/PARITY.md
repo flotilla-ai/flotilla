@@ -94,10 +94,10 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-088 | Captains | P2 | done | phase2-20 |  | Promotion preserves `owner_id` and crew membership requires matching owner, so Captain actions run as the owner identity; regression in `create-crew.test.ts`. |
 | CAPY-089 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-090 | Captains | P2 | done | phase2-20 |  | Crew admission requires exactly the same `project_id` as the Captain, including null/non-null separation; regression in `create-crew.test.ts`. |
-| CAPY-091 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-092 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-091 | Captains | P2 | blocked | phase2-21 |  | Captains default to pool placement, but paired-device Captain execution is unavailable because no paired-device plane exists. |
+| CAPY-092 | Captains | P2 | blocked | phase2-21 |  | Pool placement and per-thread machine-name metadata exist, but cloud-vs-device selection fails closed because paired devices are unavailable. |
 | CAPY-093 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-094 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-094 | Captains | P2 | done | phase2-21 |  | Captain alias is durable profile metadata with validation. |
 | CAPY-095 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-096 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-097 | Captains | P1 | done | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
@@ -492,8 +492,8 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-489 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-490 | Devices & desktop app | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-491 | Devices & desktop app | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-492 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-493 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-492 | Captains | P2 | done | phase2-21 |  | API creates a crew thread in the Captain project and adds/removes crew membership. |
+| CAPY-493 | Captains | P2 | done | phase2-21 |  | Captain photo upload stores bounded png/jpeg/webp bytes and org library selection is supported. |
 | CAPY-494 | Captains | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-495 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-496 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
@@ -555,13 +555,13 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-552 | API: threads | P2 | done | phase2-08 | https://github.com/flotilla-ai/flotilla/pull/37 | `POST /api/v1/threads/:id/leave` returns membership (204 for private); owner 409; `status` frame `left`. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
 | CAPY-553 | API: threads | P2 | done | phase2-08 | https://github.com/flotilla-ai/flotilla/pull/37 | `POST /api/v1/threads/:id/subscribe` returns membership; per viewer, not streamed. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
 | CAPY-554 | API: threads | P2 | done | phase2-08 | https://github.com/flotilla-ai/flotilla/pull/37 | `POST /api/v1/threads/:id/unsubscribe` returns membership; per viewer, not streamed. Test: `apps/server/src/thread-api/thread-api.test.ts`. |
-| CAPY-555 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-556 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-557 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-558 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-559 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-560 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-561 | API: captains | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-555 | API: captains | P2 | done | phase2-21 |  | List Captains endpoint returns owned active Captains. |
+| CAPY-556 | API: captains | P2 | done | phase2-21 |  | Create Captain endpoint validates project and crew concurrency. |
+| CAPY-557 | API: captains | P2 | done | phase2-21 |  | Get Captain endpoint returns thread and Captain metadata. |
+| CAPY-558 | API: captains | P2 | done | phase2-21 |  | List Captain crew endpoint returns member threads. |
+| CAPY-559 | API: captains | P2 | done | phase2-21 |  | Add crew endpoint enforces ownership/project membership rules. |
+| CAPY-560 | API: captains | P2 | done | phase2-21 |  | Remove crew endpoint deletes membership or returns 404. |
+| CAPY-561 | API: captains | P2 | done | phase2-21 |  | Get Captain digest endpoint returns durable digest Markdown. |
 | CAPY-562 | API: folders | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-563 | API: folders | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-564 | API: folders | P3 | pending |  |  | Awaiting phase P3 unit. |
