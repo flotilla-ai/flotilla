@@ -344,19 +344,19 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-338 | Models & connections | P2 | blocked | phase2-04 | https://github.com/flotilla-ai/flotilla/pull/36 | `POST /api/v1/models/background` resolves the user's policy `background` model, else the thread's own, under the same policy and connections (no hosted account) — proven. Blocked: phase2-07's `TitleGenerator` is the offline heuristic and no PR-summary generator exists; a model-backed generator that runs on this resolver's selection is still needed (owner: the unit adding model-generated titles/PR summaries). |
 | CAPY-339 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-340 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
-| CAPY-341 | Billing & plans | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-341 | Billing & plans | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | Machine time is `machineSec` in `cost_entries` (runner 10 s ticker); 0023 trigger prices `machine-estimate` rows from the admin rate per runner type (`PUT /usage/settings` `machineRates`, µ$/min; default type `pool`). Report `machine[]` shows minutes/rate/usd. usage-billing-api.test.ts. |
 | CAPY-342 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-343 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-344 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-345 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
-| CAPY-346 | Billing & plans | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-346 | Billing & plans | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `PUT /usage/budgets` sets global/project windows (`month` UTC calendar or `lifetime`, maxUsd, warnAt); before each run `runGates` pauses the thread with a budget approval (`monthly global budget`) once the window is spent; only this month counts; raising resumes. No auto-reload/billing. |
 | CAPY-347 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-348 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-349 | Billing & plans | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-350 | Billing & plans | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-351 | Billing & plans | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
-| CAPY-352 | Usage & analytics | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-353 | Usage & analytics | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-352 | Usage & analytics | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `/usage` web page (apps/web/src/features/usage-billing-api) shows window spend/tokens, budget windows and tables by member/model/thread/billing item (machine/free/subscription/key). Render test only; no browser e2e. |
+| CAPY-353 | Usage & analytics | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `GET /usage` report and `GET /usage/series?bucket=hour|day&by=member|item|thread|model` and `GET /usage/balance`; admins see the org, members only their own usage. |
 | CAPY-354 | Usage & analytics | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-355 | Usage & analytics | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-356 | Usage & analytics | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
@@ -484,7 +484,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-478 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-479 | Cloud machines | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-480 | Billing & plans | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-481 | Billing & plans | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-481 | Billing & plans | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | On run-out the switch onto the free models always asks (even with keep-going); admin `PUT /usage/settings {runOutFree:'never'}` drops the free option (Wait only). Fake run_out adapter; real vendor run-out detection stays under CAPY-333. |
 | CAPY-482 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-483 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-484 | Models & connections | P2 | needs-human-login | phase2-04 | https://github.com/flotilla-ai/flotilla/pull/36 | Proven offline: one list row per Claude model; a connected Claude subscription is first in run order (before an API key added earlier) and resolve picks it; production `defaultRunner` now registers the claude-code and codex adapters. Live: `claude auth login`, connect the subscription, run a thread on a Claude model and confirm it runs without ANTHROPIC_API_KEY. |
@@ -638,8 +638,8 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-632 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-633 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-634 | API: reviewFilters | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-635 | API: usage | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-636 | API: usage | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-637 | API: usage | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-635 | API: usage | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `GET /api/v1/usage?from&to` returns `UsageReport` (totals + byMember/byModel/byThread/byItem + machine); session or API key. |
+| CAPY-636 | API: usage | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `GET /api/v1/usage/series` returns `UsageSeries` points per UTC hour/day bucket and group key. |
+| CAPY-637 | API: usage | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | `GET /api/v1/usage/balance` returns `BudgetWindow[]` (spent, reserved holds, remaining, ok/warn/hit); works with an API key. |
 | CAPY-638 | API: users | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-639 | API: models | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-639 | API: models | P2 | done | phase2-36 | https://github.com/flotilla-ai/flotilla/pull/54 | Existing `GET /api/v1/models` (phase2-04) proven with a bearer API key: catalog rows with connections; not duplicated. |
