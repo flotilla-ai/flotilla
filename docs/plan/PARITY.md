@@ -186,15 +186,15 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-180 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-181 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-182 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-183 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-184 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-185 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-186 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-187 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-188 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-189 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-190 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-191 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-183 | Environment & snapshots | P2 | blocked | phase2-10 |  | Versioned per-project `EnvironmentSpec` (setup phases, startup entries, commands) with shared history: `environments.test.ts`, UI `apps/web/e2e/environments.spec.ts`. Blocked remainder: container snapshot (phase2-11); phase2-12 must call `registerEnvironmentMachine` and `EnvironmentStore.prepare` at machine boot. |
+| CAPY-184 | Environment & snapshots | P2 | blocked | phase2-10 |  | `environment.verify` runs initialize on the thread machine and records the verdict on the version (local-process machine fixture). Blocked: phase2-12 must call `registerEnvironmentMachine` and `EnvironmentStore.prepare` at machine boot; no "Ask to set up" button. |
+| CAPY-185 | Environment & snapshots | P2 | blocked | phase2-10 |  | initialize 900 s / refresh 300 s defaults, 60-3600 s validation, timeout kill, fresh-clone vs moved-checkout `choosePhase`, proven with a local-process machine. Blocked: phase2-12 must call `registerEnvironmentMachine` and `EnvironmentStore.prepare` at machine boot. |
+| CAPY-186 | Environment & snapshots | P2 | blocked | phase2-10 |  | Named startup entries wait for their readiness port, flag preview, `wake()` reruns them, `stop()` reports stopped. Blocked: phase2-12 must call `registerEnvironmentMachine` and `EnvironmentStore.prepare` at machine boot and `EnvironmentExecutor.wake` on machine wake. |
+| CAPY-187 | Environment & snapshots | P2 | blocked | phase2-10 |  | `bash -c` from `caps.repoDir` with thread env and `FLOTILLA_SUDO` from machine caps (off by default, so BYOM gets no sudo). Blocked: phase2-12 must call `registerEnvironmentMachine` and `EnvironmentStore.prepare` at machine boot; running as the sudo user is machine-image work (phase2-12). |
+| CAPY-188 | Environment & snapshots | P2 | blocked | phase2-10 |  | `POST /threads/:id/environment/commands/:name` runs a named command on the registered machine and records state. Blocked: phase2-12 must call `registerEnvironmentMachine` and `EnvironmentStore.prepare` at machine boot. |
+| CAPY-189 | Environment & snapshots | P2 | done | phase2-10 |  | + menu lists services (port, preview), commands (runnable) and terminals with status dots; failed is orange. API `GET /threads/:id/environment`, UI e2e `apps/web/e2e/environments.spec.ts` (mocked API). Terminal entries stay empty until a terminal unit reports them. |
+| CAPY-190 | Environment & snapshots | P2 | blocked | phase2-10 |  | `environment.read`/`environment.replace` (whole spec, validated, stale `baseVersion` refused, own project only) via `POST /threads/:id/environment/tools/:name`. Blocked: not yet in the Captain/agent tool registry; verify needs phase2-12 must call `registerEnvironmentMachine` and `EnvironmentStore.prepare` at machine boot. |
+| CAPY-191 | Environment & snapshots | P2 | done | phase2-10 |  | A completed run whose repo has `.flotilla/setup.json` (preferred) or `.capy/setup.json` becomes a new `repo-file` version (`onAfterRun` + `copyOut`); `POST /projects/:id/environment/import` too. Capy field names are inferred. |
 | CAPY-192 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-193 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-194 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
