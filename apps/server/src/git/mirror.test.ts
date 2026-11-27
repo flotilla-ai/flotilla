@@ -79,7 +79,7 @@ describe('git mirror', () => {
     await expect(collectAndPush(thread,project,driver,mirrors)).rejects.toThrow('protected-branch');
   },30_000);
   it('seeds and pushes a configured custom branch prefix', async () => {
-    const root=mkdtempSync(join(base,'custom-')); const driver=new FakeDriver(root); const custom={...thread,id:'thr_custom',branch:null};
+    const root=mkdtempSync(join(base,'custom-')); const driver=new FakeDriver(root); const custom={...thread,id:'thr_custom' as never,branch:null};
     const seeded=await seedWorkspace(custom,project,driver,mirrors,'feature');
     expect(seeded.branch).toBe('feature/FLO-1-test-work');
     sh('git config user.email a@x && git config user.name a && echo custom >> README.md && git add . && git commit -m custom',join(root,'repo'));
