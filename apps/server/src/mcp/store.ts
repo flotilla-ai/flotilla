@@ -242,14 +242,15 @@ export class McpStore {
       for (const server of spec.mcpServers) {
         const required = server.keys ?? [];
         const [c] = await this.q('SELECT * FROM mcp_plugin_connections WHERE plugin_id=$1 AND user_id=$2 AND server_key=$3', [r.id, t.owner_id, server.key]);
-        let keys: Record<string, string> = {};
-        if (c) keys = JSON.parse(this.kms.open(c.sealed, `mcp-plugin-connection:${r.id}:${t.owner_id}:${server.key}`).toString('utf8')) as Record<string, string>;
+        let allKeys: Record<string, string> = {};
+        if (c) allKeys = JSON.parse(this.kms.open(c.sealed, `mcp-plugin-connection:${r.id}:${t.owner_id}:${server.key}`).toString('utf8')) as Record<string, string>;
         else {
           if (r.connection_mode === 'each-member') continue;
           if (r.scope === 'organization' && r.owner_id !== t.owner_id && required.length) continue;
-          keys = JSON.parse(this.kms.open(r.sealed, `mcp-plugin:${r.id}`).toString('utf8')) as Record<string, string>;
+          allKeys = JSON.parse(this.kms.open(r.sealed, `mcp-plugin:${r.id}`).toString('utf8')) as Record<string, string>;
         }
-        if (required.some((k) => !(k in keys))) continue;
+        if (required.some((k) => !(k in allKeys))) continue;
+        const keys = Object.fromEntries(required.map((k) => [k, allKeys[k]]));
         const key = slug(`${r.key}-${server.key}`);
         for (const [k, v] of Object.entries(keys)) secrets[`mcp-plugin:${r.key}:${server.key}:${k}`] = v;
         const substitute = (v: string) => v.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (_, n) => keys[n] ?? '');

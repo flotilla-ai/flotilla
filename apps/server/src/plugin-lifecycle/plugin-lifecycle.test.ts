@@ -35,9 +35,9 @@ it('CAPY-304/306/313..316: plugin install, scoping, per-member connect, sync app
   const personal = await call('POST', '/mcp/plugins', { scope: 'user', repo: 'acme/plugin', path: 'servers/github', projectId: 'prj_pl', connectionMode: 'each-member' });
   expect(personal.status).toBe(201); expect(personal.json.projectId).toBe('prj_pl');
   let resolved = (await call('GET', '/mcp/plugins/resolve/prj_pl')).json; expect(resolved.items).toHaveLength(1); expect(resolved.items[0]).toMatchObject({ scope: 'user', requiresConnection: true });
-  expect((await call('POST', `/mcp/plugins/${resolved.items[0].id}/servers/github/connect`, { keys: { API_KEY: 'member-secret' } })).json).toEqual({ connected: true });
+  expect((await call('POST', `/mcp/plugins/${resolved.items[0].id}/servers/github/connect`, { keys: { API_KEY: 'member-secret', OTHER_SERVER_KEY: 'not-for-github' } })).json).toEqual({ connected: true });
   resolved = (await call('GET', '/mcp/plugins/resolve/prj_pl')).json; expect(resolved.items[0].requiresConnection).toBe(false); expect(JSON.stringify(resolved)).not.toContain('member-secret');
-  const prepared = await new McpStore(url).prepare('thr_plugin', {}); expect(prepared?.config.mcpServers['github-tools-github']).toMatchObject({ type: 'stdio', command: 'node', env: { API_KEY: 'member-secret' } });
+  const prepared = await new McpStore(url).prepare('thr_plugin', {}); expect(prepared?.config.mcpServers['github-tools-github']).toMatchObject({ type: 'stdio', command: 'node', env: { API_KEY: 'member-secret' } }); expect(prepared?.config.mcpServers['github-tools-github']).not.toHaveProperty('env.OTHER_SERVER_KEY');
   expect((await call('POST', `/mcp/plugins/${personal.json.id}/servers/github/connect`, { keys: { API_KEY: 'replacement-secret' } })).status).toBe(200);
   const reprepared = await new McpStore(url).prepare('thr_plugin', {}); expect(reprepared?.config.mcpServers['github-tools-github']).toMatchObject({ env: { API_KEY: 'replacement-secret' } });
   manifestVersion = '2.0.0';
