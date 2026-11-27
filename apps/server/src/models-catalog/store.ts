@@ -305,8 +305,11 @@ export class ModelPolicyApi {
   async onRunOut(threadId: string): Promise<RunOutOutcome> {
     const [t] = await this.store.q('SELECT owner_id, engine FROM threads WHERE id=$1', [threadId]);
     const policy = await this.store.policy(t.owner_id);
-    const next = await this.next(t.owner_id, t.engine);
-    if (next && (policy.runOut === 'keep-going' || (policy.runOut === 'ask-before-free' && next.connection.kind !== 'free'))) {
+    const found = await this.next(t.owner_id, t.engine);
+    // CAPY-481: moving onto the free models always asks (never a silent downgrade); an admin can forbid it entirely.
+    const [org] = await this.store.q(`SELECT run_out_free FROM usage_settings WHERE id='org'`).catch(() => []);
+    const next = found?.connection.kind === 'free' && org?.run_out_free === 'never' ? null : found;
+    if (next && next.connection.kind !== 'free' && (policy.runOut === 'keep-going' || policy.runOut === 'ask-before-free')) {
       await this.store.q('UPDATE threads SET engine=$2 WHERE id=$1', [threadId, JSON.stringify(next.engine)]);
       return { switchedTo: next.connection.id };
     }

@@ -20,6 +20,8 @@ const zero = budgetZero;
 const add = (a: CostTotals, b: CostTotals): CostTotals => ({ usd: a.usd+b.usd, inputTokens: a.inputTokens+b.inputTokens, outputTokens: a.outputTokens+b.outputTokens, cacheTokens: a.cacheTokens+b.cacheTokens, machineSec: a.machineSec+b.machineSec });
 const id = (p: string) => `${p}_${randomBytes(10).toString('base64url')}`;
 const budget = (maxUsd: number | null = null) => ({ maxUsd, maxTokens: null, maxWallSec: null, scope: 'thread' as const, onHit: 'pause-and-ask' as const, warnAt: 0.8 });
+/** Pre-run budget checks beyond the thread's own cap (e.g. monthly org/project windows); the first reason found pauses the run. */
+export const runGates: ((thread: Row) => Promise<string | null>)[] = [];
 export type RunnerDeps = { store: EventStore; driver: Driver; adapters: Map<string, AgentAdapter>; secrets?: Record<string,string>; projectFor?(row: Row): Row; vault?: Pick<SecretsStore, 'mutate' | 'prepare'>; resolveEngine?(userId: string, engine: Row): Promise<{ adapter: string; model: string | null; effort: unknown; connectionId: string | null; contextWindow?: number }>; runOut?: { onRunOut(threadId: string): Promise<{ switchedTo: string } | { approvalId: string }>; answer(approval: Row, optionId: string): Promise<void> } };
 type AfterRun=(input:{thread:Row;project:Row|null;runId:string;state:string;containerId:string;driver:Driver})=>Promise<void>;
 const afterRunHooks:AfterRun[]=[];
@@ -176,7 +178,8 @@ export class ThreadRunner {
 
     const policy = thread.budget as { maxUsd: number | null; maxWallSec: number | null; maxTokens: number | null; warnAt: number };
     const reserveAmount = Math.min(20_000, Math.max(1, policy.maxUsd ?? 20_000));
-    if (policy.maxUsd !== null && (thread.spent as CostTotals).usd >= policy.maxUsd) { await this.pool.query(`UPDATE runs SET state='paused_budget',ended_at=now() WHERE id=$1`, [runId]); await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'run.ended', source: 'kernel', trust: 'trusted', payload: { state: 'paused_budget', usage: zero } }] as never); return this.pauseBudget(threadId, runId, 'budget'); }
+    let gate: string | null = null; for (const check of runGates) gate ??= await check(thread);
+    if (gate || (policy.maxUsd !== null && (thread.spent as CostTotals).usd >= policy.maxUsd)) { await this.pool.query(`UPDATE runs SET state='paused_budget',ended_at=now() WHERE id=$1`, [runId]); await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'run.ended', source: 'kernel', trust: 'trusted', payload: { state: 'paused_budget', usage: zero } }] as never); return this.pauseBudget(threadId, runId, gate ?? 'budget'); }
     let prepared: PreparedSecrets;
     try { prepared = await this.deps.vault?.prepare(threadId) ?? { env: {}, grants: [] }; } catch (err) { return this.failStart(threadId, runId, err); }
     if (policy.maxUsd !== null) {
