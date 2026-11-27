@@ -321,21 +321,21 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-315 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-316 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-317 | MCP & plugins | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-318 | Models & connections | P2 | needs-human-login | phase2-03 | PR_URL | catalog rows (adapter+model, list price, BYOK, ZDR) proven with built-in free + operator fixture file; real vendor rows/prices: operator fills FLOTILLA_MODEL_CATALOG. |
+| CAPY-318 | Models & connections | P2 | needs-human-login | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | catalog rows (adapter+model, list price, BYOK, ZDR) proven with built-in free + operator fixture file; real vendor rows/prices: operator fills FLOTILLA_MODEL_CATALOG. |
 | CAPY-319 | Models & connections | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate the real default vendor model list/configuration with vendor login. |
 | CAPY-320 | Models & connections | n/a | n-a |  |  | Out of self-hosted scope per Appendix A. |
 | CAPY-321 | Models & connections | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate Claude/Codex subscription login behavior on mehdi's machine. |
 | CAPY-322 | Models & connections | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate Claude Agent SDK harness behavior with a real Claude login. |
 | CAPY-323 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-324 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-325 | Models & connections | P2 | needs-human-login | phase2-03 | PR_URL | none…max validated per catalog model, unsupported fails with no fallback, effort reaches StartInput (fake); CLI effort-flag mapping unverified with real claude/codex. |
+| CAPY-325 | Models & connections | P2 | needs-human-login | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | none…max validated per catalog model, unsupported fails with no fallback, effort reaches StartInput (fake); CLI effort-flag mapping unverified with real claude/codex. |
 | CAPY-326 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-327 | Models & connections | P2 | done | phase2-03 | PR_URL | owner → org → free order, reorder, per-connection models, edit/test/reconnect/disable (fixture endpoint). |
-| CAPY-328 | Models & connections | P2 | needs-human-login | phase2-03 | PR_URL | provider list from adapter auth capabilities, searchable; subscription = CLI vendor/device login; real logins and gateway list need mehdi. |
-| CAPY-329 | Models & connections | P2 | needs-human-login | phase2-03 | PR_URL | check access via local OpenAI-compatible fixture; exclusions; new models auto-covered; real provider endpoints need a key. |
-| CAPY-330 | Models & connections | P2 | needs-human-login | phase2-03 | PR_URL | custom model ids added/found/selectable on a connection (fixture); real key needed for live endpoint. |
-| CAPY-331 | Models & connections | P2 | done | phase2-03 | PR_URL | pinned connection never falls back; its key alone reaches the run env (fake). |
-| CAPY-332 | Models & connections | P2 | done | phase2-03 | PR_URL | picker badges subscription/key/free, tooltip names connection, favorites Alt+1…9 (API); web picker not wired yet. |
+| CAPY-327 | Models & connections | P2 | done | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | owner → org → free order, reorder, per-connection models, edit/test/reconnect/disable (fixture endpoint). |
+| CAPY-328 | Models & connections | P2 | needs-human-login | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | provider list from adapter auth capabilities, searchable; subscription = CLI vendor/device login; real logins and gateway list need mehdi. |
+| CAPY-329 | Models & connections | P2 | needs-human-login | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | check access via local OpenAI-compatible fixture; exclusions; new models auto-covered; real provider endpoints need a key. |
+| CAPY-330 | Models & connections | P2 | needs-human-login | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | custom model ids added/found/selectable on a connection (fixture); real key needed for live endpoint. |
+| CAPY-331 | Models & connections | P2 | done | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | pinned connection never falls back; its key alone reaches the run env (fake). |
+| CAPY-332 | Models & connections | P2 | done | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | picker badges subscription/key/free, tooltip names connection, favorites Alt+1…9 (API); web picker not wired yet. |
 | CAPY-333 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-334 | Models & connections | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-335 | Models & connections | P2 | pending |  |  | Awaiting phase P2 unit. |
