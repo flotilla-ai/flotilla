@@ -32,6 +32,8 @@ export function createStreamRoute(store: EventStore): { basePath: string; app: H
             for (;;) {
               const next = await iterator.next();
               if (next.done) break;
+              // Access only changes through thread.status events (visibility, leave, takeover); recheck before delivering each one.
+              if (userId && next.value.kind === 'thread.status' && !(await canViewThread(store.pool, threadId, userId))) { await iterator.return?.(); break; }
               controller.enqueue(sse(next.value, publicFrames, first));
               first = false;
             }

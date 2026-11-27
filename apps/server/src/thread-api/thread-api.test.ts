@@ -29,14 +29,15 @@ async function thread(opts: { status?: string; visibility?: string } = {}): Prom
 const lastSeq = async (id: string): Promise<number> => (await pool.query('SELECT COALESCE(max(seq),0)::int s FROM events WHERE thread_id=$1', [id])).rows[0].s;
 
 /** Reads public SSE frames after `after` until `count` frames arrive or 5 s pass. */
-async function frames(who: Who, id: string, after: number, count: number): Promise<{ status: number; frames: { id: number; event: string; data: any }[] }> {
+async function frames(who: Who, id: string, after: number, count: number, during?: () => Promise<unknown>): Promise<{ status: number; ended?: boolean; frames: { id: number; event: string; data: any }[] }> {
   const res = await app.request(`http://local/api/v1/threads/${id}/stream?frames=public`, { headers: { authorization: `Bearer ${users[who].token}`, 'last-event-id': String(after) } });
   if (res.status !== 200) return { status: res.status, frames: [] };
-  const reader = res.body!.getReader(); const out: { id: number; event: string; data: any }[] = []; let text = '';
+  await during?.();
+  const reader = res.body!.getReader(); const out: { id: number; event: string; data: any }[] = []; let text = ''; let ended = false;
   const deadline = Date.now() + 5000;
   while (out.length < count && Date.now() < deadline) {
     const next = await Promise.race([reader.read(), new Promise<null>((r) => setTimeout(() => r(null), deadline - Date.now()))]);
-    if (!next || next.done) break;
+    if (!next || next.done) { ended = !!next; break; }
     text += new TextDecoder().decode(next.value);
     const blocks = text.split('\n\n'); text = blocks.pop()!;
     for (const b of blocks) {
@@ -45,7 +46,7 @@ async function frames(who: Who, id: string, after: number, count: number): Promi
     }
   }
   await reader.cancel();
-  return { status: 200, frames: out };
+  return { status: 200, ended, frames: out };
 }
 const actions = (f: { data: any }[]) => f.map((x) => `${x.data.type}:${x.data.payload.action}`);
 
@@ -155,5 +156,15 @@ describe('thread lifecycle public API (bearer keys)', () => {
     expect((await call('carol', `/threads/${shared}`)).status).toBe(200);
     for (const path of [`/threads/${priv}`, `/threads/${priv}/messages`]) expect((await call('carol', path)).status).toBe(404);
     expect((await frames('carol', priv, 0, 1)).status).toBe(404);
+  });
+
+  it('collaborators: an open stream ends when the viewer loses access, before any later frame', async () => {
+    const id = await thread({ visibility: 'shared' });
+    const s = await frames('bob', id, 0, 5, async () => {
+      await call('owner', `/threads/${id}/lifecycle`, 'POST', { action: 'visibility', visibility: 'private' });
+      await verb('owner', id, 'rename', { title: 'Private now' });
+    });
+    expect(s.ended).toBe(true);
+    expect(s.frames.map((f) => f.data.kind)).toEqual(['thread.created', 'user.message']);
   });
 });
