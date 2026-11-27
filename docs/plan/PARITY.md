@@ -521,21 +521,21 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-518 | GitHub | P2 | done | phase2-35 |  | Admin `DELETE /github/accounts/:id` revokes the account and installations; non-owner members get 404 (`github-integration.test.ts`). |
 | CAPY-519 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | rename / enable / widen proposals answered via `/approvals/:id/answer` apply in one click; decline leaves the server unchanged. |
 | CAPY-520 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | OAuth start returns "Finish in your browser"; row shows Cancel; cancelled flows cannot complete (404). |
-| CAPY-521 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-522 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-523 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-524 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-525 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-526 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-527 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-528 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-529 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-530 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-531 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-532 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-533 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-534 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-535 | API: automations | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-521 | API: automations | P2 | done | phase2-28 |  | List batches API. |
+| CAPY-522 | API: automations | P2 | done | phase2-28 |  | Flush batch API. |
+| CAPY-523 | API: automations | P2 | done | phase2-28 |  | Cancel batch API. |
+| CAPY-524 | API: automations | P2 | done | phase2-28 |  | List automations API. |
+| CAPY-525 | API: automations | P2 | done | phase2-28 |  | Create automation API. |
+| CAPY-526 | API: automations | P2 | done | phase2-28 |  | Get automation API. |
+| CAPY-527 | API: automations | P2 | done | phase2-28 |  | Update automation API. |
+| CAPY-528 | API: automations | P2 | done | phase2-28 |  | Rotate webhook API. |
+| CAPY-529 | API: automations | P2 | done | phase2-28 |  | Trigger automation API. |
+| CAPY-530 | API: automations | P2 | done | phase2-28 |  | List runs API. |
+| CAPY-531 | API: automations | P2 | done | phase2-28 |  | Cancel run API. |
+| CAPY-532 | API: automations | P2 | done | phase2-28 |  | Enable automation API. |
+| CAPY-533 | API: automations | P2 | done | phase2-28 |  | Disable automation API. |
+| CAPY-534 | API: automations | P2 | done | phase2-28 |  | Delete automation API. |
+| CAPY-535 | API: automations | P2 | done | phase2-28 |  | Restore automation API. |
 | CAPY-536 | API: projects | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-537 | API: projects | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-538 | API: projects | P2 | done | phase2-02 | https://github.com/flotilla-ai/flotilla/pull/28 | GET /api/v1/projects/:id/environment-variables lists names/configured state. |
