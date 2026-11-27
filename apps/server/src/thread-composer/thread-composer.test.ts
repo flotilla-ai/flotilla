@@ -74,10 +74,10 @@ describe('thread composer', () => {
 
   it('CAPY-016: thread codes resolve for Cmd+K and @-mentions only within threads the viewer may see', async () => {
     const mine = await thread({ title: 'Fix login' }); const shared = await thread({ owner: 'usr_bob', visibility: 'shared', title: 'Shared work' }); const hidden = await thread({ owner: 'usr_bob', title: 'Private bob' });
-    expect((await call('GET', `/threads/lookup?q=${mine.code.toLowerCase()}`)).json.items).toEqual([{ id: mine.id, code: mine.code, title: 'Fix login' }]);
-    expect((await call('GET', `/threads/lookup?q=${shared.code}`)).json.items.map((x: any) => x.id)).toEqual([shared.id]);
-    expect((await call('GET', `/threads/lookup?q=${hidden.code}`)).json.items).toEqual([]);
-    expect((await call('GET', '/threads/lookup?q=login')).json.items.map((x: any) => x.code)).toEqual([mine.code]);
+    expect((await call('GET', `/thread-lookup?q=${mine.code.toLowerCase()}`)).json.items).toEqual([{ id: mine.id, code: mine.code, title: 'Fix login' }]);
+    expect((await call('GET', `/thread-lookup?q=${shared.code}`)).json.items.map((x: any) => x.id)).toEqual([shared.id]);
+    expect((await call('GET', `/thread-lookup?q=${hidden.code}`)).json.items).toEqual([]);
+    expect((await call('GET', '/thread-lookup?q=login')).json.items.map((x: any) => x.code)).toEqual([mine.code]);
   });
 
   it('CAPY-034: reading place is stored per viewer and survives a closed turn', async () => {

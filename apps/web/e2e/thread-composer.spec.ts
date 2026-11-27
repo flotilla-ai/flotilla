@@ -58,10 +58,10 @@ test('CAPY-472: /feedback in the composer drafts a report for owner approval ins
 });
 
 test('CAPY-016: Cmd+K jumps to a thread by code and @ inserts a thread code',async({page})=>{
- const calls=await mock(page,{'GET /threads/lookup':c=>({items:c.path.includes('FLO')||c.path.includes('flo')?[{id:'thr_9',code:'FLO-9A',title:'Fix login'}]:[]})});await page.goto('/#/threads/thr_1');
+ const calls=await mock(page,{'GET /thread-lookup':c=>({items:c.path.includes('FLO')||c.path.includes('flo')?[{id:'thr_9',code:'FLO-9A',title:'Fix login'}]:[]})});await page.goto('/#/threads/thr_1');
  await page.getByLabel('message').pressSequentially('see @FLO');await page.getByRole('button',{name:'@FLO-9A Fix login'}).click();await expect(page.getByLabel('message')).toHaveValue('see @FLO-9A ');
  await page.keyboard.press('Control+k');await page.getByLabel('go to thread').fill('flo-9a');await page.getByRole('button',{name:'FLO-9A Fix login'}).click();await expect(page).toHaveURL(/#\/threads\/thr_9$/);
- expect(calls.some(c=>c.path==='/threads/lookup?q=flo-9a')).toBe(true);
+ expect(calls.some(c=>c.path==='/thread-lookup?q=flo-9a')).toBe(true);
 });
 
 test('CAPY-471 + CAPY-032: ?prompt= deep link pre-fills the composer and creates a no-project thread',async({page})=>{

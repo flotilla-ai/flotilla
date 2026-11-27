@@ -7,7 +7,7 @@ const body = async (c: Context) => ((await c.req.json().catch(() => null)) ?? {}
 /** Composer and reading UX: request cards (+ Undo dismiss), thread-code lookup, reading place, owner-approved feedback. */
 export function createThreadComposerRoute(store = () => threadComposer()) {
   const app = new Hono();
-  app.get('/threads/lookup', async (c) => c.json({ items: await store().lookup(userId(c), c.req.query('q') ?? '') }));
+  app.get('/thread-lookup', async (c) => c.json({ items: await store().lookup(userId(c), c.req.query('q') ?? '') }));
   app.get('/threads/:id/requests', async (c) => c.json({ items: await store().requests(c.req.param('id'), userId(c)) }));
   app.post('/approvals/:id/undo', async (c) => c.json(await store().undoDismiss(c.req.param('id'), userId(c))));
   app.get('/threads/:id/reading-place', async (c) => c.json(await store().readingPlace(c.req.param('id'), userId(c))));

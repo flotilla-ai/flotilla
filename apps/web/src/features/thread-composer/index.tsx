@@ -4,7 +4,7 @@ import './thread-composer.css';
 type Ref={id:string;code:string;title:string};type Attachment={fileId:string;name:string};
 type Card={id:string;title:string;inline:null|{kind:'env';name:string}|{kind:'desktop';url:string}|{kind:'feedback';title:string;body:string}};
 const text=(e:Ev)=>typeof e.payload==='string'?e.payload:e.payload?.text??e.payload?.delta??JSON.stringify(e.payload);
-const lookup=(q:string)=>api(`/threads/lookup?q=${encodeURIComponent(q)}`).then((r:{items:Ref[]})=>r.items).catch(()=>[] as Ref[]);
+const lookup=(q:string)=>api(`/thread-lookup?q=${encodeURIComponent(q)}`).then((r:{items:Ref[]})=>r.items).catch(()=>[] as Ref[]);
 
 async function upload(f:File):Promise<Attachment>{
  const g=await api('/files',{method:'POST',body:JSON.stringify({name:f.name,contentType:f.type||'application/octet-stream',size:f.size})});
