@@ -151,7 +151,7 @@ describe('runner queue', () => {
   it('CAPY-469: a provider error is classified and Retry re-sends the last message, optionally on another model', async () => {
     const t = await make('flaky', 'do it'); const [failed] = await until(() => runs(t.id), (r) => r[0]?.state === 'failed');
     expect(failed.error).toMatchObject({ kind: 'overloaded', retryable: true });
-    expect((await kinds(t.id, 'run.ended'))[0].error.kind).toBe('overloaded');
+    expect((await until(() => kinds(t.id, 'run.ended'), (e) => e.length > 0))[0].error.kind).toBe('overloaded');
     await pool.query(`UPDATE threads SET engine=engine || '{"effort":"high"}' WHERE id=$1`, [t.id]);
     expect((await call('POST', `/threads/${t.id}/retry`, { connectionId: 'con_other' })).status).toBe(404);
     const r = await call('POST', `/threads/${t.id}/retry`, { model: 'other-model', connectionId: 'con_own' });
