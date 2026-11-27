@@ -20,3 +20,11 @@ test('CAPY-177..182 create from sources, identity, private/shared, lazy clone an
  expect(posts[3]).toMatchObject({name:'Laptop',source:{kind:'folder',path:'/Users/me/app',machineId:'mch_1'}});
  expect(posts[4]).toEqual({name:'Scratch',source:{kind:'empty'},visibility:'private'});
 });
+test('CAPY-178 a failed lazy clone tells the owner which branch failed',async({page})=>{
+ await page.route('**/api/v1/projects/suggestions',r=>r.fulfill({json:[]}));
+ await page.route('**/api/v1/projects',r=>r.fulfill({json:[{id:'prj_1',name:'Shop',code:'SHOP',visibility:'private',trust:'untrusted',repos:[{...repos[1],baseBranch:'release'}]}]}));
+ await page.route('**/api/v1/projects/prj_1/repos/rep_2/clone',r=>r.fulfill({status:409,json:{error:'base branch release not found'}}));
+ await page.goto('/#/projects');
+ await page.getByRole('button',{name:'Clone /srv/docs'}).click();
+ await expect(page.getByRole('alert')).toHaveText('Could not clone /srv/docs on branch release (409)');
+});

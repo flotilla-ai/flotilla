@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react';import {api} from '../../lib/api.js';
-type Repo={id:string;provider:string;fullName:string;role:'primary'|'lazy';description:string|null;clonedAt:string|null;machineId:string|null};
+type Repo={id:string;provider:string;fullName:string;baseBranch?:string;role:'primary'|'lazy';description:string|null;clonedAt:string|null;machineId:string|null};
 type P={id:string;name:string;trust?:string;icon?:string|null;code?:string|null;visibility?:string;repos?:Repo[]};
 type S={fullName:string;defaultBranch:string;pushedAt:string};
 const kinds={github:'GitHub repo',['git-url']:'Git URL',folder:'Folder on a machine',empty:'Empty'} as const;type Kind=keyof typeof kinds;
@@ -16,6 +16,6 @@ return <main><h1>Projects</h1><form onSubmit={create}><input aria-label='project
 <label><input type='checkbox' aria-label='shared' checked={f.shared} onChange={set('shared')}/> Visible to teammates</label><button>Create project</button>{error&&<p role='alert'>{error}</p>}</form>
 {f.kind==='github'&&sugg.length>0&&<section aria-label='recently pushed'><h2>Recently pushed</h2>{sugg.map(s=><button key={s.fullName} type='button' onClick={()=>setF(x=>({...x,value:s.fullName,name:x.name||s.fullName.split('/')[1],branch:s.defaultBranch}))}>{s.fullName}</button>)}</section>}
 {rows.map(p=><article key={p.id}><b>{p.icon?`${p.icon} `:''}{p.name}</b>{p.code&&<code> {p.code}</code>}<span> · {p.visibility==='shared'?'shared':'private'}</span>
-{(p.repos??[]).length===0?<p>No repository</p>:<ul>{p.repos!.map(r=><li key={r.id}>{r.fullName} ({r.role}){r.description&&<> — {r.description}</>}{!r.clonedAt&&!r.machineId&&r.role==='lazy'&&<button onClick={async()=>{await api(`/projects/${p.id}/repos/${r.id}/clone`,{method:'POST',body:'{}'});await load()}}>Clone {r.fullName}</button>}</li>)}</ul>}
+{(p.repos??[]).length===0?<p>No repository</p>:<ul>{p.repos!.map(r=><li key={r.id}>{r.fullName} ({r.role}){r.description&&<> — {r.description}</>}{!r.clonedAt&&!r.machineId&&r.role==='lazy'&&<button onClick={async()=>{setError('');try{await api(`/projects/${p.id}/repos/${r.id}/clone`,{method:'POST',body:'{}'});await load()}catch(err){setError(`Could not clone ${r.fullName}${r.baseBranch?` on branch ${r.baseBranch}`:''} (${(err as Error).message})`)}}}>Clone {r.fullName}</button>}</li>)}</ul>}
 <p>{p.trust==='trusted'?'trusted':'untrusted — runs with an API key; your Claude/Codex login is never mounted'}</p>{p.trust!=='trusted'&&<><input aria-label={`confirm ${p.name}`} value={confirm[p.id]??''} onChange={e=>setConfirm(x=>({...x,[p.id]:e.target.value}))} placeholder='type private-and-mine'/><button disabled={(confirm[p.id]??'')!=='private-and-mine'} onClick={async()=>{await api(`/projects/${p.id}`,{method:'PATCH',body:JSON.stringify({trust:'trusted',confirm:'private-and-mine'})});await load()}}>Trust</button></>}</article>)}</main>}
 export default {path:'/projects',element:<Projects/>,nav:'Projects'}
