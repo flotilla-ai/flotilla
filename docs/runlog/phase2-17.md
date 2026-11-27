@@ -4,11 +4,11 @@ Branch `flotilla/phase2-17-wakes` from `origin/flotilla/p1` (`ea9ec15`), then re
 
 ## Rows
 - done: CAPY-038, CAPY-039, CAPY-040, CAPY-041, CAPY-044, CAPY-045, CAPY-047, CAPY-048, CAPY-049.
-- blocked: CAPY-043 (server proven; no web settings screen), CAPY-046 (no machine idle-stop consumes `keepAwake`; `machineExecutor` unverified on real containers), CAPY-050 (hold/allow proven; BYOM auto-hold and held-message UI need the BYOM unit), CAPY-051 (needs a BYOM machine with SSH).
+- blocked: CAPY-043 (server proven; no web settings screen), CAPY-046 (no machine idle-stop consumes `keepAwake`; no production machine executor yet), CAPY-050 (hold/allow proven; BYOM auto-hold and held-message UI need the BYOM unit), CAPY-051 (needs a BYOM machine with SSH).
 
 ## Changes
 - `apps/server/src/db/migrations/0015_wakes.sql`: `wake_settings`, `wake_watches`, `wake_inbox`, `threads.hold_incoming`.
-- `apps/server/src/wakes/types.ts`, `apps/server/src/wakes/router.ts`: `WakeRouter` (policy, GitHub review/comment/merge/conflict, subagent + reply wakes via LISTEN, timers/sweep, waiting state, watches/stop, peek, send, hold/release, background jobs, `rsyncArgv`, `machineExecutor`).
+- `apps/server/src/wakes/types.ts`, `apps/server/src/wakes/router.ts`: `WakeRouter` (policy, GitHub review/comment/merge/conflict, subagent + reply wakes via LISTEN, timers/sweep, waiting state, watches/stop, peek, send, hold/release, background jobs, `rsyncArgv`).
 - `apps/server/src/routes/wakes.route.ts`, `apps/server/src/modules/wakes.module.ts` (LISTEN + 15 s sweep; `FLOTILLA_WAKES=0` disables).
 - `apps/server/src/routes/github-webhook.route.ts`: non-`check_run` events go to `WakeRouter.github`.
 - `apps/web/src/features/wakes/index.tsx` (`/watches` Activity page with Stop watching).
@@ -74,6 +74,6 @@ make check exit=0
 
 ## Unverified
 - Live GitHub App delivering `pull_request_review`, `pull_request_review_comment`, `issue_comment`, `pull_request` events (needs app subscription; only fixture payloads tested).
-- `machineExecutor` against a real `flt-<code>` container; machine kept awake while a job runs.
+- Background jobs on a real machine (no production executor); machine kept awake while a job runs.
 - BYOM SSH transfer and BYOM auto-hold.
 - Timer sweep cadence in production (15 s interval, tested by calling `sweep` directly).

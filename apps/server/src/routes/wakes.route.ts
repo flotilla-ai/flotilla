@@ -1,10 +1,10 @@
 import { Hono, type Context } from 'hono';
 import { ApiFailure } from '../api-platform/types.js';
-import { WakeRouter, machineExecutor } from '../wakes/router.js';
+import { WakeRouter } from '../wakes/router.js';
 import { defaultRunner } from './threads.route.js';
 
 let singleton: WakeRouter | null = null;
-export function defaultWakeRouter(): WakeRouter { const runner = defaultRunner(); singleton ??= new WakeRouter({ runner, executor: machineExecutor(runner) }); return singleton; }
+export function defaultWakeRouter(): WakeRouter { singleton ??= new WakeRouter({ runner: defaultRunner() }); return singleton; }
 const userId = (c: Context) => c.get('userId') as string;
 const body = async (c: Context) => ((await c.req.json().catch(() => null)) ?? {}) as Record<string, any>;
 

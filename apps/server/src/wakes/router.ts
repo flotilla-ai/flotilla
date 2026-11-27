@@ -207,12 +207,3 @@ export class WakeRouter {
 }
 
 export const rsyncArgv = (src: string, dst: string) => ['rsync', '-a', '--partial', '-e', 'ssh -o BatchMode=yes', src, dst];
-/** Runs a job on the thread's pool machine (`flt-<code>`); abort kills it. Untested against real containers. */
-export const machineExecutor = (runner: ThreadRunner): JobExecutor => async (threadId, spec, signal) => {
-  const code = (await runner.pool.query('SELECT code FROM threads WHERE id=$1', [threadId])).rows[0]?.code as string;
-  const h = runner.deps.driver.transport(`flt-${code}`).spawn(spec.argv, { cwd: '/workspace', env: {} });
-  const kill = () => void h.signal('SIGKILL').catch(() => undefined); signal.addEventListener('abort', kill);
-  let output = ''; const read = async (s: AsyncIterable<string>) => { for await (const l of s) output = `${output}${l}\n`.slice(-8000); };
-  await Promise.all([read(h.stdout), read(h.stderr)]); const { code: exit } = await h.exit; signal.removeEventListener('abort', kill);
-  return { code: exit, output };
-};
