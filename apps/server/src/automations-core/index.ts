@@ -5,13 +5,13 @@ import { ApiFailure } from '../api-platform/types.js';
 import { modelsCatalogStore } from '../models-catalog/store.js';
 
 export type TriggerType = 'schedule' | 'github' | 'webhook' | 'manual';
-export interface AutomationTrigger { type: TriggerType; cron?: string; timezone?: string; event?: string; batch?: boolean; hmac?: boolean }
+export interface AutomationTrigger { type: TriggerType; cron?: string; timezone?: string; event?: string; batch?: boolean; hmac?: boolean; since?: string }
 export interface Automation {
   id: string; projectId: string; ownerId: string; name: string; prompt: string;
   triggers: AutomationTrigger[]; conditions: Record<string, unknown>; runWhen: string | null;
   gateModel: Record<string, unknown>; model: { name: string | null; pinned: boolean };
   threadMode: 'new' | 'standing' | 'existing' | 'private'; existingThreadId: string | null; standingThreadId: string | null;
-  machineSize: string; maxRunsPerDay: number | null; driveScope: Record<string, unknown>; state: 'active' | 'paused' | 'deleted'; webhookUrl: string | null; webhookToken?: string; createdAt: string; updatedAt: string;
+  machineSize: string; maxRunsPerDay: number | null; driveScope: Record<string, unknown>; state: 'active' | 'paused' | 'deleted'; stateChangedAt: string; webhookUrl: string | null; webhookToken?: string; createdAt: string; updatedAt: string;
 }
 export interface AutomationRun {
   id: string; automationId: string; triggerType: TriggerType; triggerKey: string; status: 'queued' | 'running' | 'completed' | 'skipped' | 'duplicate' | 'failed' | 'cancelled';
@@ -71,9 +71,12 @@ function cronJob(expr: string, timezone: string): Cron {
 function validateCron(expr: string, timezone: string): void {
   cronMatches(expr, timezone, new Date());
   const job = cronJob(expr, timezone);
-  const first = job.nextRun(new Date());
-  const second = first ? job.nextRun(first) : null;
-  if (first && second && second.getTime() - first.getTime() < 5 * 60_000) throw new ApiFailure('ValidationFailed', 'schedule frequency floor is 5 minutes');
+  let at = job.nextRun(new Date());
+  for (let i = 0; at && i < 20; i++) {
+    const next = job.nextRun(at);
+    if (next && next.getTime() - at.getTime() < 5 * 60_000) throw new ApiFailure('ValidationFailed', 'schedule frequency floor is 5 minutes');
+    at = next;
+  }
 }
 function valueMatch(rule: unknown, actual: unknown): boolean {
   if (Array.isArray(rule)) return rule.some((x) => valueMatch(x, actual));
@@ -113,7 +116,7 @@ const toAutomation = (r: Row, token?: string): Automation => ({
   triggers: r.triggers as AutomationTrigger[], conditions: (r.conditions ?? {}) as Record<string, unknown>, runWhen: r.run_when as string | null,
   gateModel: r.gate_model as Record<string, unknown>, model: r.model as Automation['model'], threadMode: r.thread_mode as Automation['threadMode'],
   existingThreadId: r.existing_thread_id as string | null, standingThreadId: r.standing_thread_id as string | null,
-  machineSize: String(r.machine_size ?? 'small'), maxRunsPerDay: r.max_runs_per_day == null ? null : Number(r.max_runs_per_day), driveScope: (r.drive_scope ?? {}) as Record<string, unknown>, state: r.state as Automation['state'], webhookUrl: r.webhook_hash ? `/api/v1/automation-webhooks/${token ?? '<token>'}` : null,
+  machineSize: String(r.machine_size ?? 'small'), maxRunsPerDay: r.max_runs_per_day == null ? null : Number(r.max_runs_per_day), driveScope: (r.drive_scope ?? {}) as Record<string, unknown>, state: r.state as Automation['state'], stateChangedAt: iso(r.state_changed_at ?? r.created_at), webhookUrl: r.webhook_hash ? `/api/v1/automation-webhooks/${token ?? '<token>'}` : null,
   ...(token ? { webhookToken: token } : {}), createdAt: iso(r.created_at), updatedAt: iso(r.updated_at)
 });
 const toRun = (r: Row): AutomationRun => ({ id: String(r.id), automationId: String(r.automation_id), triggerType: r.trigger_type as TriggerType, triggerKey: String(r.trigger_key), status: r.status as AutomationRun['status'], threadId: r.thread_id as string | null, payload: (r.payload ?? {}) as Record<string, unknown>, skipReason: r.skip_reason as string | null, createdAt: iso(r.created_at) });
@@ -241,8 +244,7 @@ export class AutomationStore {
       throw e;
     } finally { client.release(); }
     if (!r) throw new ApiFailure('Internal', 'automation run could not be inserted');
-    try {
-      if (this.deps.startRun) {
+    if (this.deps.startRun) {
         try {
           const inboxItemId = await this.deps.startRun({ threadId: threadId!, prompt: a.prompt, automationId: a.id, runId: rid });
           await this.q('UPDATE automation_runs SET dispatched_at=now(),dispatch_attempts=dispatch_attempts+1 WHERE id=$1', [rid]); if (inboxItemId) await this.q(`UPDATE automation_runs SET output=output||jsonb_build_object('inboxItemId',$2::text) WHERE id=$1`, [rid, inboxItemId]);
@@ -251,19 +253,50 @@ export class AutomationStore {
           throw err;
         }
       }
-      return toRun(r);
-    } catch (e) {
-      throw e;
-    }
+    return toRun(r);
   }
   private async recordSkipped(a: Automation, type: TriggerType, key: string, payload: Record<string, unknown>, idem: string | null, reason: string): Promise<AutomationRun> {
     const [r] = await this.q('INSERT INTO automation_runs (id,automation_id,trigger_type,trigger_key,idempotency_key,status,payload,skip_reason) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *', [id('arun'), a.id, type, key, idem, 'skipped', JSON.stringify(payload), reason]);
     return toRun(r);
   }
+  async update(userId: string, automationId: string, input: Record<string, unknown>): Promise<Automation> {
+    const existing = await this.getOwned(userId, automationId);
+    const vals: unknown[] = [automationId, userId]; const sets: string[] = [];
+    const set = (column: string, value: unknown) => { vals.push(value); sets.push(`${column}=$${vals.length}`); };
+    if (input.name !== undefined) { if (typeof input.name !== 'string' || !input.name.trim()) throw new ApiFailure('ValidationFailed', 'name is required'); set('name', input.name); }
+    if (input.prompt !== undefined) { if (typeof input.prompt !== 'string' || !input.prompt.trim()) throw new ApiFailure('ValidationFailed', 'prompt is required'); set('prompt', input.prompt); }
+    let mintedWebhookToken: string | undefined;
+    if (input.triggers !== undefined) {
+      const triggerInputs = triggerList(input.triggers);
+      const priorSchedules = new Map(existing.triggers.filter((t) => t.type === 'schedule').map((t) => [`${t.cron}:${t.timezone}`, t.since]));
+      const editTime = new Date().toISOString();
+      const triggers = triggerInputs.map((t) => {
+        if (t.type !== 'schedule') return t;
+        const key = `${t.cron}:${t.timezone}`;
+        const since = priorSchedules.has(key) ? priorSchedules.get(key) : editTime;
+        return since ? { ...t, since } : t;
+      });
+      const hasWebhook = triggers.some((t) => t.type === 'webhook');
+      set('triggers', JSON.stringify(triggers));
+      if (!hasWebhook) set('webhook_hash', null);
+      else if (!existing.triggers.some((t) => t.type === 'webhook') || !existing.webhookUrl) {
+        mintedWebhookToken = randomUUID() + randomUUID();
+        set('webhook_hash', sha256(mintedWebhookToken));
+      }
+    }
+    if (input.conditions !== undefined) { if (!input.conditions || typeof input.conditions !== 'object' || Array.isArray(input.conditions)) throw new ApiFailure('ValidationFailed', 'conditions must be an object'); set('conditions', JSON.stringify(input.conditions)); }
+    if (input.runWhen !== undefined) set('run_when', input.runWhen == null ? null : String(input.runWhen));
+    if (input.machineSize !== undefined) set('machine_size', String(input.machineSize));
+    if (input.maxRunsPerDay !== undefined) { const n = input.maxRunsPerDay == null ? null : Number(input.maxRunsPerDay); if (n != null && (!Number.isInteger(n) || n < 1)) throw new ApiFailure('ValidationFailed', 'maxRunsPerDay must be a positive integer'); set('max_runs_per_day', n); }
+    if (input.driveScope !== undefined) { if (!input.driveScope || typeof input.driveScope !== 'object' || Array.isArray(input.driveScope)) throw new ApiFailure('ValidationFailed', 'driveScope must be an object'); set('drive_scope', JSON.stringify(input.driveScope)); }
+    if (!sets.length) return existing;
+    const [r] = await this.q(`UPDATE automations SET ${sets.join(',')},updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING *`, vals);
+    return toAutomation(r, mintedWebhookToken);
+  }
   async setState(userId: string, automationId: string, state: unknown): Promise<Automation> {
     if (!['active','paused','deleted'].includes(String(state))) throw new ApiFailure('ValidationFailed', 'state must be active, paused or deleted');
     if (!(await this.q('SELECT id FROM automations WHERE id=$1 AND owner_id=$2', [automationId, userId])).length) throw new ApiFailure('NotFound', 'automation not found');
-    const [r] = await this.q('UPDATE automations SET state=$3,deleted_at=CASE WHEN $3=$4 THEN now() ELSE NULL END,updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING *', [automationId, userId, String(state), 'deleted']);
+    const [r] = await this.q('UPDATE automations SET state=$3,deleted_at=CASE WHEN $3=$4 THEN now() ELSE NULL END,state_changed_at=now(),updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING *', [automationId, userId, String(state), 'deleted']);
     if (!r) throw new ApiFailure('NotFound', 'automation not found');
     return toAutomation(r);
   }
@@ -359,7 +392,7 @@ export class AutomationStore {
       for (const t of a.triggers.filter((x) => x.type === 'schedule')) {
         const key = `${t.cron}:${t.timezone}`;
         const [last] = await this.q("SELECT max(created_at) AS at FROM automation_runs WHERE automation_id=$1 AND trigger_type='schedule' AND trigger_key=$2", [a.id, key]);
-        const base = Math.max(new Date(a.createdAt).getTime(), last?.at ? new Date(last.at as string).getTime() : 0);
+        const base = Math.max(new Date(a.createdAt).getTime(), new Date(a.stateChangedAt).getTime(), t.since ? new Date(t.since).getTime() : 0, last?.at ? new Date(last.at as string).getTime() : 0);
         let latest: Date | null = null;
         const end = Math.floor(now.getTime() / 60_000) * 60_000;
         // Croner calculates the next occurrence directly, so even a months-old missed schedule is

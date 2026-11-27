@@ -134,7 +134,7 @@ it('CAPY-152/154/155/159/160/161/162/163/164/165/166/500: automation triggers, c
   const monthly = await store.create('usr_a', 'prj_auto', { name: 'Monthly', prompt: 'monthly', triggers: [{ type: 'schedule', cron: '0 0 1 * *', timezone: 'UTC' }], model: { pinned: false } });
   const firstThisMonth = Date.UTC(nowYearMonth().year, nowYearMonth().month, 1, 0, 0);
   const occurrence = new Date(firstThisMonth <= minute.getTime() - 60_000 ? firstThisMonth : Date.UTC(nowYearMonth().year, nowYearMonth().month - 1, 1, 0, 0));
-  await pool.query('UPDATE automations SET created_at=$2 WHERE id=$1', [monthly.id, new Date(occurrence.getTime() - 40 * 24 * 60 * 60_000)]);
+  await pool.query('UPDATE automations SET created_at=$2,state_changed_at=$2 WHERE id=$1', [monthly.id, new Date(occurrence.getTime() - 40 * 24 * 60 * 60_000)]);
   const missed = (await store.dueSchedules(minute)).filter((x) => x.automationId === monthly.id);
   expect(missed[0]).toMatchObject({ status: 'queued' }); expect((missed[0].payload.at as string)).toBe(occurrence.toISOString());
 }, 30_000);
