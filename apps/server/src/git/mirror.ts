@@ -24,7 +24,7 @@ async function serialized<T>(key: string, fn: () => Promise<T>): Promise<T> {
   locks.set(key, next.catch(() => undefined));
   return next;
 }
-function isGitHubRemote(fullName: string): boolean {
+export function isGitHubRemote(fullName: string): boolean {
   if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(fullName)) return true;
   try { const u=new URL(fullName); return u.protocol==='https:' && u.hostname.toLowerCase()==='github.com'; } catch { return false; }
 }

@@ -170,4 +170,20 @@ describe('projects (phase2-29)', () => {
     expect(priv.visibility).toBe('private');
     expect((await app.request(`http://local/api/v1/projects/${team.body.id}`, as('usr_b'))).status).toBe(404);
   });
+  it('CAPY-181: only admins may use the server GitHub token for suggestions, GitHub sources and clones', async () => {
+    process.env.GITHUB_TOKEN = 'fixture-token-not-real';
+    try {
+      expect(await (await app.request('http://local/api/v1/projects/suggestions', as('usr_b'))).json()).toEqual([]);
+      expect((await create({ name: 'Peek', source: { kind: 'github', fullName: 'acme/private' } }, 'usr_b')).status).toBe(403);
+      expect((await create({ name: 'Peek', source: { kind: 'git-url', url: 'https://github.com/acme/private.git' } }, 'usr_b')).status).toBe(403);
+      expect((await create({ name: 'Peek', repo: { fullName: 'acme/private', baseBranch: 'main' } }, 'usr_b')).status).toBe(403);
+      expect((await create({ name: 'Peek', source: { kind: 'empty' }, lazy: [{ kind: 'github', fullName: 'acme/private' }] }, 'usr_b')).status).toBe(403);
+      expect((await create({ name: 'Mine', source: { kind: 'folder', path: fixtures.docs } }, 'usr_b')).status).toBe(201);
+      const ops = await create({ name: 'Ops', source: { kind: 'empty' }, lazy: [{ kind: 'github', fullName: 'acme/api' }] });
+      expect(ops.status).toBe(201);
+      await pool.query(`UPDATE users SET role='member' WHERE id='usr_a'`);
+      expect((await app.request(`http://local/api/v1/projects/${ops.body.id}/repos/${ops.body.repos[0].id}/clone`, json({}))).status).toBe(403);
+    } finally { delete process.env.GITHUB_TOKEN; await pool.query(`UPDATE users SET role='admin' WHERE id='usr_a'`); }
+    expect((await create({ name: 'Public', source: { kind: 'github', fullName: 'acme/api' } }, 'usr_b')).status).toBe(201);
+  });
 });

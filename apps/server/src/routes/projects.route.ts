@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { randomBytes } from 'node:crypto';
 import pg from 'pg';
-import { ensureMirror, mirrorDefaultBranch, remoteAllowed, type GitProject } from '../git/mirror.js';
+import { ensureMirror, isGitHubRemote, mirrorDefaultBranch, remoteAllowed, type GitProject } from '../git/mirror.js';
 import { describeMirror, hasBranch } from '../projects/describe.js';
 import type { Project, ProjectRepoRole, ProjectRepository, ProjectSource, ProjectVisibility, RepoSuggestion } from '../projects/types.js';
 
@@ -11,7 +11,7 @@ export type ProjectsDeps = {
   mirror?: (project: GitProject, root: string) => Promise<string>;
   recentRepos?: (userId: string) => Promise<RepoSuggestion[]>;
 };
-class Invalid extends Error { constructor(message: string, readonly status: 400 | 404 | 409 = 400) { super(message); } }
+class Invalid extends Error { constructor(message: string, readonly status: 400 | 403 | 404 | 409 = 400) { super(message); } }
 
 function camel(row: Row): Row { return Object.fromEntries(Object.entries(row).map(([k,v]) => [k.replace(/_([a-z])/g, (_,x) => x.toUpperCase()), v])); }
 function view(row: Row): Project { const { threadSeq: _seq, ...rest } = camel(row); return rest as unknown as Project; }
@@ -84,6 +84,11 @@ export function createProjectsRoute(pool = new pg.Pool({ connectionString: proce
   };
   const visible = async (id: string, user: string) => (await pool.query("SELECT * FROM projects WHERE id=$1 AND (owner_id=$2 OR visibility='shared')", [id, user])).rows[0] as Row | undefined;
   const owned = async (id: string, user: string) => (await pool.query('SELECT * FROM projects WHERE id=$1 AND owner_id=$2', [id, user])).rows[0] as Row | undefined;
+  const isAdmin = async (user: string) => Boolean((await pool.query("SELECT 1 FROM users WHERE id=$1 AND role='admin'", [user])).rows[0]);
+  const serverToken = (r: ProjectRepository) => Boolean(process.env.GITHUB_TOKEN) && r.provider !== 'local' && isGitHubRemote(r.fullName);
+  async function assertTokenAccess(user: string, repos: ProjectRepository[]): Promise<void> {
+    if (repos.some(serverToken) && !(await isAdmin(user))) throw new Invalid('GitHub repositories use the server GitHub token; only admins can add or clone them until per-user GitHub access lands', 403);
+  }
   async function freeCode(name: string): Promise<string> {
     const base = codeBase(name);
     for (let i = 0; i < 100; i++) {
@@ -106,6 +111,7 @@ export function createProjectsRoute(pool = new pg.Pool({ connectionString: proce
     return c.json(rows.rows.map(view));
   });
   app.get('/suggestions', async (c) => {
+    if (process.env.GITHUB_TOKEN && !(await isAdmin(userId(c)))) return c.json([]);
     const taken = new Set((await pool.query("SELECT r->>'fullName' AS name FROM projects, jsonb_array_elements(repos) r WHERE owner_id=$1 AND r->>'provider'='github'", [userId(c)])).rows.map((r) => r.name as string));
     const repos = (await recentRepos(userId(c)).catch(() => [])).filter((r) => !taken.has(r.fullName));
     return c.json(repos.sort((a, b) => b.pushedAt.localeCompare(a.pushedAt)).slice(0, 10));
@@ -118,6 +124,7 @@ export function createProjectsRoute(pool = new pg.Pool({ connectionString: proce
       const primary = source ? (source.kind === 'empty' ? null : repoFrom(source, 'primary')) : body.repo?.fullName ? { ...repoFrom({ kind: 'github', fullName: body.repo.fullName, baseBranch: body.repo.baseBranch }, 'primary'), id: 'rep_primary' } : null;
       if (body.lazy !== undefined && (!Array.isArray(body.lazy) || body.lazy.length > 20)) throw new Invalid('lazy must be a list of at most 20 sources');
       const repos = [...(primary ? [primary] : []), ...((body.lazy ?? []) as ProjectSource[]).map((s) => repoFrom(s, 'lazy'))];
+      await assertTokenAccess(userId(c), repos);
       const trust = body.trust === 'trusted' ? (body.confirm === 'private-and-mine' ? 'trusted' : null) : 'untrusted';
       if (!trust) throw new Invalid('trusted requires confirm: private-and-mine');
       const code = body.code === undefined ? await freeCode(body.name) : codeOf(body.code);
@@ -147,6 +154,7 @@ export function createProjectsRoute(pool = new pg.Pool({ connectionString: proce
     const repo = (row?.repos as ProjectRepository[] | undefined)?.find((r) => r.id === c.req.param('repoId'));
     if (!row || !repo) return c.json({ error: 'not found' }, 404);
     if (repo.machineId) return c.json({ error: `repository lives on machine ${repo.machineId}; that machine's runner clones it` }, 409);
+    try { await assertTokenAccess(userId(c), [repo]); } catch (err) { return fail(c, err); }
     try { return c.json(await materialize(row, repo)); } catch { return c.json({ error: 'clone failed' }, 502); }
   });
   return { basePath: '/api/v1/projects', app, public: false };
