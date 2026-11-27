@@ -28,10 +28,16 @@ function isGitHubRemote(fullName: string): boolean {
   if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(fullName)) return true;
   try { const u=new URL(fullName); return u.protocol==='https:' && u.hostname.toLowerCase()==='github.com'; } catch { return false; }
 }
+function isAllowedGitHost(fullName: string): boolean {
+  const hosts = (process.env.FLOTILLA_GIT_HOSTS ?? '').split(',').map((h) => h.trim().toLowerCase()).filter(Boolean);
+  try { const u = new URL(fullName); return u.protocol === 'https:' && !u.username && !u.password && hosts.includes(u.hostname.toLowerCase()); } catch { return false; }
+}
+export function remoteAllowed(fullName: string): boolean {
+  if (isGitHubRemote(fullName) || isAllowedGitHost(fullName)) return true;
+  return process.env.FLOTILLA_ALLOW_LOCAL_GIT_REMOTES === '1' && (fullName.startsWith('/') || fullName.startsWith('file:'));
+}
 function assertRemoteAllowed(fullName: string): void {
-  if (isGitHubRemote(fullName)) return;
-  if (process.env.FLOTILLA_ALLOW_LOCAL_GIT_REMOTES === '1' && (fullName.startsWith('/') || fullName.startsWith('file:'))) return;
-  throw new KernelDenied('scope', 'project remotes must be canonical GitHub repositories');
+  if (!remoteAllowed(fullName)) throw new KernelDenied('scope', 'project remotes must be GitHub repositories or FLOTILLA_GIT_HOSTS https URLs');
 }
 function envWithToken(project: GitProject): NodeJS.ProcessEnv {
   if (!project.token || !isGitHubRemote(project.repo.fullName)) return { ...process.env, GIT_CONFIG_NOSYSTEM: '1' };
@@ -42,6 +48,7 @@ async function git(args: string[], opts: { cwd?: string; env?: NodeJS.ProcessEnv
 }
 export function mirrorPath(root: string, project: GitProject): string { return join(root, `${project.id}.git`); }
 export async function ensureMirror(project: GitProject, root = '/data/mirrors'): Promise<string> {
+  if (!project.repo) throw new KernelDenied('scope', 'project has no repository');
   const path = mirrorPath(root, project);
   const env = envWithToken(project);
   const raw = project.repo.fullName;

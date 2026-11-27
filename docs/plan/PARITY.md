@@ -180,12 +180,12 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-174 | Automations | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-175 | Automations | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-176 | Projects | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-177 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-178 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-179 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-180 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-181 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-182 | Projects | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-177 | Projects | P2 | done | phase2-29 | https://github.com/flotilla-ai/flotilla/pull/TBD | `source:{kind:"empty"}` creates a project with `repo:null, repos:[]`; its threads still get project codes; `ensureMirror` refuses with `scope: project has no repository`. Test: `apps/server/src/projects/projects.test.ts`; UI `apps/web/e2e/projects.spec.ts`. |
+| CAPY-178 | Projects | P2 | done | phase2-29 | https://github.com/flotilla-ai/flotilla/pull/TBD | `repos[]` with `role` primary|lazy; the primary is mirrored at creation (mirror id = project id, seeded by the runner); lazy repos are mirrored only on `POST /projects/:id/repos/:repoId/clone`. Test: `apps/server/src/projects/projects.test.ts`; UI `apps/web/e2e/projects.spec.ts`. |
+| CAPY-179 | Projects | P2 | done | phase2-29 | https://github.com/flotilla-ai/flotilla/pull/TBD | `describeRepo` builds one sentence from package.json/Cargo.toml/pyproject.toml description, else the first README prose sentence (<=160 chars); stored on the repo when mirrored. Test: `apps/server/src/projects/projects.test.ts`; UI `apps/web/e2e/projects.spec.ts`. |
+| CAPY-180 | Projects | P2 | done | phase2-29 | https://github.com/flotilla-ai/flotilla/pull/TBD | `name`, emoji `icon`, unique uppercase `code` (2-6, derived from name if absent); a `threads` BEFORE INSERT trigger numbers project threads `CODE-n`. Test: `apps/server/src/projects/projects.test.ts`; UI `apps/web/e2e/projects.spec.ts`. |
+| CAPY-181 | Projects | P2 | needs-human-login | phase2-29 | https://github.com/flotilla-ai/flotilla/pull/TBD | Sources `github|git-url|folder|empty` (+ `lazy[]`) and `GET /projects/suggestions` proven with local git fixtures and a fixture GitHub list. Live `GET /user/repos?sort=pushed`, live github.com/other-host clones and device-folder clones (phase2-15 runner) unproven; operator command in `docs/runlog/phase2-29.md`. Test: `apps/server/src/projects/projects.test.ts`; UI `apps/web/e2e/projects.spec.ts`. |
+| CAPY-182 | Projects | P2 | done | phase2-29 | https://github.com/flotilla-ai/flotilla/pull/TBD | `visibility` private (default) | shared; private projects are hidden (404) from other users, shared ones are listed/readable by all users, only the owner can edit or clone. Test: `apps/server/src/projects/projects.test.ts`; UI `apps/web/e2e/projects.spec.ts`. |
 | CAPY-183 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-184 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-185 | Environment & snapshots | P2 | pending |  |  | Awaiting phase P2 unit. |

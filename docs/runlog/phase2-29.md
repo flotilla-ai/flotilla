@@ -1,0 +1,144 @@
+# phase2-29 projects
+
+Branch `flotilla/phase2-29-projects` from `origin/flotilla/p1` `505d663`. Local git fixture repos, a fixture GitHub repo list, a temporary Postgres 16 container, and the web UI with a Playwright-mocked API. No vendor calls, logins or network clones.
+
+## Rows
+- CAPY-177, CAPY-178, CAPY-179, CAPY-180, CAPY-182: `done` (pending merge).
+- CAPY-181: `needs-human-login`. The live GitHub list and live remote clones are unproven (see below).
+
+## Changes
+- `apps/server/src/projects/types.ts`: `Project`, `ProjectRepository` (`role` primary|lazy, `provider` github|git|local), `ProjectIdentity`, `ProjectVisibility`, `ProjectSource`, `RepoSuggestion`.
+- `apps/server/src/db/migrations/0014_projects.sql`: `projects.repo` nullable; adds `repos`, `source`, `icon`, `code` (unique, `^[A-Z][A-Z0-9]{1,5}$`), `visibility`, `thread_seq`; backfills code and `repos` for existing rows; a `threads` BEFORE INSERT trigger sets `code = <project code>-<n>`.
+- `apps/server/src/routes/projects.route.ts` (extended, same table and routes): `POST /projects {name, source, lazy?, icon?, code?, visibility?}` (the legacy `repo` body still works), `GET /projects/suggestions`, `POST /projects/:id/repos/:repoId/clone`, PATCH name/icon/code/visibility, and list/get show the caller's projects plus shared ones.
+- `apps/server/src/projects/describe.ts`: `describeRepo` / `describeMirror` (one sentence from manifests or README, read from the server-owned bare mirror with `git show`).
+- `apps/server/src/git/mirror.ts`: `remoteAllowed` accepts https hosts listed in `FLOTILLA_GIT_HOSTS` (no credentials in the URL; the GitHub token is still sent only to GitHub). `ensureMirror` refuses repoless projects.
+- `apps/web/src/features/projects/index.tsx` + `apps/web/e2e/projects.spec.ts`: create from GitHub/Git URL/folder (+machine)/empty; icon, code, shared toggle; recently pushed list; repos with role/description and a Clone button for lazy repos.
+
+## Red first
+`npx vitest run src/projects/projects.test.ts` with the old route and a stub `describeRepo` that returns null:
+```
+   × describeRepo (CAPY-179) > prefers manifest descriptions, then the first README sentence, as one sentence 8ms
+     → expected null to be 'HTTP API for the Acme storefront.' // Object.is equality
+   × projects (phase2-29) > CAPY-177: creates a repoless project; its threads get project codes and the mirror refuses to clone 11ms
+     → expected 400 to be 201 // Object.is equality
+   × projects (phase2-29) > CAPY-180: name, emoji icon and uppercase code; threads are numbered per project 6ms
+     → expected { error: 'name and repo required' } to match object { name: 'Web App', icon: '🚀', …(1) }
+   × projects (phase2-29) > CAPY-178/179/181: primary repo mirrors and is described at creation; lazy repos clone on demand 2ms
+     → expected 400 to be 201 // Object.is equality
+   × projects (phase2-29) > CAPY-181: validates GitHub, git URL and folder sources and suggests recently pushed repos 4ms
+     → expected 400 to be 201 // Object.is equality
+   × projects (phase2-29) > CAPY-182: projects are private by default; shared projects are visible but only the owner edits 1ms
+     → expected undefined to be 'private' // Object.is equality
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  6 failed (6)
+```
+
+## Focused (after)
+```
+ ✓ src/projects/projects-read.test.ts (2 tests) 1656ms
+ ✓ src/projects/projects.test.ts (6 tests) 2277ms
+ Test Files  2 passed (2)
+      Tests  8 passed (8)
+```
+`pnpm --filter @flotilla/web exec playwright test e2e/projects.spec.ts`:
+```
+  ✓  1 e2e/projects.spec.ts:3:1 › CAPY-177..182 create from sources, identity, private/shared, lazy clone and suggestions (950ms)
+  1 passed (2.6s)
+```
+The existing `e2e/features.spec.ts` (which includes project trust confirmation) still passes: 4 passed.
+
+## Done signal: `pnpm --filter @flotilla/server test`
+```
+ ✓ src/api-platform/api-platform.test.ts (9 tests) 2292ms
+ ✓ src/thread-api/thread-api.test.ts (8 tests) 2377ms
+ ✓ src/projects/projects.test.ts (6 tests) 2333ms
+ ✓ src/machines/machines.test.ts (12 tests | 1 skipped) 9ms
+ ✓ src/models-catalog/models-catalog.test.ts (8 tests) 2528ms
+ ✓ src/git/mirror.test.ts (4 tests) 621ms
+ ✓ src/thread-lifecycle/thread-lifecycle.test.ts (11 tests) 3303ms
+ ✓ src/secrets/secrets.test.ts (10 tests) 3408ms
+ ✓ src/github/github.test.ts (5 tests) 40ms
+ ✓ src/captain/tools/captain-tools.test.ts (2 tests) 38ms
+ ✓ src/loader.test.ts (3 tests) 38ms
+ ✓ src/previews/previews.test.ts (1 test) 5ms
+ ✓ src/captain/scheduler/scheduler.test.ts (2 tests) 1837ms
+ ✓ src/events/store.test.ts (6 tests) 2141ms
+ ✓ src/gateClient/gateClient.test.ts (1 test) 4ms
+ ✓ src/runner/runner.test.ts (4 tests) 2510ms
+ ✓ src/projects/projects-read.test.ts (2 tests) 1985ms
+ ✓ src/auth/auth.test.ts (2 tests) 1986ms
+ ✓ src/runner/runner-queue.test.ts (12 tests) 5604ms
+ Test Files  19 passed (19)
+      Tests  107 passed | 1 skipped (108)
+exit=0
+```
+
+## `make check`
+```
+apps/web typecheck: Done
+apps/server typecheck: Done
+apps/web test:  RUN  v3.2.7 /home/ubuntu/repos/flotilla/apps/web
+apps/web test:  ✓ src/features/thread-lifecycle/selection.test.ts (2 tests) 4ms
+apps/web test:  Test Files  1 passed (1)
+apps/web test:       Tests  2 passed (2)
+apps/web test:    Start at  11:29:17
+apps/web test:    Duration  369ms (transform 63ms, setup 0ms, collect 40ms, tests 4ms, environment 0ms, prepare 95ms)
+apps/server test:  RUN  v3.2.7 /home/ubuntu/repos/flotilla/apps/server
+apps/server test:  ✓ src/thread-api/thread-api.test.ts (8 tests) 2509ms
+apps/server test:  ✓ src/projects/projects.test.ts (6 tests) 2535ms
+apps/server test:  ✓ src/runner/runner.test.ts (4 tests) 2533ms
+apps/server test:  ✓ src/models-catalog/models-catalog.test.ts (8 tests) 2580ms
+apps/server test:  ✓ src/thread-lifecycle/thread-lifecycle.test.ts (11 tests) 3478ms
+apps/server test:    ✓ thread lifecycle > CAPY-017: rename, regenerate with org+personal instructions (<=50 chars), regenerate-when setting  708ms
+apps/server test:  ✓ src/secrets/secrets.test.ts (10 tests) 3587ms
+apps/server test:    ✓ secrets vault > vault failures fail closed: a failed thread-env write leaves no thread; an unreadable vault fails the thread without a run or retry loop  437ms
+apps/server test:    ✓ secrets vault > CAPY-385: a failed secrets-file copy fails machine preparation before the agent starts  431ms
+apps/server test:  ✓ src/git/mirror.test.ts (4 tests) 666ms
+apps/server test:  ✓ src/projects/projects-read.test.ts (2 tests) 1857ms
+apps/server test:  ✓ src/auth/auth.test.ts (2 tests) 2033ms
+apps/server test:  ✓ src/api-platform/api-platform.test.ts (9 tests) 2318ms
+apps/server test:  ✓ src/events/store.test.ts (6 tests) 2215ms
+apps/server test:  ✓ src/github/github.test.ts (5 tests) 37ms
+apps/server test:  ✓ src/captain/tools/captain-tools.test.ts (2 tests) 115ms
+apps/server test:  ✓ src/previews/previews.test.ts (1 test) 3ms
+apps/server test:  ✓ src/gateClient/gateClient.test.ts (1 test) 4ms
+apps/server test:  ✓ src/loader.test.ts (3 tests) 69ms
+apps/server test:  ✓ src/machines/machines.test.ts (12 tests | 1 skipped) 8ms
+apps/server test:  ✓ src/captain/scheduler/scheduler.test.ts (2 tests) 1779ms
+apps/server test:  ✓ src/runner/runner-queue.test.ts (12 tests) 5864ms
+apps/server test:    ✓ runner queue > CAPY-004: steer reaches a steer-capable agent mid-turn; without the capability it falls back to the queue  558ms
+apps/server test:    ✓ runner queue > CAPY-009/468/603/604: queued messages fold behind a count, can be edited, discarded back to the composer, or sent now  477ms
+apps/server test:    ✓ runner queue > CAPY-465: /plan explores first, holds changes and further messages until the plan is approved  759ms
+apps/server test:    ✓ runner queue > CAPY-467: a message sent while its file uploads waits durably and goes out after upload, even after a restart  544ms
+apps/server test:    ✓ runner queue > CAPY-469: a provider error is classified and Retry re-sends the last message, optionally on another model  360ms
+apps/server test:  Test Files  19 passed (19)
+apps/server test:       Tests  107 passed | 1 skipped (108)
+apps/server test:    Start at  11:29:19
+apps/server test:    Duration  6.89s (transform 1.11s, setup 0ms, collect 3.39s, tests 34.19s, environment 4ms, prepare 1.88s)
+apps/web lint: Done
+apps/server lint: Done
+exit=0
+```
+
+## needs-human-login (CAPY-181)
+Run these with a real token on a running stack:
+```sh
+GITHUB_TOKEN=<token> docker compose up -d
+curl -fsS -b cookies.txt localhost:8080/api/v1/projects/suggestions            # recently pushed repos, newest first
+curl -fsS -b cookies.txt -H 'x-flotilla-csrf: <csrf>' -H 'content-type: application/json' \
+  -d '{"name":"Live","source":{"kind":"github","fullName":"<owner>/<repo>"}}' localhost:8080/api/v1/projects
+FLOTILLA_GIT_HOSTS=gitlab.com  # then create {"kind":"git-url","url":"https://gitlab.com/<group>/<repo>.git"}
+```
+Expected: suggestions list the account's repos by `pushed_at`. The project's primary repo shows `clonedAt` and a `description` within seconds.
+
+## Unverified
+- The default `recentRepos` (`GET https://api.github.com/user/repos?sort=pushed` with `GITHUB_TOKEN`) is not exercised. Tests inject a fixture list.
+- Live github.com and `FLOTILLA_GIT_HOSTS` https clones are not run. Only `file://` and absolute-path fixtures are cloned.
+- A folder on a paired device (`machineId` set) is stored, but cloning it returns 409 until the device runner (phase2-14/15) clones on that machine.
+- Repoless threads: the runner's existing `seedWorkspace(...).catch` and after-run hook `.catch` absorb the new `no repository` refusal (inferred from code; no runner test added).
+- In headless Chrome on this VM the emoji icon renders as a box (no emoji font). The DOM text is correct (`🛒 Shop`).
+
+## Escalations (out of scope, not fixed)
+- Teammates can see shared projects but cannot start threads in them, because `ThreadRunner.create` and Captain creation still require `projects.owner_id`. A P3 org/membership unit should decide this.
+- `apps/server/src/db/schema.ts` (Drizzle; not imported anywhere) does not list the new columns.
