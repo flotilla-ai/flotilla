@@ -164,3 +164,16 @@ EXIT=0
 ```
 
 CI run 1 on `855dadf` failed in the pre-existing `runner-queue.test.ts` CAPY-465 (`holder.starts.at(-1)` still held the previous test's `a2`; no subagent hooks are installed in that file). It passed 5/5 locally and on rerun.
+
+## Merge of `eba906f` (phase2-17)
+
+Real merge `3131388` (parents `60550f3`, `eba906f`). Conflicts in `PARITY.md` (kept phase2-17 rows CAPY-043..051 and phase2-18 rows CAPY-052..062), `PROGRESS.md` and `DECISIONS-LOG.md` (kept both units' entries). Row counts recounted from `PARITY.md`.
+
+```text
+$ make check
+apps/web test:  Test Files  5 passed (5)
+apps/web test:       Tests  15 passed (15)
+apps/server test:  Test Files  24 passed (24)
+apps/server test:       Tests  156 passed | 1 skipped (157)
+EXIT=0
+```
