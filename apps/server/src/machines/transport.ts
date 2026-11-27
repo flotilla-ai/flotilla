@@ -41,8 +41,8 @@ export class DockerExecTransport implements ProcessTransport {
   constructor(private readonly docker: Docker, private readonly containerId: string) {}
   spawn(argv: string[], opts: { cwd: string; env: Record<string, string> }): ProcessHandle {
     const id = randomBytes(8).toString('hex');
-    let resolveHandle!: (h: ProcessHandle) => void;
-    const promise = new Promise<ProcessHandle>((r) => { resolveHandle = r; });
+    let resolveHandle!: (h: ProcessHandle) => void; let rejectHandle!: (e: unknown) => void;
+    const promise = new Promise<ProcessHandle>((r, reject) => { resolveHandle = r; rejectHandle = reject; });
     void (async () => {
       const exec = await this.docker.getContainer(this.containerId).exec({
         Cmd: ['/opt/flotilla/bin/flotilla-exec', id, '--', ...argv], WorkingDir: opts.cwd,
@@ -51,12 +51,14 @@ export class DockerExecTransport implements ProcessTransport {
       const stream = await exec.start({ hijack: true, stdin: false });
       stream.end();
       resolveHandle(new DockerHandle(this.docker, this.containerId, id, exec, stream));
-    })();
+    })().catch(rejectHandle);
     const lazy = async <T>(fn: (h: ProcessHandle) => T): Promise<T> => fn(await promise);
+    const exit = lazy((h) => h.exit).then((x) => x);
+    void exit.catch(() => undefined);
     return {
       stdout: (async function* () { yield* (await promise).stdout; })(),
       stderr: (async function* () { yield* (await promise).stderr; })(),
-      exit: lazy((h) => h.exit).then((x) => x),
+      exit,
       signal: async (sig) => { await lazy((h) => h.signal(sig)); }
     };
   }
