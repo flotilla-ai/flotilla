@@ -1,6 +1,6 @@
 # phase2-32 instructions and rules
 
-Branch `flotilla/phase2-32-rules` from `origin/flotilla/p1` (`eba906f` merged after the first commit; real merge commit). Fake adapter + local-process transport, temporary Postgres 16 container, local repo fixture, mocked-API browser test. No vendor calls or logins.
+Branch `flotilla/phase2-32-rules` from `origin/flotilla/p1` (merged `eba906f`, then `6b5546a`; real merge commits). Fake adapter + local-process transport, temporary Postgres 16 container, local repo fixture, mocked-API browser test. No vendor calls or logins.
 
 ## Rows
 - done: CAPY-284, CAPY-285, CAPY-286, CAPY-287, CAPY-288, CAPY-289, CAPY-290, CAPY-291, CAPY-292, CAPY-293, CAPY-294 (notes in `docs/plan/PARITY.md`).
@@ -50,10 +50,11 @@ The browser spec was written before `features/rules/index.tsx`, but the Vite dev
   1 passed (1.7s)
 ```
 
-## `pnpm --filter @flotilla/server test` (after merging `origin/flotilla/p1`)
+## `pnpm --filter @flotilla/server test` (after merging `origin/flotilla/p1` `6b5546a`)
 ```
  Test Files  24 passed (24)
-      Tests  154 passed | 1 skipped (155)
+      Tests  155 passed | 1 skipped (156)
+EXIT 0
 ```
 
 ## `make check` (after merge)
@@ -62,9 +63,9 @@ apps/gate typecheck: Done
 packages/core typecheck: Done
 packages/adapters/host typecheck: Done
 packages/adapters/fake typecheck: Done
-packages/adapters/codex typecheck: Done
-packages/adapters/claude-code typecheck: Done
 apps/web typecheck: Done
+packages/adapters/claude-code typecheck: Done
+packages/adapters/codex typecheck: Done
 packages/adapters/generic-cli typecheck: Done
 apps/server typecheck: Done
 apps/gate test:  Test Files  2 passed (2)
@@ -73,26 +74,26 @@ packages/core test:  Test Files  6 passed (6)
 packages/core test:       Tests  15 passed (15)
 packages/adapters/host test:  Test Files  1 passed (1)
 packages/adapters/host test:       Tests  3 passed (3)
-apps/web test:  Test Files  5 passed (5)
-apps/web test:       Tests  15 passed (15)
-packages/adapters/codex test:  Test Files  1 passed (1)
-packages/adapters/codex test:       Tests  5 passed (5)
+apps/web test:  Test Files  6 passed (6)
+apps/web test:       Tests  16 passed (16)
 packages/adapters/claude-code test:  Test Files  1 passed (1)
 packages/adapters/claude-code test:       Tests  7 passed (7)
+packages/adapters/codex test:  Test Files  1 passed (1)
+packages/adapters/codex test:       Tests  5 passed (5)
 packages/adapters/generic-cli test:  Test Files  1 passed (1)
 packages/adapters/generic-cli test:       Tests  4 passed (4)
 packages/adapters/fake test:  Test Files  1 passed (1)
 packages/adapters/fake test:       Tests  3 passed (3)
 apps/server test:  Test Files  24 passed (24)
-apps/server test:       Tests  154 passed | 1 skipped (155)
-packages/core lint: Done
+apps/server test:       Tests  155 passed | 1 skipped (156)
 apps/gate lint: Done
+packages/core lint: Done
 apps/web lint: Done
 packages/adapters/host lint: Done
+packages/adapters/fake lint: Done
+packages/adapters/generic-cli lint: Done
 packages/adapters/claude-code lint: Done
 packages/adapters/codex lint: Done
-packages/adapters/generic-cli lint: Done
-packages/adapters/fake lint: Done
 apps/server lint: Done
 EXIT 0
 ```
