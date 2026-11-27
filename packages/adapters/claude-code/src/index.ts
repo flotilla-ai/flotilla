@@ -9,6 +9,7 @@ const usageOf = (u: Json | undefined, cumulative: boolean): AdapterEvent | null 
 
 export function argvFor(input: StartInput | ResumeInput): string[] {
   const argv = ['claude', '-p', input.prompt, '--output-format', 'stream-json', '--verbose'];
+  if (input.model) argv.push('--model', input.model);
   if (input.vendorBudget.maxMicroUsd !== null) argv.push('--max-budget-usd', (input.vendorBudget.maxMicroUsd / 1e6).toString());
   if (input.auth === 'api-key') argv.push('--bare');
   else argv.push('--strict-mcp-config', '--setting-sources', 'user');
@@ -80,7 +81,7 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     versionRange: 'unverified',
     transport: 'stdout-jsonl' as const,
     capabilities: { resume: true, cancel: true, steerMidTurn: false, nativeSubagents: true, vendorBudgetFlag: '--max-budget-usd', hardCapSupported: true, mcp: true, images: true, planMode: true, permissionModes: ['default', 'acceptEdits', 'plan', 'bypassPermissions'] },
-    auth: [{ kind: 'vendor-login' as const, command: ['claude', 'auth', 'login'] }, { kind: 'api-key' as const, envVar: 'ANTHROPIC_API_KEY' }],
+    auth: [{ kind: 'vendor-login' as const, command: ['claude', 'auth', 'login'] }, { kind: 'api-key' as const, envVar: 'ANTHROPIC_API_KEY', baseUrlEnvVar: 'ANTHROPIC_BASE_URL' }],
     costReporting: 'usd' as const,
     egressHosts: ['api.anthropic.com']
   };
