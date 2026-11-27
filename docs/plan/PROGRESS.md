@@ -1,7 +1,7 @@
 # Flotilla progress
 
 Current phase: phase 2, waves 3-6 continuing in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-Current `flotilla/p1` head before this PR: `2c2e643` (phase2-35 GitHub integration).
+Current `flotilla/p1` head before this PR: `4cacbff` (repair-17 progress).
 
 ## Row counts
 
