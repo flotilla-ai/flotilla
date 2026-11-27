@@ -5,7 +5,7 @@ Current `flotilla/p1` head before this PR: `ca5b8e5` (phase2-36 usage/billing AP
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` on this branch after merging Drive core, usage/billing API, and phase2-32 rules: done 164, pending 408, needs-human-login 17, n-a 22, blocked 28 (CAPY-277 remains blocked on BYOM copy).
+Counted in `docs/plan/PARITY.md` on this branch after merging phase2-32 rules and phase2-33 skills: done 171, pending 401, needs-human-login 17, n-a 22, blocked 28.
 
 ## Unit table
 
@@ -34,6 +34,7 @@ Counted in `docs/plan/PARITY.md` on this branch after merging Drive core, usage/
 | phase2-29-projects | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/42 | repoless/lazy projects, descriptions, codes, sources; CAPY-181 needs-human-login, CAPY-182 blocked |
 | repair-11-first-attachments | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/47 | first-prompt attachment plumbing and validation |
 | phase2-18-subagent-core | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/44 | subagent drafts, placement, modes, budget slice, parent wake; 9 rows done (052-060), 2 blocked (061 no paired-device driver, 062 no agent-callable tool for non-Captain threads); see `docs/runlog/phase2-18.md` |
+| phase2-33-skills | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/52 | skills discovery (built-in, repo `.agents`/`.claude`, Drive, plugin), mount into agent-native folders, `$`/`/`/`@`/words invocation + records, Not loaded / Replaced-by markers and web `#/skills`, copy-import; 7 rows done; see `docs/runlog/phase2-33.md` |
 | phase2-12-machine-core | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/48 | machine leases/sleep/wake under review |
 | phase2-11-snapshots | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/50 | snapshots under implementation/review |
 | phase2-30-drive-core | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/51 | Drive store, versions, quota, thread mount/write-back, failure cards, `/drive` page; 9 rows done, 1 blocked (CAPY-277 BYOM); see `docs/runlog/phase2-30.md` |
@@ -58,4 +59,4 @@ None as whole units. Row-level blocked items are recorded in `docs/plan/PARITY.m
 
 - phase2-36: machine cost uses runner type `pool` until phase2-12 machine core stamps sizes; no browser e2e for `/usage`; real vendor run-out detection (CAPY-333) still needs human login. See `docs/runlog/phase2-36.md`.
 
-See `docs/runlog/P1-EXIT.md` and phase-2 runlogs. Live vendor, GitHub, device, paired-machine and vendor-login behavior remains `needs-human-login` or unverified where marked.
+See `docs/runlog/P1-EXIT.md` and phase-2 runlogs (phase2-33: `docs/runlog/phase2-33.md`). Live vendor, GitHub, device, paired-machine and vendor-login behavior remains `needs-human-login` or unverified where marked.

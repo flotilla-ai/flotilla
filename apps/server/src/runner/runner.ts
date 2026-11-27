@@ -30,6 +30,10 @@ export function onAfterRun(fn:AfterRun):()=>void{afterRunHooks.push(fn);return()
 type BeforeRun=(input:{thread:Row;project:Row|null;runId:string;transport:ProcessTransport;containerId:string;driver:Driver})=>Promise<string|void>;
 const beforeRunHooks:BeforeRun[]=[];
 export function onBeforeRun(fn:BeforeRun):()=>void{beforeRunHooks.push(fn);return()=>{const i=beforeRunHooks.indexOf(fn);if(i>=0)beforeRunHooks.splice(i,1)}}
+type BeforePrompt=(input:{thread:Row;project:Row|null;runId:string;containerId:string;driver:Driver;transport:ProcessTransport;cwd:string;prompt:string;text:string})=>Promise<string>;
+const beforePromptHooks:BeforePrompt[]=[];
+/** Runs after the machine and workspace are ready, before the adapter starts; may rewrite the prompt. Failures are logged and skipped. */
+export function onBeforePrompt(fn:BeforePrompt):()=>void{beforePromptHooks.push(fn);return()=>{const i=beforePromptHooks.indexOf(fn);if(i>=0)beforePromptHooks.splice(i,1)}}
 /** Where a run executes: `workspaceFrom` mounts another thread's workspace read-only (no seeding); `baseBranch` replaces the project base. */
 export type RunPlacement = { workspaceFrom?: string; baseBranch?: string };
 type Placement=(thread:Row)=>Promise<RunPlacement|null>;
@@ -242,11 +246,13 @@ export class ThreadRunner {
     if (item?.plan && !thread.plan_mode) await this.pool.query('UPDATE threads SET plan_mode=true WHERE id=$1', [threadId]);
     const files = item?.attachments.length ? await this.copyAttachments(machine.containerId, item.attachments) : [];
     const notes: string[] = []; for (const hook of beforeRunHooks) { const note = await hook({ thread, project, runId, transport, containerId: machine.containerId, driver: this.deps.driver }).catch(() => undefined); if (note) notes.push(note); }
-    const prompt = item ? `${notes.length ? `${notes.join('\n\n')}\n\n` : ''}${planRun ? PLAN_PROMPT : ''}${item.text}${files.length ? `\n\nAttached files:\n${files.map((f) => `- ${f}`).join('\n')}` : ''}` : '';
+    let prompt = item ? `${notes.length ? `${notes.join('\n\n')}\n\n` : ''}${planRun ? PLAN_PROMPT : ''}${item.text}${files.length ? `\n\nAttached files:\n${files.map((f) => `- ${f}`).join('\n')}` : ''}` : '';
+    const cwd = project?.repo ? '/workspace/repo' : '/workspace';
+    for (const hook of beforePromptHooks) prompt = await hook({ thread, project, runId, containerId: machine.containerId, driver: this.deps.driver, transport, cwd, prompt, text: item?.text ?? '' }).catch((err) => { console.warn('before-prompt hook', (err as Error).message); return prompt; });
     const eng = thread.engine as { model?: string | null; effort?: string | null };
     this.live.set(threadId, { runId, adapter, sessionId: null });
     let stream: AsyncIterable<AdapterEvent>;
-    try { stream = adapter.start({ runId: runId as never, threadId: threadId as never, prompt, cwd: project?.repo ? '/workspace/repo' : '/workspace', env: prepared.env, transport, resumeSessionId: null, attachments: files, model: eng.model ?? null, effort: eng.effort ?? null, contextWindow: (thread.engine as Row).contextWindow ?? null, vendorBudget: { maxMicroUsd: policy.maxUsd }, auth: { kind: 'none' }, mcpConfigPath: runToken ? '/run/flotilla/mcp.json' : null, images: [] } as never); } catch (err) { tokenService?.endRun(runId); throw err; }
+    try { stream = adapter.start({ runId: runId as never, threadId: threadId as never, prompt, cwd, env: prepared.env, transport, resumeSessionId: null, attachments: files, model: eng.model ?? null, effort: eng.effort ?? null, contextWindow: (thread.engine as Row).contextWindow ?? null, vendorBudget: { maxMicroUsd: policy.maxUsd }, auth: { kind: 'none' }, mcpConfigPath: runToken ? '/run/flotilla/mcp.json' : null, images: [] } as never); } catch (err) { tokenService?.endRun(runId); throw err; }
     try {
       for await (const event of stream) {
         if (this.cancelled.has(threadId)) { state = 'cancelled'; await adapter.cancel(runId as never).catch(() => undefined); break; }
