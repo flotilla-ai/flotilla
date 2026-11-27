@@ -84,7 +84,9 @@ describe('wake router', () => {
     const w = await router.timer(t, 60, 'check deploy', now);
     expect(await router.sweep(new Date(now.getTime() + 30_000))).toEqual([]);
     expect(await router.sweep(new Date(now.getTime() + 61_000))).toEqual([w.id]);
-    expect((await messages(t)).at(-1)).toBe('Timer fired: check deploy'); await idle(t);
+    expect((await messages(t)).at(-1)).toBe('Timer fired: check deploy');
+    const initialRuns = (await pool.query('SELECT count(*)::int n FROM runs WHERE thread_id=$1', [t])).rows[0].n;
+    await waitFor('SELECT count(*)::int n FROM runs WHERE thread_id=$1', [t], initialRuns + 1); await idle(t);
     await pool.query('UPDATE threads SET archived_at=now() WHERE id=$1', [t]); const runs = (await pool.query('SELECT count(*)::int n FROM runs WHERE thread_id=$1', [t])).rows[0].n;
     await router.timer(t, 1, 'dormant', now); await router.sweep(new Date(now.getTime() + 5_000)); await sleep(200);
     expect((await pool.query('SELECT count(*)::int n FROM runs WHERE thread_id=$1', [t])).rows[0].n).toBe(runs);
