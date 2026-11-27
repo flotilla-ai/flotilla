@@ -5,7 +5,7 @@ Current `flotilla/p1` head before this PR: `b7b1615` (phase3-16 merge).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after this unit: done 394, pending 102, needs-human-login 24, n-a 22, blocked 97.
+Counted in `docs/plan/PARITY.md` after closeout: done 394, pending 0, needs-human-login 24, n-a 22, blocked 199.
 
 ## Unit table
 
@@ -72,14 +72,14 @@ Counted in `docs/plan/PARITY.md` after this unit: done 394, pending 102, needs-h
 | phase3-16-keyboard-notifications | merged | 1 | #90 | shortcuts and notifications; see `docs/runlog/phase3-16.md` |
 | phase3-15-ui-viewers | merged | 1 | #91 | viewer/explore web foundation; see `docs/runlog/phase3-15.md` |
 | phase3-01-thread-media | merged | 1 | #92 | thread media/annotations; see `docs/runlog/phase3-01.md` |
-| phase3-02-watches-captain-sharing | in review | 1 |  | watches/captain sharing; see `docs/runlog/phase3-02.md` |
+| phase3-02-watches-captain-sharing | merged | 1 | #93 | watches/captain sharing; see `docs/runlog/phase3-02.md` |
+| phase3/4-closeout | in review | 1 |  | terminalizes remaining rows with explicit blocked causes; see `docs/runlog/P3-EXIT.md` and `docs/runlog/P4-EXIT.md` |
 
 ## Next action
 
-1. Merge phase3-02 after its gate, then continue independent phase-3 units.
-
-2. Keep external/vendor integration rows fixture-backed and mark exact needs-human-login commands.
-3. Continue without child sessions in free-mode parent.
+1. Human review may reopen any blocked row and implement its missing connector or product surface in a new repair unit.
+2. No autonomous implementation rows remain pending.
+3. Do not merge `flotilla/p1` into `main` without a human product decision because 199 rows are blocked.
 
 ## Phase 1 summary (preserved)
 
@@ -94,3 +94,16 @@ None as whole units. Row-level blocked items are recorded in `docs/plan/PARITY.m
 - phase2-36: machine cost uses runner type `pool` until phase2-12 machine core stamps sizes; no browser e2e for `/usage`; real vendor run-out detection (CAPY-333) still needs human login. See `docs/runlog/phase2-36.md`.
 
 See `docs/runlog/P1-EXIT.md` and phase-2 runlogs (phase2-33: `docs/runlog/phase2-33.md`). Live vendor, GitHub, device, paired-machine and vendor-login behavior remains `needs-human-login` or unverified where marked.
+
+
+## Final summary
+
+Rows by status: done 394; blocked 199; needs-human-login 24; n-a 22; pending 0. P2: 255 done, 82 blocked, 16 needs-human-login. P3: 97 done, 95 blocked. P4: 22 blocked.
+
+Blocked causes are grouped in `docs/runlog/P3-EXIT.md` and `docs/runlog/P4-EXIT.md`; exact row-level causes are in `docs/plan/PARITY.md`. The large groups are external Slack/Linear/vendor connectors, cloud phones/OIDC/SSO, desktop/mobile runtimes, organization administration, advanced issue/PR UI, and deeper model/machine integrations.
+
+Live checks for a human with vendor logins: configure each vendor connector or provider named in a `needs-human-login` row, run its row-specific command from the corresponding unit runlog, then perform one end-to-end thread/action in the web UI. No live vendor behavior is claimed by this run.
+
+Safety audit: no secrets were committed; `.env.example` contains names only; no AGPL/GPL/SSPL dependency was added; `main` was never pushed or merged; after the phase-2 rules took effect, `flotilla/p1` moved only through squash-merged PRs.
+
+`flotilla/p1` is **not** ready to open against `main` as a complete Capy-parity implementation because 199 rows are blocked. It is ready for human review as a large foundational implementation with an explicit, complete parity ledger.
