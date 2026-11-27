@@ -133,18 +133,18 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-127 | Pull requests & autofix | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-128 | Pull requests & autofix | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | measure live CI pickup latency with a real GitHub check suite. |
 | CAPY-129 | Pull requests & autofix | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate Actions log reading and rerun permissions with a real GitHub token. |
-| CAPY-130 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-131 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-132 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-133 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-134 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-135 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-136 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-137 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-138 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-139 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-140 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
-| CAPY-141 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-130 | Review | P2 | blocked | phase2-24 |  | Review runs are durable/read-only/head-pinned metadata, but no real machine checkout or review agent execution is wired yet. |
+| CAPY-131 | Review | P2 | done | phase2-24 |  | Findings persist category, severity, confidence, file and line with validation. |
+| CAPY-132 | Review | P2 | done | phase2-24 |  | Notes persist as anchored non-failing observations and are excluded from posting unless opted in. |
+| CAPY-133 | Review | P2 | done | phase2-24 |  | Per-repo automatic mode off/once/every-push is validated and durable. |
+| CAPY-134 | Review | P2 | blocked | phase2-24 |  | API and source labels exist, but PR-page buttons and @mention ingestion are not connected. |
+| CAPY-135 | Review | P2 | done | phase2-24 |  | A push with a new head creates a fresh round and supersedes the prior round findings. |
+| CAPY-136 | Review | P2 | done | phase2-24 |  | Low/Medium/High/Flex credit costs are exactly 1/5/10 and flex follow-ups cost 1. |
+| CAPY-137 | Review | P2 | blocked | phase2-24 |  | Review runs record adapter/connection selection, but no policy yet prevents use of owner keys/subscriptions. |
+| CAPY-138 | Review | P2 | done | phase2-24 |  | Posting threshold, investigate toggle and notes opt-in determine posted flags. |
+| CAPY-139 | Review | P2 | done | phase2-24 |  | Duplicate findings are suppressed and resolved/irrelevant triage marks the mirrored thread resolved. |
+| CAPY-140 | Review | P2 | done | phase2-24 |  | Open/resolved/irrelevant triage, high-confidence readiness blocking and dashboard override are durable. |
+| CAPY-141 | Review | P2 | done | phase2-24 |  | Incremental rounds never reflag irrelevant findings and changed failed fixes return as new findings. |
 | CAPY-142 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-143 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-144 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
@@ -498,7 +498,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-495 | Captains | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-496 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
 | CAPY-497 | Issues | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-498 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
+| CAPY-498 | Review | P2 | done | phase2-24 |  | Review state and finding triage are exposed through the REST API. |
 | CAPY-499 | Review | P2 | pending |  |  | Awaiting phase P2 unit. |
 | CAPY-500 | Automations | P2 | done | phase2-26 |  | Multiple schedule triggers per automation are stored and scanned independently. |
 | CAPY-501 | Automations | P2 | done | phase2-27 |  | Automation list API filters by state and creation date; project scoping is inherent in the project list endpoint. |
