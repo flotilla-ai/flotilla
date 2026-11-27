@@ -55,6 +55,13 @@ Escalated: machine time is sampled every 10 s by the runner ticker, so a run sho
 
 Re-run: `npx vitest run src/usage-billing-api src/thread-lifecycle src/runner src/models-catalog` gave `Test Files 6 passed (6)` and `Tests 51 passed (51)`.
 
+## Base moved (round 2)
+Ran a real merge of `origin/flotilla/p1` at `2aefb24` (phase2-18 subagents) as merge `c9ee67f`. The `PROGRESS.md` conflict was resolved by keeping both notes and recounting the rows.
+
+Checks after the merge:
+- `make check` exited 0: apps/server `Test Files 25 passed (25)`, `Tests 164 passed | 1 skipped (165)`; apps/web `Tests 17 passed (17)`.
+- `pnpm -r lint` exited 0.
+
 ## Unverified
 - Runs shorter than the 10 s machine ticker get no machine cost (escalated to phase2-12).
 - Machine minutes are priced per runner type `pool` (the only type until phase2-12 machine core records sizes); no real machine sizes are metered here.
