@@ -307,19 +307,19 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-301 | Skills | P2 | done | phase2-33 | https://github.com/flotilla-ai/flotilla/pull/52 | `POST /skills/import {from: claude-code|cursor|skills-cli, files}` copies `…/skills/<folder>/…` or `<folder>/…` trees into Drive skills keeping supporting files and origin. Reading those folders from the user's own disk (CLI/upload picker) is not built. |
 | CAPY-302 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | Remote (Streamable HTTP) + STDIO registry; runner writes 0600 `/run/flotilla/mcp.json` and passes `mcpConfigPath` only when `capabilities.mcp`; live Claude `--mcp-config` load unverified. |
 | CAPY-303 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | Server `key` is the config key and tool prefix (`mcp__<key>__<tool>`); unique per owner, 409 on clash. |
-| CAPY-304 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-304 | MCP & plugins | P3 | done | phase3-07 |  |  Owner scope organization/user and all-project or one-project plugin rows resolve with user private override on key clash.  |
 | CAPY-305 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | none / encrypted API-key headers / OAuth with refresh 60 s before expiry; `${VAR}` headers resolve from thread env vars; local OAuth fixture. |
-| CAPY-306 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-306 | MCP & plugins | P3 | done | phase3-07 |  |  Per-member connection mode stores user-specific server credentials and marks private-threads-only plugins.  |
 | CAPY-307 | MCP & plugins | P2 | needs-human-login | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | BYO client id/secret + PKCE + redirect `${FLOTILLA_PUBLIC_URL}/api/v1/mcp/oauth/callback` proven against a local token fixture; real provider sign-in needs a login (runlog). |
 | CAPY-308 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | Agent proposal becomes a `kind=mcp` Review card (Approve/Decline); approve creates the server; web Review card on `#/mcp`. |
 | CAPY-309 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | Import Claude Code JSON, Codex TOML subset, URL, command line (`POST /mcp/import`). |
 | CAPY-310 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | Statuses, Test (config/auth/connect/initialize/tools) with failing step, 403 checklist; web row on `#/mcp`. STDIO connect checked on the thread machine only. |
 | CAPY-311 | MCP & plugins | P2 | done | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | Test/OAuth errors scrubbed of every configured value >=8 chars (exact, via core `scrubString`); MCP values also join run event scrubbing. |
 | CAPY-312 | MCP & plugins | P4 | pending |  |  | Awaiting phase P4 unit. |
-| CAPY-313 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-314 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-315 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-316 | MCP & plugins | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-313 | MCP & plugins | P3 | done | phase3-07 |  |  GitHub repo/folder plugins load plugin.json plus mcp.json and support manual Sync.  |
+| CAPY-314 | MCP & plugins | P3 | done | phase3-07 |  |  Install collects key values sealed in the vault; API exposes only key names and per-server connect state.  |
+| CAPY-315 | MCP & plugins | P3 | done | phase3-07 |  |  Sync applies safe updates, requires approval when scopes/keys widen, and rollback restores a prior revision.  |
+| CAPY-316 | MCP & plugins | P3 | done | phase3-07 |  |  Agent Plugins spec 1.0.0/1.1.0 manifests are validated and consumed.  |
 | CAPY-317 | MCP & plugins | P2 | blocked | phase2-34 | https://github.com/flotilla-ai/flotilla/pull/55 | Proposal API `POST /threads/:id/mcp/proposals` + in-thread card proven; no agent-callable tool path from the thread machine yet (same gap as environment tools). |
 | CAPY-318 | Models & connections | P2 | needs-human-login | phase2-03 | https://github.com/flotilla-ai/flotilla/pull/30 | catalog rows (adapter+model, list price, BYOK, ZDR) proven with built-in free + operator fixture file; real vendor rows/prices: operator fills FLOTILLA_MODEL_CATALOG. |
 | CAPY-319 | Models & connections | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate the real default vendor model list/configuration with vendor login. |
