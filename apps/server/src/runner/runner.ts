@@ -47,7 +47,7 @@ export class ThreadRunner {
   private adapterFor(thread: Row): AgentAdapter | undefined { return this.deps.adapters.get((thread.engine as Row).adapter as string); }
 
   private async owned(threadId: string, userId?: string): Promise<boolean> { if (!userId) return true; const t=await this.thread(threadId); return t?.owner_id===userId; }
-  async createThread(input: { ownerId: string; projectId?: string | null; title: string; prompt: string; engine?: Thread['engine']; maxUsd?: number | null; requestId?: string; env?: EnvVarMutation[]; parentId?: string }): Promise<Row> {
+  async createThread(input: { ownerId: string; projectId?: string | null; title: string; prompt: string; engine?: Thread['engine']; maxUsd?: number | null; requestId?: string; env?: EnvVarMutation[]; parentId?: string; attachments?: string[] }): Promise<Row> {
     if (input.requestId) {
       const prior = await this.pool.query(`SELECT e.thread_id FROM events e JOIN threads t ON t.id=e.thread_id WHERE e.request_id=$1 AND e.kind='thread.created' AND t.owner_id=$2 ORDER BY e.seq LIMIT 1`, [input.requestId, input.ownerId]);
       if (prior.rows[0]) { const row=(await this.pool.query('SELECT * FROM threads WHERE id=$1', [prior.rows[0].thread_id])).rows[0]; if(row?.owner_id!==input.ownerId) throw new Error('not found'); return row; }
@@ -61,7 +61,7 @@ export class ThreadRunner {
     const createSecrets = { ...this.deps.secrets, ...Object.fromEntries(env.flatMap((m) => m.op === 'set' ? [[m.name, m.value]] : [])) };
     await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'thread.created', source: 'kernel', trust: 'trusted', payload: scrub({ title: input.title }, createSecrets) }, { runId: null, kind: 'user.message', source: 'user', trust: 'trusted', payload: scrub({ text: input.prompt }, createSecrets) }] as never, { requestId: input.requestId });
     const cmd = parseCommand(input.prompt);
-    await this.inbox.add({ threadId, text: cmd.kind === 'plan' ? cmd.body : input.prompt, mode: 'queue', plan: cmd.kind === 'plan', by: input.ownerId, ownerId: input.ownerId });
+    await this.inbox.add({ threadId, text: cmd.kind === 'plan' ? cmd.body : input.prompt, mode: 'queue', plan: cmd.kind === 'plan', by: input.ownerId, ownerId: input.ownerId, attachments: input.attachments });
     this.kick(threadId);
     return row;
   }

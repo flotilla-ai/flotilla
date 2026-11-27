@@ -51,6 +51,13 @@ describe('thread runner',()=>{
     expect(b.id).not.toBe(a.id);
     await runner.stop(a.id as string,'usr_test'); await runner.stop(b.id as string,'usr_other');
   },20_000);
+  it('carries first-prompt attachment ids into the durable inbox',async()=>{
+    await pool.query(`INSERT INTO api_files (id,owner_id,name,content_type,size,upload_token_hash,upload_expires_at) VALUES ('file_first','usr_test','a.txt','text/plain',1,'',now())`);
+    const t=await runner.createThread({ownerId:'usr_test',title:'first attachments',prompt:'hello',requestId:'req-first-attachments',attachments:['file_first']});
+    const item=(await pool.query('SELECT attachments,state FROM thread_inbox WHERE thread_id=$1 ORDER BY created_at LIMIT 1',[t.id as string])).rows[0];
+    expect(item.attachments).toEqual(['file_first']); expect(item.state).toBe('waiting_upload');
+    await runner.stop(t.id as string,'usr_test');
+  },20_000);
   it('does not mutate another owner approval before the ownership check',async()=>{
     const t=await runner.createThread({ownerId:'usr_test',title:'approval-owner',prompt:'hello',maxUsd:1000,requestId:'req-approval-owner'});
     const rows=await waitFor(`SELECT * FROM approvals WHERE thread_id=$1 AND kind='budget' AND state='open'`,[t.id as string]);
