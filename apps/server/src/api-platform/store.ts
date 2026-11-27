@@ -67,12 +67,12 @@ export class ApiPlatformStore {
     return 0;
   }
 
-  async beginRequest(principalId: string, requestId: string, method: string, path: string, fingerprint = ''): Promise<Idempotency> {
+  async beginRequest(principalId: string, requestId: string, method: string, path: string, fingerprint = '', legacyFingerprint = ''): Promise<Idempotency> {
     await this.q(`DELETE FROM api_idempotency WHERE principal_id=$1 AND request_id=$2 AND (created_at < now() - interval '24 hours' OR (status IS NULL AND created_at < now() - interval '5 minutes'))`, [principalId, requestId]);
     if ((await this.q('INSERT INTO api_idempotency (principal_id,request_id,method,path,fingerprint) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING RETURNING 1', [principalId, requestId, method, path, fingerprint])).length) return { state: 'new' };
     const [row] = await this.q('SELECT method,path,fingerprint,status,body,content_type FROM api_idempotency WHERE principal_id=$1 AND request_id=$2', [principalId, requestId]);
     if (!row) return { state: 'pending' };
-    if (row.method !== method || row.path !== path || row.fingerprint !== fingerprint) return { state: 'conflict' };
+    if (row.method !== method || row.path !== path || (row.fingerprint !== fingerprint && row.fingerprint !== legacyFingerprint)) return { state: 'conflict' };
     if (row.status === null) return { state: 'pending' };
     return { state: 'replay', status: row.status, body: row.body, contentType: row.content_type };
   }
