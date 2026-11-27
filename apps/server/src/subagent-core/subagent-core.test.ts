@@ -135,7 +135,8 @@ describe('subagent core', () => {
   }, 20_000);
 
   it('CAPY-056: parallel subagents must claim disjoint paths; a stacked subagent branches from the previous sibling branch', async () => {
-    const root = await parent('plain', null, 'prj_s');
+    await pool.query(`INSERT INTO projects (id,owner_id,name,repo,trust,budget) VALUES ('prj_t','usr_s','stack','{"provider":"github","fullName":"/nonexistent/stack","baseBranch":"main"}','untrusted','{}')`);
+    const root = await parent('plain', null, 'prj_t');
     const one = (await call('POST', `/threads/${root}/subagents`, draft({ paths: ['src/api/'] }))).json;
     expect((await call('POST', `/threads/${root}/subagents`, draft({ paths: ['src/api/users.ts'] }))).status).toBe(409);
     expect((await call('POST', `/threads/${root}/subagents`, draft({ paths: ['src/web'] }))).status).toBe(201);
@@ -143,6 +144,10 @@ describe('subagent core', () => {
     expect(stacked.stackedOn).not.toBeNull();
     expect((await call('POST', `/subagents/${stacked.id}/start`)).status).toBe(409);
     await pool.query('UPDATE threads SET branch=$2 WHERE id=$1', [stacked.stackedOn, 'flotilla/FLO-PREV-web']);
+    expect((await call('POST', `/subagents/${stacked.id}/start`)).json.error).toMatch(/not published/);
+    const work = mkdtempSync(join(tmpdir(), 'flt-stack-'));
+    await exec('sh', ['-c', 'git init -q -b main && git -c user.email=t@x -c user.name=t commit -q --allow-empty -m base && git branch flotilla/FLO-PREV-web'], { cwd: work });
+    await exec('git', ['clone', '-q', '--bare', work, join(mirrors, 'prj_t.git')]);
     const bases: unknown[] = []; const off = onAfterRun(async ({ thread, project }) => { if (thread.id === stacked.id) bases.push((project?.repo as { baseBranch: string } | undefined)?.baseBranch); });
     expect((await call('POST', `/subagents/${stacked.id}/start`)).json.baseBranch).toBe('flotilla/FLO-PREV-web');
     await until(async () => bases.length, Boolean); off();

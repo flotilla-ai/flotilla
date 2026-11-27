@@ -78,6 +78,7 @@ export class SubagentStore {
     if (up && !up.started_at) throw new ApiFailure('Conflict', 'start the parent subagent first');
     const base = s.stacked_on ? (await this.pool.query('SELECT branch FROM threads WHERE id=$1', [s.stacked_on])).rows[0]?.branch as string | null : null;
     if (s.stacked_on && !base) throw new ApiFailure('Conflict', 'the previous subagent has no branch to stack on yet');
+    if (base && !(await this.published(s.project_id, base))) throw new ApiFailure('Conflict', 'the previous subagent has not published its branch yet');
     const claimed = await this.pool.query('UPDATE subagents SET started_at=now(), base_branch=$2 WHERE thread_id=$1 AND started_at IS NULL RETURNING 1', [id, base]);
     if (!claimed.rowCount) throw new ApiFailure('Conflict', 'subagent already started');
     const runner = this.deps.runner;
@@ -174,6 +175,12 @@ export class SubagentStore {
     const project = s.project_id ? (await this.pool.query('SELECT * FROM projects WHERE id=$1', [s.project_id])).rows[0] : null;
     if (!project || !s.branch) throw new ApiFailure('Conflict', 'subagent has no project branch');
     return { s, project };
+  }
+  private async published(projectId: string | null, branch: string): Promise<boolean> {
+    const project = projectId ? (await this.pool.query('SELECT * FROM projects WHERE id=$1', [projectId])).rows[0] : null;
+    if (!project) return false;
+    const mirror = mirrorPath(this.deps.mirrorRoot ?? '/data/mirrors', project as never);
+    return exec('git', ['--git-dir', mirror, 'rev-parse', '--verify', '--quiet', `refs/heads/${branch}`]).then(() => true, () => false);
   }
   private async row(id: string, userId: string): Promise<Row> {
     const s = (await this.pool.query(`${SELECT} WHERE s.thread_id=$1`, [id])).rows[0] as Row | undefined;
