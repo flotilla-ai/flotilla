@@ -18,7 +18,8 @@ beforeAll(async()=>{
   const port=(await exec('docker',['port',container,'5432/tcp'])).stdout.trim().split(':').pop(); const url=`postgres://postgres@127.0.0.1:${port}/postgres`;
   for(let i=0;i<40;i++){try{const c=new pg.Client({connectionString:url});await c.connect();await c.end();break}catch{await new Promise(r=>setTimeout(r,250))}}
   await migrate(url); const store=new EventStore(url); pool=store.pool; runner=new ThreadRunner({store,driver:driver as never,adapters:new Map([['fake',fakeAdapter]])});
-  await pool.query(`INSERT INTO users (id,email,role) VALUES ('usr_test','r@x','admin')`);
+  await pool.query(`INSERT INTO users (id,email,role) VALUES ('usr_test','r@x','admin') ON CONFLICT (id) DO NOTHING`);
+  await pool.query(`INSERT INTO users (id,email,role) VALUES ('usr_other','o@x','member') ON CONFLICT (id) DO NOTHING`);
 },30_000);
 afterAll(async()=>{await pool.end(); if(container)await exec('docker',['rm','-f',container]).catch(()=>undefined);});
 async function waitFor(sql:string,args:string[],n=1){for(let i=0;i<80;i++){const r=await pool.query(sql,args);if(r.rows.length>=n)return r.rows;await new Promise(r=>setTimeout(r,100));}return (await pool.query(sql,args)).rows;}
@@ -43,5 +44,21 @@ describe('thread runner',()=>{
     await waitFor(`SELECT * FROM runs WHERE thread_id=$1 AND state IN ('completed','paused_budget')`,[t.id as string],2);
     await runner.stop(t.id as string);
     expect((await pool.query('SELECT status FROM threads WHERE id=$1',[t.id as string])).rows[0].status).toBe('idle');
+  },20_000);
+  it('scopes requestId idempotency by owner',async()=>{
+    const a=await runner.createThread({ownerId:'usr_test',title:'a',prompt:'hello',requestId:'req-shared-owner'});
+    const b=await runner.createThread({ownerId:'usr_other',title:'b',prompt:'hello',requestId:'req-shared-owner'});
+    expect(b.id).not.toBe(a.id);
+    await runner.stop(a.id as string,'usr_test'); await runner.stop(b.id as string,'usr_other');
+  },20_000);
+  it('does not mutate another owner approval before the ownership check',async()=>{
+    const t=await runner.createThread({ownerId:'usr_test',title:'approval-owner',prompt:'hello',maxUsd:1000,requestId:'req-approval-owner'});
+    const rows=await waitFor(`SELECT * FROM approvals WHERE thread_id=$1 AND kind='budget' AND state='open'`,[t.id as string]);
+    const approval=rows[0];
+    const result=await runner.answerApproval(approval.id as string,'raise',2000,'usr_other');
+    expect(result).toBeNull();
+    const after=(await pool.query('SELECT state,answer FROM approvals WHERE id=$1',[approval.id])).rows[0];
+    expect(after.state).toBe('open'); expect(after.answer).toBeNull();
+    await runner.stop(t.id as string,'usr_test');
   },20_000);
 });
