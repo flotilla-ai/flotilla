@@ -31,10 +31,10 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-025 | Threads | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-026 | Threads | P2 | blocked | phase2-05 | https://github.com/flotilla-ai/flotilla/pull/34 | Server/API proven in runner-queue.test.ts: GET/PATCH `/threads/:id/context`: used tokens from the last run; Compact at is editable only when the adapter declares `compaction`. Blocked: web UI (context meter and Compact-at control) not built in phase2-05 (server-only slice within diff budget); needs a web unit. |
 | CAPY-027 | Threads | P2 | done | phase2-06 | https://github.com/flotilla-ai/flotilla/pull/40 | Agent replies split into heading sections with a Reply button that quotes the section into the composer; tool calls and other work between messages fold into one `Worked · N tool calls` line (unit + browser). |
-| CAPY-028 | Threads | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-029 | Threads | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-030 | Threads | P3 | pending |  |  | Awaiting phase P3 unit. |
-| CAPY-031 | Threads | P3 | pending |  |  | Awaiting phase P3 unit. |
+| CAPY-028 | Threads | P3 | done | phase3-01 |  | fenced chart/HTML visuals and inline thread rendering are fixture-tested.  |
+| CAPY-029 | Threads | P3 | blocked | phase3-01 |  | inline Mermaid flowchart fixture exists, but Slack image posting is not implemented.  |
+| CAPY-030 | Threads | P3 | done | phase3-01 |  | durable owner-scoped pin/box media annotations are fixture-tested.  |
+| CAPY-031 | Threads | P3 | blocked | phase3-01 |  | no Gemini adapter or adapter-contract video/audio capability exists.  |
 | CAPY-032 | Threads | P2 | done | phase2-06 | https://github.com/flotilla-ai/flotilla/pull/40 | Composer `No project` creates a thread with `projectId: null` (browser); the fake adapter runs it in `/workspace` with no repo or branch (thread-composer.test.ts). This Mac pairing belongs to the host adapter units. |
 | CAPY-033 | Threads | P2 | done | phase2-06 | https://github.com/flotilla-ai/flotilla/pull/40 | Left-edge ticks, one per human message, scroll to that message (thread-composer.spec.ts). |
 | CAPY-034 | Threads | P2 | done | phase2-06 | https://github.com/flotilla-ai/flotilla/pull/40 | Reading place (`thread_reading_places`, migration 0013) is saved per viewer on scroll and restored on open, and it does not move when a turn closes (thread-composer.test.ts + spec). |

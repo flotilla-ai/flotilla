@@ -5,7 +5,7 @@ Current `flotilla/p1` head before this PR: `1d5434d` (phase3-07 merge).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after this unit: done 375, pending 136, needs-human-login 24, n-a 22, blocked 82.
+Counted in `docs/plan/PARITY.md` after this unit: done 377, pending 132, needs-human-login 24, n-a 22, blocked 84.
 
 
 ## Unit table
@@ -72,7 +72,7 @@ Counted in `docs/plan/PARITY.md` after this unit: done 375, pending 136, needs-h
 | phase3-14-ui-navigation | in review | 1 |  | navigation foundation; see `docs/runlog/phase3-14.md` |
 ## Next action
 
-1. Merge phase3-14 after its gate, then continue independent phase-3 units.
+1. Merge phase3-01 after its gate, then continue independent phase-3 units.
 2. Keep external/vendor integration rows fixture-backed and mark exact needs-human-login commands.
 3. Continue without child sessions in free-mode parent.
 

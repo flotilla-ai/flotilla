@@ -1,0 +1,8 @@
+export type VisualBlock={kind:'mermaid'|'chart'|'html';code:string};
+export function visualBlocks(markdown:string):VisualBlock[]{const out:VisualBlock[]=[];for(const m of markdown.matchAll(/```(mermaid|chart|html)\n([\s\S]*?)```/g))out.push({kind:m[1] as VisualBlock['kind'],code:m[2].trim()});return out}
+export type DiagramEdge={from:string;to:string};export function parseMermaidFlowchart(code:string):{nodes:string[];edges:DiagramEdge[]}{if(!/^\s*(graph|flowchart)\s+(TD|LR)/i.test(code))throw new Error('only flowchart graph TD/LR is supported');const edges=[...code.matchAll(/([A-Za-z0-9_]+)\s*--?>\s*([A-Za-z0-9_]+)/g)].map(m=>({from:m[1],to:m[2]}));return{nodes:[...new Set(edges.flatMap(x=>[x.from,x.to]))],edges}}
+export type ChartPoint={label:string;value:number};export function parseChart(code:string):ChartPoint[]{const x=JSON.parse(code) as {values?:ChartPoint[]};if(!Array.isArray(x.values)||x.values.some(v=>!v.label||!Number.isFinite(v.value)))throw new Error('chart JSON needs values[{label,value}]');return x.values}
+export function chartScale(points:ChartPoint[]):number{return Math.max(1,...points.map(x=>Math.abs(x.value)))}
+export type MediaPin={id:string;kind:'pin'|'box';x:number;y:number;width?:number;height?:number;body:string};
+export function overlayStyle(a:MediaPin):Record<string,string>{const base={position:'absolute',left:`${a.x*100}%`,top:`${a.y*100}%`};return a.kind==='box'?{...base,width:`${(a.width??0)*100}%`,height:`${(a.height??0)*100}%`,border:'1px solid orange'}:base}
+export function adapterVideoAudio(capabilities:Record<string,unknown>&{videoAudio?:boolean},adapterId:string):boolean{return capabilities.videoAudio===true&&adapterId==='gemini'}
