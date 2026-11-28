@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { safeActionTarget } from '@flotilla/core/kernel/actionGate';
 import type { AdapterEvent, CostTotals, ProcessTransport, Thread } from '@flotilla/core/types';
 import { meter, budgetZero, inRunFence } from '@flotilla/core/kernel/budget';
 import { placeholderPriceTable } from '@flotilla/core/kernel/priceTable';
@@ -190,7 +191,7 @@ export class ThreadRunner {
     if (resume) await this.pool.query(`UPDATE threads SET status='queued' WHERE id=$1`, [approval.thread_id]);
     const actionDetail = approval.detail as { kind?: string; input?: { tool?: string; url?: string; text?: string }; signature?: string } | null;
     if (approval.kind === 'decision' && actionDetail?.kind === 'action' && optionId === 'deny' && actionDetail.signature) {
-      await this.pool.query(`INSERT INTO agent_audit (user_id,thread_id,tool,target,classification,decision,approval_id,detail) VALUES ($1,$2,$3,$4,$5,'deny',$6,$7)`, [userId, approval.thread_id, actionDetail.input?.tool ?? 'unknown', actionDetail.input?.url ?? actionDetail.input?.text ?? null, 'consequential', approvalId, JSON.stringify({ signature: actionDetail.signature })]);
+      await this.pool.query(`INSERT INTO agent_audit (user_id,thread_id,tool,target,classification,decision,approval_id,detail) VALUES ($1,$2,$3,$4,$5,'deny',$6,$7)`, [userId, approval.thread_id, actionDetail.input?.tool ?? 'unknown', safeActionTarget(actionDetail.input?.url) || actionDetail.input?.text?.split(/[?#]/, 1)[0] || null, 'consequential', approvalId, JSON.stringify({ signature: actionDetail.signature })]);
     }
     await this.deps.store.appendEvents(approval.thread_id, [{ runId: null, kind: 'approval.resolved', source: 'kernel', trust: 'trusted', payload: { approvalId, optionId, value } }] as never);
     if (resume) this.kick(approval.thread_id);
