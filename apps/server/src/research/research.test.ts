@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startCaptainFixtures, type CaptainFixtures } from '../captain-fixtures/index.js';
-import { HttpSearchProvider, MemoryFetchStore, ResearchService, readableText } from './index.js';
+import { createHttpGate, HttpSearchProvider, MemoryFetchStore, ResearchService, readableText } from './index.js';
 
 let fx: CaptainFixtures;
 beforeAll(async () => { fx = await startCaptainFixtures(); });
@@ -21,6 +21,7 @@ describe('research search/fetch', () => {
     expect(calls).toBe(1); expect(second.cache).toBe('hit'); expect(second.hash).toBe(first.hash);
     expect(first.text).toContain('120 km'); expect(first.fenced).toContain('<untrusted source="web.fetch"');
     expect(first.fenced).toMatch(/<\/untrusted id="[^"]+">$/);
+    expect(second.etag).toBe('e1'); expect(second.finalUrl).toBe(first.finalUrl);
   });
   it('changed ETag stores the same hash as a new cache generation and injection stays fenced data', async () => {
     let etag = 'e1'; let now = 1_000; const store = new MemoryFetchStore();
@@ -36,6 +37,8 @@ describe('research search/fetch', () => {
     const order: string[] = [];
     const svc = new ResearchService({ search: new HttpSearchProvider('fixture', `${fx.baseUrl}/search`), gate: { assertAllowed: async () => { order.push('gate'); } }, fetcher: async () => { order.push('fetch'); return { status: 200, text: '<p>x</p>' }; } });
     await svc.webFetch('https://example.test/'); expect(order).toEqual(['gate', 'fetch']);
-    expect(readableText('<html><script>x</script><main>Hello <b>world</b></main></html>')).toBe('Hello world');
+    expect(readableText('<html><script>x</script><main>Hello <b title="2 > 1">world</b>&nbsp;again</main></html>')).toBe('Hello world again');
+    await expect(createHttpGate(async () => ['10.0.0.1']).assertAllowed('https://internal.test/')).rejects.toThrow('private');
+    await expect(createHttpGate(async () => ['93.184.216.34']).assertAllowed('https://example.test/')).resolves.toBeUndefined();
   });
 });
