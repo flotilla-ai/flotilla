@@ -85,7 +85,7 @@ Counted in `docs/plan/PARITY.md`: done 429, blocked 164, needs-human-login 24, n
 | unblock-07-issues-web-board | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/102 | board move/undo/views/settings/display/comment tags; see `docs/runlog/unblock-07.md` |
 
 | unblock-08-pr-page-wiring | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/103 | PR creation choices/links, PR page, Cmd+K, PR-context threads, sidebar status; see `docs/runlog/unblock-08.md` |
-| unblock-09-pr-review-mentions | in progress | 1 | https://github.com/flotilla-ai/flotilla/pull/104 | PR-page review start, mention ingestion/reactions, commit-author fixtures/overrides; see `docs/runlog/unblock-09.md` |
+| unblock-09-pr-review-mentions | in progress | 1 | https://github.com/flotilla-ai/flotilla/pull/106 | PR-page review start, mention ingestion/reactions, commit-author fixtures/overrides; see `docs/runlog/unblock-09.md` |
 
 ## Next action
 
