@@ -42,6 +42,9 @@ describe('research search/fetch', () => {
     await expect(createHttpGate(async () => ['93.184.216.34']).assertAllowed('https://example.test/')).resolves.toBeUndefined();
     await expect(createHttpGate().assertAllowed('https://[2606:4700:4700::1111]/')).resolves.toBeUndefined();
     expect(readableText('<p>a</p><!--open<!--open<p>secret</p>')).toBe('a');
+    expect(readableText('<p title="x <!-- y">visible</p> tail')).toBe('visible tail');
+    await expect(createHttpGate().assertAllowed('https://[::ffff:127.0.0.1]/')).rejects.toThrow('private');
+    await expect(createHttpGate().assertAllowed('https://[::ffff:7f00:1]/')).rejects.toThrow('private');
   });
 
   it('does not cache redirect bodies as fetched pages', async () => {

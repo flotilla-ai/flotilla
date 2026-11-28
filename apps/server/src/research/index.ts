@@ -34,22 +34,37 @@ export class MemoryFetchStore {
   }
 }
 
-function stripComments(html: string): string {
-  let out = ''; let rest = html;
-  for (;;) {
-    const start = rest.indexOf('<!--');
-    if (start < 0) return out + rest;
-    out += rest.slice(0, start);
-    const end = rest.indexOf('-->', start + 4);
-    if (end < 0) return out;
-    rest = rest.slice(end + 3);
-  }
-}
-
 export function readableText(html: string): string {
-  const withoutBlocks = html.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ');
-  const withoutTags = stripComments(withoutBlocks).replace(/<(?:[^<>"']|"[^"]*"|'[^']*')*>/g, ' ');
-  return withoutTags.replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+  let out = ''; let i = 0; const lower = html.toLowerCase();
+  const closeTag = (name: string, at: number) => {
+    const openClose = lower.indexOf(`</${name}`, at + 1);
+    if (openClose < 0) return html.length;
+    const gt = html.indexOf('>', openClose);
+    return gt < 0 ? html.length : gt + 1;
+  };
+  while (i < html.length) {
+    if (html[i] !== '<') { out += html[i]; i += 1; continue; }
+    if (lower.startsWith('<!-->', i) || lower.startsWith('<!--->', i)) { i += lower.startsWith('<!--->', i) ? 6 : 5; continue; }
+    if (lower.startsWith('<!--', i)) {
+      const a = html.indexOf('-->', i + 4); const b = html.indexOf('--!>', i + 4);
+      const end = a < 0 ? b : b < 0 ? a : Math.min(a, b);
+      if (end < 0) break;
+      i = end + (end === b ? 4 : 3); continue;
+    }
+    if (lower.startsWith('<script', i) && /[\s/>]/.test(html[i + 7] ?? '')) { i = closeTag('script', i); continue; }
+    if (lower.startsWith('<style', i) && /[\s/>]/.test(html[i + 6] ?? '')) { i = closeTag('style', i); continue; }
+    let quote = ''; let j = i + 1;
+    while (j < html.length) {
+      const ch = html[j];
+      if (quote) { if (ch === quote) quote = ''; }
+      else if (ch === '"' || ch === "'") quote = ch;
+      else if (ch === '>') break;
+      j += 1;
+    }
+    if (j >= html.length) break;
+    i = j + 1;
+  }
+  return out.replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
 }
 
 function privateIp(ip: string): boolean {
@@ -57,7 +72,18 @@ function privateIp(ip: string): boolean {
     const [a, b] = ip.split('.').map(Number);
     return a === 0 || a === 10 || a === 127 || a >= 224 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
   }
-  const x = ip.toLowerCase(); return x === '::1' || x === '::' || x.startsWith('fc') || x.startsWith('fd') || x.startsWith('fe80:');
+  const x = ip.toLowerCase();
+  if (x.startsWith('::ffff:')) {
+    const tail = x.slice(7);
+    if (isIP(tail) === 4) return privateIp(tail);
+    const parts = tail.split(':').filter(Boolean);
+    if (parts.length <= 2 && parts.every((p) => /^[0-9a-f]{1,4}$/.test(p))) {
+      const nums = parts.map((p) => parseInt(p, 16));
+      const hi = nums.length === 2 ? nums[0] : 0; const lo = nums[nums.length - 1] ?? 0;
+      return privateIp(`${(hi >>> 8) & 255}.${hi & 255}.${(lo >>> 8) & 255}.${lo & 255}`);
+    }
+  }
+  return x === '::1' || x === '::' || x.startsWith('fc') || x.startsWith('fd') || x.startsWith('fe80:');
 }
 
 /** SSRF-safe default gate: public http(s) only, no private/link-local DNS results. Redirects are not followed by the default fetcher. */
