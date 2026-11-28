@@ -19,7 +19,7 @@ describe('captain fixtures', () => {
   it('maps deterministic searches without a real search engine', async () => {
     expect(fx.search('rocket altitude')).toEqual([fx.urls['/news/article'], fx.urls['/news/contradiction']]);
     expect(fx.urls['/news/article']).toContain('news.fixture.test'); expect(fx.hostResolverRules).toContain('MAP news.fixture.test 127.0.0.1');
-    const r = await fetch(`${fx.baseUrl}/search?q=rocket`); expect((await r.json() as {results:string[]}).results).toHaveLength(2);
+    const r = await fetch(`${fx.baseUrl}/search?q=rocket`); const results = (await r.json() as {results:string[]}).results; expect(results).toHaveLength(2); expect(results[0]).toContain('news.fixture.test:');
     const hostRouted = await new Promise<{status:number;body:string}>((resolve, reject) => { const req = get(`${fx.baseUrl}/article`, { headers: { host: 'news.fixture.test' } }, (res) => { let body = ''; res.on('data', (c) => { body += c; }); res.on('end', () => resolve({ status: res.statusCode ?? 0, body })); }); req.on('error', reject); });
     expect(hostRouted.status).toBe(200); expect(hostRouted.body).toContain('120 km');
   });

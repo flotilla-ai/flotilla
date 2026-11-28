@@ -18,6 +18,7 @@ export type CaptainFixtures = {
   close(): Promise<void>;
 };
 
+
 const pages: Record<string, string> = {
   '/news/article': '<html><title>Fixture article</title><main>Measured claim: the fixture rocket reached 120 km.</main></html>',
   '/news/contradiction': '<html><title>Contradiction</title><main>Correction: the fixture rocket reached 80 km, not 120 km.</main></html>',
@@ -57,6 +58,14 @@ export async function startCaptainFixtures(options: { port?: number; host?: stri
   const mail = { sendCalls: [] as RecordedCall[] };
   const shop = { orders: [] as RecordedCall[] };
   const host = options.host ?? '127.0.0.1';
+  const fixtureUrl = (path: string): string => {
+    const port = (server.address() as { port: number } | null)?.port ?? 0;
+    const leaf = path.split('/').pop();
+    if (path.startsWith('/news/')) return `http://news.fixture.test:${port}/${leaf}`;
+    if (path.startsWith('/mail/')) return `http://mail.fixture.test:${port}/${leaf}`;
+    if (path.startsWith('/shop/')) return `http://shop.fixture.test:${port}/${leaf}`;
+    return path;
+  };
   const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://fixture.test');
     const reqHost = (req.headers.host ?? '').split(':')[0];
@@ -66,7 +75,7 @@ export async function startCaptainFixtures(options: { port?: number; host?: stri
     if (url.pathname === '/search') {
       const q = (url.searchParams.get('q') ?? '').toLowerCase();
       const hit = Object.keys(searchMap).find((k) => q.includes(k));
-      return send(res, 200, JSON.stringify({ results: (hit ? searchMap[hit] : []).map((p) => `${url.protocol}//${url.host}${p}`) }), 'application/json');
+      return send(res, 200, JSON.stringify({ results: (hit ? searchMap[hit] : []).map(fixtureUrl) }), 'application/json');
     }
     if (pages[url.pathname] && (req.method ?? "GET") === "GET") return send(res, 200, pages[url.pathname]);
     if (url.pathname === '/mail/login' && req.method === 'POST') {
