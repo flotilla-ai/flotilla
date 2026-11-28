@@ -40,10 +40,11 @@ export class ComputeQuotaService {
   async setAllocationState(captainId: string, state: 'running' | 'sleeping' | 'absent' | 'stopped', patch: Partial<Quota> = {}): Promise<unknown> {
     const rows = await this.deps.pool.query(
       `INSERT INTO computer_allocations (captain_id,state,vcpus,ram_mb,disk_gb)
-       VALUES ($1,$2,$3,$4,$5)
-       ON CONFLICT (captain_id) DO UPDATE SET state=excluded.state,vcpus=excluded.vcpus,ram_mb=excluded.ram_mb,disk_gb=excluded.disk_gb,updated_at=now()
+       VALUES ($1,$2,COALESCE($3,2),COALESCE($4,4096),COALESCE($5,32))
+       ON CONFLICT (captain_id) DO UPDATE SET state=excluded.state,
+         vcpus=COALESCE($3,computer_allocations.vcpus),ram_mb=COALESCE($4,computer_allocations.ram_mb),disk_gb=COALESCE($5,computer_allocations.disk_gb),updated_at=now()
        RETURNING *`,
-      [captainId, state, patch.vcpus ?? 2, patch.ramMb ?? 4096, patch.diskGb ?? 32]
+      [captainId, state, patch.vcpus ?? null, patch.ramMb ?? null, patch.diskGb ?? null]
     );
     return rows.rows[0];
   }

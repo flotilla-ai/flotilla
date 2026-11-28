@@ -28,7 +28,7 @@ describe('compute quota service', () => {
     const { calls, pool } = db(); const svc = new ComputeQuotaService({ pool, enabled: true, provider });
     const row = await svc.stopForBudget('cap_x') as { state: string };
     expect(row.state).toBe('stopped');
-    expect(calls[0].sql).toContain('ON CONFLICT (captain_id) DO UPDATE');
+    expect(calls[0].sql).toContain('ON CONFLICT (captain_id) DO UPDATE'); expect(calls[0].sql).toContain('COALESCE($3,computer_allocations.vcpus)');
   });
   it('detects real host capacity shape without external services', () => {
     const cap = detectHostCapacity();
