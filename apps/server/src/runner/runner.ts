@@ -155,7 +155,12 @@ export class ThreadRunner {
   async answerApproval(approvalId: string, optionId: string, value: number | undefined, userId: string): Promise<Row | null> {
     const existing = (await this.pool.query('SELECT thread_id, kind, detail FROM approvals WHERE id=$1 AND state=$2', [approvalId, 'open'])).rows[0];
     if (!existing || !(await this.owned(existing.thread_id,userId))) return null;
-    if ((existing.detail as { feedback?: unknown } | null)?.feedback) throw new ApiFailure('Conflict', 'feedback drafts must be answered through the feedback endpoint');
+    const existingDetail = existing.detail as { feedback?: unknown; kind?: string; expiresAt?: string | null } | null;
+    if (existingDetail?.kind === 'action' && existingDetail.expiresAt && new Date(existingDetail.expiresAt).getTime() < Date.now()) {
+      await this.pool.query(`UPDATE approvals SET state='expired' WHERE id=$1 AND state='open'`, [approvalId]);
+      throw new ApiFailure('Conflict', 'action approval expired');
+    }
+    if (existingDetail?.feedback) throw new ApiFailure('Conflict', 'feedback drafts must be answered through the feedback endpoint');
     if (existing.kind === 'budget' && optionId === 'raise') {
       if (!Number.isSafeInteger(value) || (value as number) <= 0) throw new ApiFailure('ValidationFailed', 'raise budget needs a positive safe integer micro-USD value');
       const shared = (existing.detail as Row | null)?.shared;
@@ -183,6 +188,10 @@ export class ThreadRunner {
     let resume = approval.kind === 'run-out' && optionId === 'use';
     if (approval.kind === 'run-out' && (await this.deps.runOut?.answer(approval, optionId)) === false) resume = false;
     if (resume) await this.pool.query(`UPDATE threads SET status='queued' WHERE id=$1`, [approval.thread_id]);
+    const actionDetail = approval.detail as { kind?: string; input?: { tool?: string; url?: string; text?: string }; signature?: string } | null;
+    if (approval.kind === 'decision' && actionDetail?.kind === 'action' && optionId === 'deny' && actionDetail.signature) {
+      await this.pool.query(`INSERT INTO agent_audit (user_id,thread_id,tool,target,classification,decision,approval_id,detail) VALUES ($1,$2,$3,$4,$5,'deny',$6,$7)`, [userId, approval.thread_id, actionDetail.input?.tool ?? 'unknown', actionDetail.input?.url ?? actionDetail.input?.text ?? null, 'consequential', approvalId, JSON.stringify({ signature: actionDetail.signature })]);
+    }
     await this.deps.store.appendEvents(approval.thread_id, [{ runId: null, kind: 'approval.resolved', source: 'kernel', trust: 'trusted', payload: { approvalId, optionId, value } }] as never);
     if (resume) this.kick(approval.thread_id);
     if (approval.gate === 'plan') {
