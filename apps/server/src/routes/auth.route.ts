@@ -21,7 +21,7 @@ export function createAuthRoute(store = authStore()) {
     if (!session) return c.json({ error: 'invalid credentials' }, 401);
     const secure = c.req.header('x-forwarded-proto') === 'https' || c.req.url.startsWith('https://');
     c.header('set-cookie', sessionCookie(session.id, secure));
-    return c.json({ userId: session.userId, csrfToken: session.csrfToken });
+    const user=(await store.pool.query('SELECT role FROM users WHERE id=$1',[session.userId])).rows[0];return c.json({ userId: session.userId, role:user?.role, csrfToken: session.csrfToken });
   });
   app.post('/logout', async (c) => {
     const session = await csrf(c);
@@ -34,7 +34,7 @@ export function createAuthRoute(store = authStore()) {
   app.get('/me', async (c) => {
     const session = await csrf(c);
     if (!session) return c.text('unauthorized', 401);
-    return c.json({ userId: session.userId, csrfToken: session.csrfToken });
+    const user=(await store.pool.query('SELECT role FROM users WHERE id=$1',[session.userId])).rows[0];return c.json({ userId: session.userId, role:user?.role, csrfToken: session.csrfToken });
   });
   return { basePath: '/api/v1/auth', app, public: true };
 }
