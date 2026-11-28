@@ -102,12 +102,12 @@ export class UsageStore {
     return this.balance();
   }
   /** Before every run: the thread's own cap against its ledger (incl. priced machine time), then org/project windows. */
-  async gate(thread: Row): Promise<{ why: string; shared: boolean } | null> {
+  async gate(thread: Row): Promise<{ why: string; shared: boolean; scope?: 'global'|'project'; scopeId?: string; window?: 'month'|'lifetime' } | null> {
     const cap = thread.budget?.maxUsd ?? null;
     if (cap !== null && (await this.q(`SELECT COALESCE(sum((delta->>'usd')::float8),0) n FROM cost_entries WHERE thread_id=$1`, [thread.id]))[0].n >= cap) return { why: 'budget', shared: false };
     for (const w of (await this.balance()).windows) {
       if (w.scope === 'project' && w.scopeId !== thread.project_id) continue;
-      if (w.maxUsd !== null && w.spent >= w.maxUsd) return { why: `${w.window === 'month' ? 'monthly' : 'lifetime'} ${w.scope} budget`, shared: true };
+      if (w.maxUsd !== null && w.spent >= w.maxUsd) return { why: `${w.window === 'month' ? 'monthly' : 'lifetime'} ${w.scope} budget`, shared: true, scope: w.scope, scopeId: w.scopeId, window: w.window };
     }
     return null;
   }
