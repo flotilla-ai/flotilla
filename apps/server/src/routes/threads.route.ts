@@ -11,6 +11,7 @@ import { DockerMachineDriver } from '../machines/dockerDriver.js';
 import { ThreadRunner } from '../runner/runner.js';
 import { parseVariables, secretsStore } from '../secrets/store.js';
 import { mcpStore } from '../mcp/store.js';
+import { deviceExecutionStore } from './device-execution.route.js';
 import { modelPolicyApi, modelsCatalogStore, withConnectionKeys } from '../models-catalog/store.js';
 
 let singleton: ThreadRunner | null = null;
@@ -27,7 +28,12 @@ export function createThreadsRoute(runner = defaultRunner(), policy = modelPolic
     const env = parseVariables(body.environmentVariables);
     const resolved = await modelsCatalogStore().resolve(userId(c), body.engine ?? { adapter: 'fake' });
     const engine = { adapter: resolved.adapter, model: resolved.model, effort: resolved.effort, connectionId: resolved.connectionId, ...(resolved.contextWindow ? { contextWindow: resolved.contextWindow } : {}) };
+    const priorThreadId = body.requestId ? (await runner.pool.query(`SELECT e.thread_id FROM events e JOIN threads t ON t.id=e.thread_id WHERE e.request_id=$1 AND e.kind='thread.created' AND t.owner_id=$2 LIMIT 1`, [body.requestId, userId(c)])).rows[0]?.thread_id as string | undefined : undefined;
     const row = await runner.createThread({ ownerId: userId(c), projectId: body.projectId ?? null, title: body.title, prompt: body.prompt, engine, maxUsd: body.maxUsd ?? null, requestId: body.requestId, env, attachments: body.attachments });
+    if (body.deviceId) {
+      const placed = priorThreadId ? !!(await runner.pool.query('SELECT 1 FROM device_placements WHERE thread_id=$1', [row.id])).rows[0] : false;
+      if (!placed) try { await deviceExecutionStore().placeThread(userId(c), row.id as string, body.deviceId); } catch (err) { if (!priorThreadId) await runner.pool.query('DELETE FROM threads WHERE id=$1', [row.id]).catch(() => undefined); throw err; }
+    }
     return c.json(row, 201);
   });
   app.post('/threads/:id/message', async (c) => { const body = await c.req.json().catch(() => ({})); const cmd = await policy().slash(c.req.param('id'), userId(c), String(body.text ?? '')); if (cmd) { await runner.answerApproval(cmd.approvalId, cmd.optionId, undefined, userId(c)); return c.body(null, 202); } await runner.message(c.req.param('id'), body.text ?? '', body.mode ?? 'queue', userId(c)); return c.body(null, 202); });

@@ -107,6 +107,9 @@ describe('wake router', () => {
     expect((await router.github('issue_comment', comment))?.outcome).toBe('ignored');
     await router.putSettings('user', 'usr_a', { responses: { comment: 'context' } });
     expect((await router.policy('usr_a')).responses).toMatchObject({ comment: 'context', review: 'react' });
+    await router.putSettings('user', 'usr_a', { responses: {}, replaceResponses: true });
+    expect((await router.policy('usr_a')).responses.comment).toBe('ignore');
+    await router.putSettings('user', 'usr_a', { responses: { comment: 'context' }, replaceResponses: true });
     const n = (await messages(t)).length;
     expect((await router.github('issue_comment', comment))?.outcome).toBe('context');
     expect((await messages(t)).length).toBe(n);

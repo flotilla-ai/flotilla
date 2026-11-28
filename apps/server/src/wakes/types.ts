@@ -3,7 +3,7 @@ export type WakeEventKind = 'review' | 'comment' | 'merge' | 'conflict' | 'agent
 export type WakeResponse = 'react' | 'context' | 'ignore';
 /** React = start a turn; context = keep for the next turn; ignore = drop. Personal settings override org field by field. */
 export interface EventResponsePolicy { responses: Record<WakeEventKind, WakeResponse>; bots: string[]; allowBots: string[]; mergeWindowDays: number }
-export type WakeSettingsPatch = Partial<Omit<EventResponsePolicy, 'responses'>> & { responses?: Partial<EventResponsePolicy['responses']> };
+export type WakeSettingsPatch = Partial<Omit<EventResponsePolicy, 'responses'>> & { responses?: Partial<EventResponsePolicy['responses']>; replaceResponses?: boolean };
 export type WatchKind = 'timer' | 'pr' | 'thread' | 'job';
 /** Anything a thread is waiting on: a PR, another thread, a background job. Timers are subscriptions with `fireAt`. */
 export interface WakeSubscription { id: string; threadId: string; kind: WatchKind; target: string; label: string; url: string | null; fireAt: string | null; state: 'active' | 'fired' | 'stopped'; payload: Record<string, unknown>; createdAt: string }

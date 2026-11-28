@@ -30,7 +30,10 @@ export class WakeRouter {
     if (Object.entries(responses).some(([k, v]) => !WAKE_KINDS.includes(k as WakeEventKind) || !['react', 'context', 'ignore'].includes(v as string))) throw new ApiFailure('ValidationFailed', 'responses map event kinds to react, context or ignore');
     for (const list of [b.bots, b.allowBots]) if (list !== undefined && (!Array.isArray(list) || list.some((x) => typeof x !== 'string'))) throw new ApiFailure('ValidationFailed', 'bot lists are logins');
     if (b.mergeWindowDays !== undefined && !(Number.isInteger(b.mergeWindowDays) && b.mergeWindowDays >= 0 && b.mergeWindowDays <= 365)) throw new ApiFailure('ValidationFailed', 'mergeWindowDays must be 0..365');
-    await this.q(`INSERT INTO wake_settings (scope,scope_id,responses,bots,allow_bots,merge_window_days) VALUES ($1,$2,$3,$4,$5,$6)
+    if (b.replaceResponses) await this.q(`INSERT INTO wake_settings (scope,scope_id,responses,bots,allow_bots,merge_window_days) VALUES ($1,$2,$3,$4,$5,$6)
+      ON CONFLICT (scope,scope_id) DO UPDATE SET responses=$3, bots=COALESCE($4,wake_settings.bots), allow_bots=COALESCE($5,wake_settings.allow_bots), merge_window_days=COALESCE($6,wake_settings.merge_window_days)`,
+    [scope, scopeId, JSON.stringify(responses), b.bots ? JSON.stringify(b.bots) : null, b.allowBots ? JSON.stringify(b.allowBots) : null, b.mergeWindowDays ?? null]);
+    else await this.q(`INSERT INTO wake_settings (scope,scope_id,responses,bots,allow_bots,merge_window_days) VALUES ($1,$2,$3,$4,$5,$6)
       ON CONFLICT (scope,scope_id) DO UPDATE SET responses=wake_settings.responses||$3, bots=COALESCE($4,wake_settings.bots), allow_bots=COALESCE($5,wake_settings.allow_bots), merge_window_days=COALESCE($6,wake_settings.merge_window_days)`,
     [scope, scopeId, JSON.stringify(responses), b.bots ? JSON.stringify(b.bots) : null, b.allowBots ? JSON.stringify(b.allowBots) : null, b.mergeWindowDays ?? null]);
     return this.settings(scope, scopeId);
