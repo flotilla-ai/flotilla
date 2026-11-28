@@ -6,7 +6,7 @@ import { ApiIssuesStore } from '../../api-issues/index.js';
 import { agentToolNames, handleAgentTool, type AgentToolDeps } from '../../agent-tools/index.js';
 
 type RunnerLike = { createThread(input: Record<string, unknown>): Promise<Record<string, unknown>>; message(threadId: string, text: string, mode?: 'queue' | 'interrupt'): Promise<unknown> };
-export type CaptainToolDeps = { pool: pg.Pool; tokens: RunTokenService; runner: RunnerLike; issues?: Pick<ApiIssuesStore,'createIssue'|'link'|'updateIssue'|'states'>; environments?: AgentToolDeps['environments']; mcp?: AgentToolDeps['mcp'] };
+export type CaptainToolDeps = { pool: pg.Pool; tokens: RunTokenService; runner: RunnerLike; issues?: Pick<ApiIssuesStore,'createIssue'|'link'|'updateIssue'|'states'>; environments?: AgentToolDeps['environments']; mcp?: AgentToolDeps['mcp']; subagents?: AgentToolDeps['subagents']; resolveEngine?: AgentToolDeps['resolveEngine'] };
 const zero = { usd: 0, inputTokens: 0, outputTokens: 0, cacheTokens: 0, machineSec: 0 };
 function json(value: unknown) { return { content: [{ type: 'text', text: JSON.stringify(value) }] }; }
 export class CaptainToolService {

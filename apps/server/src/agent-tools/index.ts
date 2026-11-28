@@ -1,18 +1,21 @@
 import { KernelDenied } from '@flotilla/core/types';
 import { ApiFailure } from '../api-platform/types.js';
+import type { Subagent, SubagentDraft } from '../subagent-core/types.js';
 
 type Row = Record<string, any>;
-export type AgentToolRunner = { createThread(input: Record<string, unknown>): Promise<Record<string, unknown>>; message(threadId: string, text: string, mode?: 'queue' | 'interrupt'): Promise<unknown> };
+export type AgentToolRunner = { createThread(input: Record<string, unknown>): Promise<Record<string, unknown>>; message(threadId: string, text: string, mode?: 'queue' | 'interrupt', userId?: string): Promise<unknown> };
 export type AgentToolDeps = {
   runner: AgentToolRunner;
   environments?: { tool(threadId: string, projectId: string, name: string, args: Record<string, unknown>, machine: () => unknown): Promise<unknown> };
   mcp?: { propose(userId: string, threadId: string, args: Record<string, unknown>): Promise<unknown> };
+  subagents?: { create(parentId: string, userId: string, draft: SubagentDraft): Promise<Subagent>; start(id: string, userId: string): Promise<Subagent>; feedback(id: string, userId: string, body: string): Promise<Subagent> };
+  resolveEngine?: (userId: string, engine: Record<string, unknown>) => Promise<Record<string, unknown>>;
 };
 export const agentToolNames = ['sibling.create', 'sibling.message', 'captain.create', 'environment.read', 'environment.replace', 'mcp.propose'] as const;
 export const agentToolSchemas: Record<string, unknown> = {
-  'sibling.create': { type: 'object', properties: { title: { type: 'string' }, prompt: { type: 'string' } }, required: ['title'] },
+  'sibling.create': { type: 'object', properties: { title: { type: 'string' }, prompt: { type: 'string' }, placement: { type: 'string', enum: ['fresh', 'shared'] }, mode: { type: 'string', enum: ['parallel', 'stacked'] }, paths: { type: 'array', items: { type: 'string' } }, maxUsd: { type: 'number' } }, required: ['title'] },
   'sibling.message': { type: 'object', properties: { threadId: { type: 'string' }, text: { type: 'string' } }, required: ['threadId', 'text'] },
-  'captain.create': { type: 'object', properties: { name: { type: 'string' }, prompt: { type: 'string' } }, required: ['name'] },
+  'captain.create': { type: 'object', properties: { name: { type: 'string' }, prompt: { type: 'string' }, maxUsd: { type: 'number' } }, required: ['name'] },
   'environment.read': { type: 'object', properties: {} },
   'environment.replace': { type: 'object', properties: { baseVersion: { type: 'integer' }, spec: { type: 'object' } }, required: ['baseVersion', 'spec'] },
   'mcp.propose': { type: 'object', properties: { action: { type: 'string' }, server: { type: 'object' }, serverId: { type: 'string' } }, required: ['action'] }
@@ -23,21 +26,36 @@ export async function handleAgentTool(self: Row, threadId: string, name: string,
   if (!(agentToolNames as readonly string[]).includes(name)) return { handled: false };
   if (name === 'sibling.create') {
     if (self.role === 'captain' || !self.parent_id) throw new KernelDenied('scope', 'sibling tools require a non-Captain child thread');
-    const thread = await deps.runner.createThread({ ownerId: self.owner_id, projectId: self.project_id, parentId: self.parent_id, title: String(args.title ?? 'Sibling thread'), prompt: String(args.prompt ?? args.title ?? 'Sibling thread'), engine: args.engine as never, maxUsd: args.maxUsd == null ? null : Number(args.maxUsd) });
-    return { handled: true, result: { threadId: String(thread.id), parentId: self.parent_id ?? null } };
+    if (!deps.subagents) throw new KernelDenied('scope', 'subagents are not configured');
+    const draft = await deps.subagents.create(String(self.parent_id), String(self.owner_id), {
+      title: String(args.title ?? 'Sibling thread'), prompt: String(args.prompt ?? args.title ?? 'Sibling thread'),
+      placement: args.placement === 'shared' ? 'shared' : 'fresh', mode: args.mode === 'stacked' ? 'stacked' : 'parallel',
+      ...(Array.isArray(args.paths) ? { paths: args.paths.map(String) } : {}), ...(args.engine && typeof args.engine === 'object' ? { engine: args.engine as SubagentDraft['engine'] } : {}),
+      ...(args.maxUsd == null ? {} : { maxUsd: Number(args.maxUsd) })
+    });
+    const started = await deps.subagents.start(String(draft.id), String(self.owner_id));
+    return { handled: true, result: { threadId: String(started.id), parentId: String(started.parentId), state: started.state } };
   }
   if (name === 'sibling.message') {
-    const target = (await query('SELECT owner_id,parent_id FROM threads WHERE id=$1', [String(args.threadId ?? '')])).rows[0] as Row | undefined;
+    if (!deps.subagents) throw new KernelDenied('scope', 'subagents are not configured');
+    const target = (await query('SELECT s.thread_id,s.parent_id,s.started_at,t.owner_id FROM subagents s JOIN threads t ON t.id=s.thread_id WHERE s.thread_id=$1', [String(args.threadId ?? '')])).rows[0] as Row | undefined;
     const sameParent = target?.parent_id && target.parent_id === self.parent_id;
-    if (!target || target.owner_id !== self.owner_id || !sameParent) throw new KernelDenied('scope', 'thread is not a sibling owned by this user');
-    await deps.runner.message(String(args.threadId), String(args.text ?? ''), 'queue');
+    if (!target || target.owner_id !== self.owner_id || !sameParent || !target.started_at) throw new KernelDenied('scope', 'thread is not a started sibling owned by this user');
+    await deps.subagents.feedback(String(args.threadId), String(self.owner_id), String(args.text ?? ''));
     return { handled: true, result: { ok: true } };
   }
   if (name === 'captain.create') {
     const title = String(args.name ?? '').trim();
     if (!title) throw new ApiFailure('ValidationFailed', 'name is required');
-    const thread = await deps.runner.createThread({ ownerId: self.owner_id, projectId: self.project_id, title, prompt: String(args.prompt ?? `You are Captain ${title}.`), engine: args.engine as never, maxUsd: args.maxUsd == null ? null : Number(args.maxUsd), draft: true });
+    const base = (self.engine ?? {}) as Row;
+    const override = args.engine && typeof args.engine === 'object' && !Array.isArray(args.engine) ? args.engine as Row : {};
+    const same = !override.adapter || override.adapter === base.adapter;
+    const requested: Row = { adapter: override.adapter ?? base.adapter, model: override.model ?? (same ? base.model : null), effort: override.effort ?? (same ? base.effort : null), connectionId: override.connectionId ?? (same ? base.connectionId : null), ...(base.contextWindow || override.contextWindow ? { contextWindow: override.contextWindow ?? base.contextWindow } : {}) };
+    const engine = deps.resolveEngine ? await deps.resolveEngine(String(self.owner_id), requested) : requested;
+    const prompt = String(args.prompt ?? `You are Captain ${title}.`);
+    const thread = await deps.runner.createThread({ ownerId: self.owner_id, projectId: self.project_id, title, prompt, engine: engine as never, maxUsd: args.maxUsd == null ? null : Number(args.maxUsd), draft: true });
     await query(`WITH u AS (UPDATE threads SET role='captain',updated_at=now() WHERE id=$1 RETURNING id) INSERT INTO captains (thread_id,purpose,crew_runs_on,max_concurrent_crew,digest_md,wake_policy) SELECT u.id,$2,'pool',5,'',$3 FROM u ON CONFLICT (thread_id) DO NOTHING`, [String(thread.id), title, JSON.stringify({ heartbeatSec: [600, 7200], coalesceSec: 30 })]);
+    await deps.runner.message(String(thread.id), prompt, 'queue', String(self.owner_id));
     return { handled: true, result: { captainId: String(thread.id), ownerId: self.owner_id } };
   }
   if (name === 'environment.read' || name === 'environment.replace') {
