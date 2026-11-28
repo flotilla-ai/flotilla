@@ -3,15 +3,17 @@ import {deepLinkPrompt,fold,keyAction,loadKeymap,mentionQuery,quote,saveKeymap,s
 import {keyEventAction,loadShortcuts} from '../keyboard-shortcuts/model.js';
 import './thread-composer.css';
 import {InlineVisuals} from '../thread-media/index.js';
+import {ContextMeter,QueuePanel,SentMessage} from './queue.js';import {versionGroups} from './queue-model.js';
 type Ref={id:string;code:string;title:string};type Attachment={fileId:string;name:string};
 type Card={id:string;title:string;inline:null|{kind:'env';name:string}|{kind:'desktop';url:string}|{kind:'feedback';title:string;body:string}};
 const text=(e:Ev)=>typeof e.payload==='string'?e.payload:e.payload?.text??e.payload?.delta??JSON.stringify(e.payload);
 const lookup=(q:string)=>api(`/thread-lookup?q=${encodeURIComponent(q)}`).then((r:{items:Ref[]})=>r.items).catch(()=>[] as Ref[]);
 
-async function upload(f:File):Promise<Attachment>{
+/** The file id exists before the bytes are up, so a message can be sent while `done` is still pending (CAPY-467). */
+async function upload(f:File):Promise<Attachment&{done:Promise<void>}>{
  const g=await api('/files',{method:'POST',body:JSON.stringify({name:f.name,contentType:f.type||'application/octet-stream',size:f.size})});
- const r=await fetch(new URL(g.uploadUrl,location.href).pathname+new URL(g.uploadUrl,location.href).search,{method:'PUT',headers:g.headers,body:f});if(!r.ok)throw new Error(String(r.status));
- return {fileId:g.fileId,name:f.name};
+ const done=fetch(new URL(g.uploadUrl,location.href).pathname+new URL(g.uploadUrl,location.href).search,{method:'PUT',headers:g.headers,body:f}).then(r=>{if(!r.ok)throw new Error(String(r.status))});
+ return {fileId:g.fileId,name:f.name,done};
 }
 
 export function CommandPalette(){
@@ -23,7 +25,7 @@ export function CommandPalette(){
  return <dialog open className='card palette' aria-label='command palette'><input autoFocus aria-label='go to thread' value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&hits[0])go(hits[0])}}/>{hits.map(t=><button key={t.id} onClick={()=>go(t)}>{t.code} {t.title}</button>)}</dialog>;
 }
 
-function Composer({value,setValue,onSend,threadId,attach=true}:{value:string;setValue:(v:string)=>void;onSend:(text:string,files:Attachment[],mode:'queue'|'interrupt')=>Promise<void>;threadId?:string;attach?:boolean}){
+function Composer({value,setValue,onSend,threadId,attach=true,onUploaded}:{value:string;setValue:(v:string)=>void;onSend:(text:string,files:Attachment[],mode:'queue'|'interrupt')=>Promise<void>;threadId?:string;attach?:boolean;onUploaded?:()=>void}){
  const[keymap,setKeymap]=useState<ComposerKeymap>(()=>loadKeymap(localStorage));const[files,setFiles]=useState<Attachment[]>([]);const[hits,setHits]=useState<Ref[]>([]);const[uploading,setUploading]=useState(0);const ta=useRef<HTMLTextAreaElement>(null);
  const send=async(mode:'queue'|'interrupt'='queue')=>{if(uploading||!value.trim()&&!files.length)return;await onSend(value,files,mode);setValue('');setFiles([])};
  const changed=(v:string,caret:number)=>{setValue(v);const m=mentionQuery(v,caret);if(m)void lookup(m).then(setHits);else setHits([])};
@@ -32,7 +34,7 @@ function Composer({value,setValue,onSend,threadId,attach=true}:{value:string;set
   <textarea ref={ta} aria-label='message' value={value} onChange={e=>changed(e.target.value,e.target.selectionStart)} onKeyDown={e=>{const a=keyAction(keymap,e);if(!a)return;e.preventDefault();if(a==='send')void send();else{const t=e.currentTarget,s=t.selectionStart;setValue(value.slice(0,s)+'\n'+value.slice(t.selectionEnd));requestAnimationFrame(()=>t.setSelectionRange(s+1,s+1))}}}/>
   {hits.map(t=><button type='button' key={t.id} onClick={()=>mention(t)}>@{t.code} {t.title}</button>)}
   {files.map(f=><small key={f.fileId}>{f.name}</small>)}
-  {attach&&<input type='file' multiple aria-label='attach' onChange={e=>{const l=[...(e.target.files??[])];e.target.value='';setUploading(n=>n+l.length);void Promise.all(l.map(upload)).then(x=>setFiles(f=>[...f,...x])).finally(()=>setUploading(n=>n-l.length))}}/>}
+  {attach&&<input type='file' multiple aria-label='attach' onChange={e=>{const l=[...(e.target.files??[])];e.target.value='';setUploading(n=>n+l.length);for(const file of l)void upload(file).then(x=>{setFiles(f=>[...f,{fileId:x.fileId,name:x.name}]);void x.done.catch(()=>setFiles(f=>f.filter(y=>y.fileId!==x.fileId))).finally(()=>onUploaded?.())}).catch(()=>{}).finally(()=>setUploading(n=>n-1))}}/>}
   <select aria-label='send key' value={keymap.send} onChange={e=>{const k={send:e.target.value as ComposerKeymap['send']};saveKeymap(localStorage,k);setKeymap(k)}}><option value='enter'>Enter sends</option><option value='mod+enter'>⌘/Ctrl+Enter sends</option></select>
   <button type='submit' disabled={uploading>0}>Queue</button>
   {threadId&&<><button type='button' onClick={()=>void send('interrupt')}>Interrupt</button><button type='button' onClick={()=>void api(`/threads/${threadId}/stop`,{method:'POST'})}>Stop</button></>}
@@ -56,15 +58,15 @@ function RequestCards({threadId}:{threadId:string}){
 }
 
 export function ThreadComposer({threadId,events:raw}:{threadId:string;events:Ev[]}){const events=Array.isArray(raw)?raw:[];
- const[draft,setDraft]=useState('');const restored=useRef(false);const timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
- const items=fold(events);const humans=events.filter(e=>e.kind==='user.message').sort((a,b)=>a.seq-b.seq);
+ const[draft,setDraft]=useState('');const[tick,setTick]=useState(0);const bump=()=>setTick(t=>t+1);const restored=useRef(false);const timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
+ const items=fold(events);const versions=versionGroups(events);const humans=events.filter(e=>e.kind==='user.message').sort((a,b)=>a.seq-b.seq);
  useEffect(()=>{if(restored.current||!events.length)return;restored.current=true;void api(`/threads/${threadId}/reading-place`).then((p:{seq:number|null;offset:number})=>{if(p.seq!==null)document.getElementById(`ev-${p.seq}`)?.scrollIntoView({block:'start'})}).catch(()=>{})},[threadId,events.length]);
  useEffect(()=>{const save=()=>{clearTimeout(timer.current);timer.current=setTimeout(()=>{const el=[...document.querySelectorAll<HTMLElement>('[data-seq]')].find(x=>x.getBoundingClientRect().bottom>0);if(el)void api(`/threads/${threadId}/reading-place`,{method:'PUT',body:JSON.stringify({seq:Number(el.dataset.seq),offset:Math.round(-el.getBoundingClientRect().top)})}).catch(()=>{})},300)};addEventListener('scroll',save,{passive:true});return()=>{removeEventListener('scroll',save);clearTimeout(timer.current)}},[threadId]);
  const reply=(s:ThreadSection)=>setDraft(d=>quote(s)+d);
  const send=async(text:string,files:Attachment[],mode:'queue'|'interrupt')=>{
   const fb=/^\/feedback\s+(.+)\n?([\s\S]*)$/.exec(text);
   if(fb){await api(`/threads/${threadId}/feedback`,{method:'POST',body:JSON.stringify({title:fb[1].trim(),body:fb[2].trim()||fb[1].trim()})});location.reload();return}
-  if(files.length){await api(`/threads/${threadId}/inbox`,{method:'POST',body:JSON.stringify({text,mode,attachments:files.map(f=>f.fileId)})});return}
+  if(files.length){await api(`/threads/${threadId}/inbox`,{method:'POST',body:JSON.stringify({text,mode,attachments:files.map(f=>f.fileId)})});bump();return}
   if(mode==='interrupt')await api(`/threads/${threadId}/interrupt`,{method:'POST'});
   await api(`/threads/${threadId}/message`,{method:'POST',body:JSON.stringify({text})});
  };
@@ -72,9 +74,12 @@ export function ThreadComposer({threadId,events:raw}:{threadId:string;events:Ev[
   <nav className='ticks' aria-label='ticks'>{humans.map((e,i)=><button key={e.seq} aria-label={`Jump to ask ${i+1}`} onClick={()=>document.getElementById(`ev-${e.seq}`)?.scrollIntoView({block:'start'})}/>)}</nav>
   <section className='events'>{items.map(x=>x.kind==='work'?<details key={`w${x.seq}`} data-seq={x.seq}><summary>{x.label}</summary>{x.events.map(e=><small key={e.seq}>{e.kind}</small>)}</details>
    :(x.event.kind==='agent.message'||x.event.kind==='agent.delta')?<article key={x.event.seq} id={`ev-${x.event.seq}`} data-seq={x.event.seq}>{sections(x.event.seq,text(x.event)).map(s=><section key={s.index}>{s.heading&&<h3>{s.heading}</h3>}<p>{s.text}</p><InlineVisuals markdown={s.text}/><button onClick={()=>reply(s)}>Reply</button></section>)}</article>
-   :<article key={x.event.seq} id={`ev-${x.event.seq}`} data-seq={x.event.seq}><small>{x.event.kind}</small><p>{text(x.event)}</p></article>)}</section>
+   :versions.hidden.has(x.event.seq)?null
+   :<article key={x.event.seq} id={`ev-${x.event.seq}`} data-seq={x.event.seq}><small>{x.event.kind}</small>{versions.shown.has(x.event.seq)?<SentMessage threadId={threadId} versions={versions.shown.get(x.event.seq)!} onEdited={bump}/>:<p>{text(x.event)}</p>}</article>)}</section>
   <RequestCards threadId={threadId}/>
-  <Composer threadId={threadId} value={draft} setValue={setDraft} onSend={send}/>
+  <QueuePanel threadId={threadId} tick={tick+events.length} onReturn={t=>setDraft(d=>d?`${d}\n${t}`:t)}/>
+  <ContextMeter threadId={threadId} tick={events.filter(e=>e.kind==='run.ended').length}/>
+  <Composer threadId={threadId} value={draft} setValue={setDraft} onSend={send} onUploaded={bump}/>
  </>;
 }
 
