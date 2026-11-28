@@ -9,14 +9,23 @@ const patterns: Array<[ConsequentialKind, RegExp]> = [
   ['purchase', /buy|place order|checkout|pay\b|submit payment|purchase/i],
   ['delete', /delete|remove|trash|destroy|erase/i],
   ['legal-accept', /accept terms|agree to|terms of service|legal accept/i],
-  ['permission', /grant access|permission|authorize|allow access/i],
+  ['permission', /grant access|permission|authorize|allow access|confirm/i],
   ['publish', /publish|post\b|share publicly|comment\b/i],
   ['send', /send|reply|email|message|dm\b/i]
 ];
 const hardAsk = new Set<ConsequentialKind>(['credential-entry', 'purchase', 'delete']);
 
+export function safeActionTarget(url: string | undefined): string {
+  if (!url) return '';
+  try {
+    const u = new URL(url);
+    u.username = ''; u.password = ''; u.search = ''; u.hash = '';
+    return u.toString();
+  } catch { return url.split(/[?#]/, 1)[0]; }
+}
+
 export function actionSignature(input: ActionInput): string {
-  return [input.tool.toLowerCase(), input.url ?? '', input.text ?? '', ...(input.fieldTypes ?? [])].join('\n').toLowerCase();
+  return [input.tool.toLowerCase(), safeActionTarget(input.url), input.text ?? '', ...(input.fieldTypes ?? [])].join('\n').toLowerCase();
 }
 
 export function classifyAction(input: ActionInput): ActionClass {
