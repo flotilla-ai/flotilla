@@ -23,6 +23,7 @@ describe('compute quota service', () => {
     expect(out.decision).toMatchObject({ decision: 'deny', reason: 'Not enough RAM: sleep Captain X or lower its RAM' });
     const insert = calls.find((c) => c.sql.includes('INSERT INTO approvals'));
     expect(insert?.sql).toContain("'decision'"); expect(JSON.parse(insert?.params[4] as string)).toMatchObject({ kind: 'compute', captainId: 'cap_y' });
+    expect(calls[0].sql).toContain('captain_id <> $1'); expect(calls[0].params[0]).toBe('cap_y');
   });
   it('allocation state API can stop a computer on budget exhaustion', async () => {
     const { calls, pool } = db(); const svc = new ComputeQuotaService({ pool, enabled: true, provider });

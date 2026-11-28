@@ -25,7 +25,7 @@ export class ComputeQuotaService {
   async evaluate(opts: { userId: string; threadId: string; captainId?: string; request?: Partial<Quota> }): Promise<ComputeEvaluation> {
     if (!this.enabled()) return { enabled: false, decision: { decision: 'allow', reason: 'isolation-off-zero-impact' } };
     const capacity = await (this.deps.provider ?? { capacity: async () => detectHostCapacity() }).capacity();
-    const rows = await this.deps.pool.query(`SELECT captain_id as id,state,vcpus,ram_mb as "ramMb",disk_gb as "diskGb" FROM computer_allocations WHERE state='running'`);
+    const rows = await this.deps.pool.query(`SELECT captain_id as id,state,vcpus,ram_mb as "ramMb",disk_gb as "diskGb" FROM computer_allocations WHERE state='running' AND captain_id <> $1`, [opts.captainId ?? '']);
     const decision = decideCompute(capacity, rows.rows as never as ComputeAllocation[], opts.request ?? {}, this.deps.reserve ?? defaultReserve);
     if (decision.decision === 'allow') return { enabled: true, decision, capacity };
     const approvalId = id();
@@ -35,6 +35,11 @@ export class ComputeQuotaService {
       [approvalId, opts.threadId, decision.reason, JSON.stringify([{ id: 'ok', label: 'OK' }]), JSON.stringify({ kind: 'compute', captainId: opts.captainId ?? null, request: opts.request ?? {}, capacity, reason: decision.reason })]
     );
     return { enabled: true, decision, approvalId, capacity };
+  }
+
+  async getAllocation(captainId: string): Promise<(Quota & { state: string }) | undefined> {
+    const rows = await this.deps.pool.query(`SELECT state,vcpus,ram_mb as "ramMb",disk_gb as "diskGb" FROM computer_allocations WHERE captain_id=$1`, [captainId]);
+    return rows.rows[0] as never;
   }
 
   async setAllocationState(captainId: string, state: 'running' | 'sleeping' | 'absent' | 'stopped', patch: Partial<Quota> = {}): Promise<unknown> {
