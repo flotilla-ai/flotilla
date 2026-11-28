@@ -2,13 +2,13 @@ import pg from 'pg';
 import { ApiFailure } from '../api-platform/types.js';
 
 export interface PullRequestSettings { branchPrefix: string; draftDefault: boolean; openInFlotilla: boolean; personalOverride: boolean }
-export interface PullRequestView { repo: string; number: number; threadId: string; title: string; author: string; state: string; labels: string[]; draft: boolean; checksState: string; headBranch: string; owned: boolean; blockedReason: string | null; updatedAt: string; contextThreadIds?: string[] }
+export interface PullRequestView { repo: string; number: number; threadId: string; title: string; author: string; state: string; labels: string[]; draft: boolean; checksState: string; headBranch: string; headSha?: string | null; owned: boolean; blockedReason: string | null; updatedAt: string; contextThreadIds?: string[] }
 export interface MergeAction { action: 'merge' | 'comment' | 'update-branch' | 'auto-merge'; method?: 'squash' | 'merge' | 'rebase'; comment?: string; actor: string }
 export interface AutofixWake { threadId: string; repo: string; number: number; text: string }
 export interface PrGateway { act(input: MergeAction & { repo: string; number: number }): Promise<Record<string, unknown>>; review(input: { repo: string; number: number; verdict: string; comment: string; actor: string }): Promise<Record<string, unknown>> }
 type Row = Record<string, any>;
 const failClosedGateway: PrGateway = { act: async () => { throw new ApiFailure('Conflict', 'live GitHub gateway is not configured'); }, review: async () => { throw new ApiFailure('Conflict', 'live GitHub gateway is not configured'); } };
-const view = (r: Row): PullRequestView => ({ repo: r.repo, number: r.number, threadId: r.thread_id, title: r.title, author: r.author, state: r.state, labels: r.labels ?? [], draft: r.draft, checksState: r.checks_state, headBranch: r.head_branch, owned: r.owned, blockedReason: blocked(r), updatedAt: r.updated_at?.toISOString?.() ?? String(r.updated_at), contextThreadIds: r.context_thread_ids ?? [] });
+const view = (r: Row): PullRequestView => ({ repo: r.repo, number: r.number, threadId: r.thread_id, title: r.title, author: r.author, state: r.state, labels: r.labels ?? [], draft: r.draft, checksState: r.checks_state, headBranch: r.head_branch, headSha: r.head_sha, owned: r.owned, blockedReason: blocked(r), updatedAt: r.updated_at?.toISOString?.() ?? String(r.updated_at), contextThreadIds: r.context_thread_ids ?? [] });
 function blocked(r: Row): string | null { if (r.state !== 'open') return `pull request is ${r.state}`; if (r.draft) return 'draft pull request'; if (r.checks_state === 'pending') return 'checks are pending'; if (r.checks_state === 'failed') return 'checks are failing'; return null }
 function prefix(value: unknown): string { const p = String(value ?? 'flotilla').trim().replace(/^\/+|\/+$/g, ''); if (!/^[A-Za-z0-9][A-Za-z0-9._/-]{0,80}$/.test(p)) throw new ApiFailure('ValidationFailed', 'invalid branch prefix'); if (p === 'release' || p.startsWith('release/')) throw new ApiFailure('ValidationFailed', 'release is a reserved branch prefix'); return p }
 export class PrAutofixStore {

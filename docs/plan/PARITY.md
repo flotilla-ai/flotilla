@@ -139,7 +139,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-131 | Review | P2 | done | phase2-24 |  | Findings persist category, severity, confidence, file and line with validation. |
 | CAPY-132 | Review | P2 | done | phase2-24 |  | Notes persist as anchored non-failing observations and are excluded from posting unless opted in. |
 | CAPY-133 | Review | P2 | done | phase2-24 |  | Per-repo automatic mode off/once/every-push is validated and durable. |
-| CAPY-134 | Review | P2 | blocked | phase2-24 |  | API and source labels exist, but PR-page buttons and @mention ingestion are not connected. |
+| CAPY-134 | Review | P2 | done | unblock-09 | https://github.com/flotilla-ai/flotilla/pull/106 | PR-page Review posts the synced head SHA with source `pr-page`; `@flotilla review <instructions>` starts a mention review carrying instructions. |
 | CAPY-135 | Review | P2 | done | phase2-24 |  | A push with a new head creates a fresh round and supersedes the prior round findings. |
 | CAPY-136 | Review | P2 | done | phase2-24 |  | Low/Medium/High/Flex credit costs are exactly 1/5/10 and flex follow-ups cost 1. |
 | CAPY-137 | Review | P2 | blocked | phase2-24 |  | Review runs record adapter/connection selection, but no policy yet prevents use of owner keys/subscriptions. |
@@ -407,9 +407,9 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-398 | GitHub | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | install/validate the GitHub app webhook and permission flow live. |
 | CAPY-399 | GitHub | P2 | done | phase2-35 |  | Fixture-backed account/installation store manages multiple personal/org accounts and installations with repositories and dependency-reader metadata (`github-integration.test.ts`). |
 | CAPY-400 | GitHub | P2 | needs-human-login | phase2-35 |  | Personal-account API shape and acting identity settings exist, but live OAuth/PAT verification and acting as the user on GitHub need a human login. Operator command: connect a PAT/OAuth token, then run a fixture PR creation against a test repository. |
-| CAPY-401 | GitHub | P2 | blocked | phase2-35 |  | Account-level and per-PR commit identity settings validate all four options, but commit/PR creation does not consume them yet. |
+| CAPY-401 | GitHub | P2 | done | unblock-09 | https://github.com/flotilla-ai/flotilla/pull/106 | Four commit-author modes are fixture-tested in real git repositories; per-PR overrides win and API key `pullRequestAuthor` is accepted. |
 | CAPY-402 | GitHub | P2 | blocked | phase2-35 |  | Commit email is stored/validated, but Flotilla has no managed GPG key or signed-commit path. |
-| CAPY-403 | GitHub | P2 | blocked | phase2-35 |  | Generic PR comment wakes exist, but `@capy` command parsing and the eyes reaction are not implemented. |
+| CAPY-403 | GitHub | P2 | done | unblock-09 | https://github.com/flotilla-ai/flotilla/pull/106 | `@flotilla`/`@capy` PR comments are ingested from issue-comment webhooks, record an eyes reaction, and wake the owning PR thread. |
 | CAPY-404 | GitHub | P2 | blocked | phase2-35 |  | Installations can record dependency-reader metadata, but no read-only dependency reader GitHub App/credential flow exists. |
 | CAPY-405 | GitHub | P2 | done | phase2-35 |  | Installations fail closed unless contents/write, pull-requests/write, checks/read, issues/write and metadata/read are present (`github-integration.test.ts`). |
 | CAPY-406 | Slack | P3 | blocked | phase3-12-slack |  | Blocked: the Slack app connector, event ingestion, thread synchronisation, agent Slack tools, user-read mode, and PR card/DM surfaces are not implemented. |
