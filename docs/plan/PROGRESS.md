@@ -1,12 +1,12 @@
 # Flotilla progress
 
 Current phase: unblock run (clearing the 199 rows that were `blocked` at `f08de2a`). Units run serially in the parent session (no child sessions: no free/SWE 2.1 child mode can be selected).
-Last unit: unblock-04-web-settings-models (in review). Unblock units merged or blocked: 3 of 52.
+Last unit: unblock-05-web-captain-automations (in progress). Unblock units merged or blocked: 3 of 52.
 Unblock plan: `docs/plan/BLOCKED-TRIAGE.md`, `docs/plan/handoffs/README-unblock.md` (52 units).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md`: done 408, blocked 185, needs-human-login 24, n-a 22, pending 0. At the start of the unblock run: done 394, blocked 199, needs-human-login 24, n-a 22, pending 0.
+Counted in `docs/plan/PARITY.md`: done 413, blocked 180, needs-human-login 24, n-a 22, pending 0. At the start of the unblock run: done 394, blocked 199, needs-human-login 24, n-a 22, pending 0.
 
 ## Unit table
 
@@ -80,11 +80,12 @@ Counted in `docs/plan/PARITY.md`: done 408, blocked 185, needs-human-login 24, n
 | unblock-02-web-composer-queue | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/97 | composer queue, versions, context meter; see `docs/runlog/unblock-02.md` |
 | unblock-03-web-composer-cards | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/98 | composer cards, plan/budget/retry actions; see `docs/runlog/unblock-03.md` |
 | unblock-04-web-settings-models | in review | 1 | https://github.com/flotilla-ai/flotilla/pull/99 | wake settings, BYOM hold UI, model picker, connection editor; see `docs/runlog/unblock-04.md` |
+| unblock-05-web-captain-automations | in progress | 1 |  | New Captain dialog, Captain PR filter, sidebar modes, automations page, virtualized crew list; see `docs/runlog/unblock-05.md` |
 
 ## Next action
 
 1. Merge unblock-04-web-settings-models
-2. unblock-05-web-captain-automations
+2. Finish and merge unblock-05-web-captain-automations
 3. unblock-06-web-drive-file-browser
 
 Do not merge `flotilla/p1` into `main`.

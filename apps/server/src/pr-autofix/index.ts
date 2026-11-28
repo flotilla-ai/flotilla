@@ -32,6 +32,7 @@ export class PrAutofixStore {
     let rows = (await this.q(`SELECT p.* FROM prs p LEFT JOIN threads t ON t.id=p.thread_id WHERE (t.owner_id=$1 OR p.thread_id IS NULL) ORDER BY p.updated_at DESC`, [userId])).filter((r) => installed.has(String(r.repo).toLowerCase()));
     const qtext = String(query.q ?? ''); const terms = Object.fromEntries([...qtext.matchAll(/(author|repo|status|label|since):([^\s]+)/g)].map((m) => [m[1], m[2]]));
     const f = { author: query.author ?? terms.author, repo: query.repo ?? terms.repo, status: query.status ?? terms.status, label: query.label ?? terms.label, since: query.since ?? terms.since } as Row;
+    if (query.captain) { const crew = new Set((await this.q('SELECT id FROM threads WHERE crew_of=$1', [String(query.captain)])).map((r) => String(r.id))); rows = rows.filter((r) => crew.has(String(r.thread_id))); }
     if (f.author) rows = rows.filter((r) => r.author === f.author); if (f.repo) rows = rows.filter((r) => r.repo.toLowerCase().includes(String(f.repo).toLowerCase())); if (f.status) rows = rows.filter((r) => r.state === f.status); if (f.label) rows = rows.filter((r) => (r.labels ?? []).includes(f.label)); if (f.since) rows = rows.filter((r) => new Date(r.updated_at) >= new Date(String(f.since)));
     return rows.map(view);
   }
