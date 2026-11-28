@@ -1,12 +1,12 @@
 # Flotilla progress
 
 Current phase: unblock run (clearing the 199 rows that were `blocked` at `f08de2a`). Units run serially in the parent session (no child sessions: no free/SWE 2.1 child mode can be selected).
-Last unit: unblock-09-pr-review-mentions (in progress). Unblock units merged or blocked: 8 of 52.
+Last unit: unblock-10-agent-tools (in progress). Unblock units merged or blocked: 9 of 52.
 Unblock plan: `docs/plan/BLOCKED-TRIAGE.md`, `docs/plan/handoffs/README-unblock.md` (52 units).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md`: done 429, blocked 164, needs-human-login 24, n-a 22, pending 0. At the start of the unblock run: done 394, blocked 199, needs-human-login 24, n-a 22, pending 0.
+Counted in `docs/plan/PARITY.md`: done 433, blocked 160, needs-human-login 24, n-a 22, pending 0. At the start of the unblock run: done 394, blocked 199, needs-human-login 24, n-a 22, pending 0.
 
 ## Unit table
 
@@ -85,13 +85,14 @@ Counted in `docs/plan/PARITY.md`: done 429, blocked 164, needs-human-login 24, n
 | unblock-07-issues-web-board | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/102 | board move/undo/views/settings/display/comment tags; see `docs/runlog/unblock-07.md` |
 
 | unblock-08-pr-page-wiring | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/103 | PR creation choices/links, PR page, Cmd+K, PR-context threads, sidebar status; see `docs/runlog/unblock-08.md` |
-| unblock-09-pr-review-mentions | in progress | 1 | https://github.com/flotilla-ai/flotilla/pull/106 | PR-page review start, mention ingestion/reactions, commit-author fixtures/overrides; see `docs/runlog/unblock-09.md` |
+| unblock-09-pr-review-mentions | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/106 | PR-page review start, mention ingestion/reactions, commit-author fixtures/overrides; see `docs/runlog/unblock-09.md` |
+| unblock-10-agent-tools | in progress | 1 |  | run-token sibling/captain/environment/MCP proposal tools; see `docs/runlog/unblock-10.md` |
 
 ## Next action
 
-1. Finish and merge unblock-09-pr-review-mentions
-2. unblock-10-agent-tools
-3. unblock-11-captain-lifecycle
+1. Finish and merge unblock-10-agent-tools
+2. unblock-11-captain-lifecycle
+3. unblock-12-background-model
 
 Do not merge `flotilla/p1` into `main`.
 

@@ -3,9 +3,10 @@ import { crewLimitCheck } from '@flotilla/core/kernel/crewLimits';
 import type pg from 'pg';
 import type { RunTokenService } from './tokens.js';
 import { ApiIssuesStore } from '../../api-issues/index.js';
+import { agentToolNames, handleAgentTool, type AgentToolDeps } from '../../agent-tools/index.js';
 
 type RunnerLike = { createThread(input: Record<string, unknown>): Promise<Record<string, unknown>>; message(threadId: string, text: string, mode?: 'queue' | 'interrupt'): Promise<unknown> };
-export type CaptainToolDeps = { pool: pg.Pool; tokens: RunTokenService; runner: RunnerLike; issues?: Pick<ApiIssuesStore,'createIssue'|'link'|'updateIssue'|'states'> };
+export type CaptainToolDeps = { pool: pg.Pool; tokens: RunTokenService; runner: RunnerLike; issues?: Pick<ApiIssuesStore,'createIssue'|'link'|'updateIssue'|'states'>; environments?: AgentToolDeps['environments']; mcp?: AgentToolDeps['mcp'] };
 const zero = { usd: 0, inputTokens: 0, outputTokens: 0, cacheTokens: 0, machineSec: 0 };
 function json(value: unknown) { return { content: [{ type: 'text', text: JSON.stringify(value) }] }; }
 export class CaptainToolService {
@@ -61,6 +62,12 @@ export class CaptainToolService {
   }
   private async dispatch(captainId: string, name: string, args: Record<string, unknown>): Promise<unknown> {
     if (name.startsWith('issue.')) return this.issueDispatch(captainId, name, args);
+    if ((agentToolNames as readonly string[]).includes(name)) {
+      const [self] = (await this.deps.pool.query('SELECT * FROM threads WHERE id=$1', [captainId])).rows as Record<string, any>[];
+      if (!self) throw new KernelDenied('scope', 'thread not found');
+      const agent = await handleAgentTool(self, captainId, name, args, this.deps, (sql, params) => this.deps.pool.query(sql, params));
+      if (agent.handled) return agent.result;
+    }
     const [thread] = (await this.deps.pool.query(`SELECT 1 FROM threads WHERE id=$1 AND role='captain'`, [captainId])).rows;
     if (!thread) throw new KernelDenied('scope', 'Captain tools require a Captain thread');
     if (name === 'crew.start') return this.crewStart(captainId, args);
