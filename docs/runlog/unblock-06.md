@@ -14,6 +14,7 @@ Verification (measured):
 - `pnpm --filter @flotilla/server exec vitest run src/issues-web/issues-web.test.ts src/captain/tools/captain-tools.test.ts` — 2 files, 4 tests passed.
 - `pnpm --filter @flotilla/server exec vitest run src/api-issues/api-issues.test.ts` — 1 file, 1 test passed, including rejection of a thread link owned by another user.
 - web and server `tsc --noEmit` passed.
-- `make check` passed after the review fixes (`check=0`).
+- `make check` passed after the first review-fix round (`check=0`); final second-round `make check` is recorded in the PR body.
+- Fake adapter standard-MCP proof: six fixture `crew.start` calls reached a local MCP listener with `Bearer tok123`.
 
 Unverified: browser end-to-end interaction with a live backend, real file upload before download. No paid API calls or vendor logins used.
