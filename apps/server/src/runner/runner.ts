@@ -9,7 +9,7 @@ import { seedWorkspace } from '../git/mirror.js';
 import type { AgentAdapter } from '@flotilla/core/types';
 import { getRunTokenService } from '../captain/tools/registry.js';
 import { captainMcpTar, tarFile } from '../captain/tools/mcpConfig.js';
-import { secretsTar, tarFile as secretTar, type SecretsStore } from '../secrets/store.js';
+import { secretsTar, type SecretsStore } from '../secrets/store.js';
 import type { McpStore } from '../mcp/store.js';
 import type { EnvVarMutation, PreparedSecrets } from '../secrets/types.js';
 import { ApiFailure } from '../api-platform/types.js';
@@ -270,7 +270,7 @@ export class ThreadRunner {
     const place: RunPlacement = {}; try { for (const hook of placementHooks) Object.assign(place, await hook(thread)); } catch (err) { return this.failStart(threadId, runId, err); }
     const base = await this.project(thread);
     const project = base && place.baseBranch ? { ...base, repo: { ...(base.repo as Row), baseBranch: place.baseBranch } } : base;
-    const tokenService = thread.role === 'captain' ? getRunTokenService() : null;
+    const tokenService = adapter.manifest.capabilities?.mcp ? getRunTokenService() : null;
     const runToken = tokenService?.issue(runId, threadId);
     const pooled = this.pooled(thread, place);
     let machine: { containerId: string; repairPrompt?: string | null } = { containerId: '' };
@@ -285,9 +285,8 @@ export class ThreadRunner {
         return this.failStart(threadId, runId, new Error('secrets file could not be written to the machine', { cause: err }));
       }
     }
-    if (runToken && 'copyIn' in this.deps.driver) await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', captainMcpTar(runToken.token)).catch(() => undefined);
-    const mcp = !runToken && adapter.manifest.capabilities?.mcp && 'copyIn' in this.deps.driver ? await this.deps.mcp?.prepare(threadId, prepared.env).catch(() => null) ?? null : null;
-    if (mcp) try { await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', Buffer.concat([secretTar('flotilla/mcp.json', Buffer.from(JSON.stringify(mcp.config)), '0000600'), Buffer.alloc(1024)])); } catch (err) {
+    const mcp = adapter.manifest.capabilities?.mcp && 'copyIn' in this.deps.driver ? await this.deps.mcp?.prepare(threadId, prepared.env).catch(() => null) ?? null : null;
+    if ((runToken || mcp) && 'copyIn' in this.deps.driver) try { await (this.deps.driver as Driver & {copyIn(id:string,dir:string,tar:Buffer):Promise<void>}).copyIn(machine.containerId, '/run', captainMcpTar(runToken?.token ?? null, mcp?.config.mcpServers ?? {})); } catch (err) {
       await ((this.deps.driver as Driver & {remove?(id:string):Promise<void>}).remove?.(machine.containerId) ?? this.deps.driver.stop(machine.containerId)).catch(() => undefined);
       return this.failStart(threadId, runId, new Error('MCP config could not be written to the machine', { cause: err }));
     }

@@ -129,7 +129,11 @@ export class ApiIssuesStore {
   async link(userId: string, id: string, input: Record<string, unknown>): Promise<IssueLink> {
     const r = await this.oneIssue(id); const kind = String(input.kind ?? ''); if (!['pull-request', 'thread'].includes(kind)) throw new ApiFailure('ValidationFailed', 'kind must be pull-request or thread');
     const target = text(input.target, 'target', 500);
-    const [row] = await this.q('INSERT INTO issue_links (id,issue_id,kind,target) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING RETURNING *', [rid('ilk'), r.id, kind, target]);
+    if (kind === 'thread') {
+      const [owner] = await this.q('SELECT owner_id FROM threads WHERE id=$1', [target]);
+      if (!owner || owner.owner_id !== userId) throw new ApiFailure('NotFound', 'thread not found');
+    }
+    const [row] = await this.q('INSERT INTO issue_links (id,issue_id,kind,target,created_by) VALUES ($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING RETURNING *', [rid('ilk'), r.id, kind, target, userId]);
     if (!row) throw new ApiFailure('Conflict', 'link already exists');
     await this.event(r.id, userId, 'linked', { kind, target });
     return link(row);

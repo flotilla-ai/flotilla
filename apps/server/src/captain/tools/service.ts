@@ -2,9 +2,10 @@ import { KernelDenied } from '@flotilla/core/types';
 import { crewLimitCheck } from '@flotilla/core/kernel/crewLimits';
 import type pg from 'pg';
 import type { RunTokenService } from './tokens.js';
+import { ApiIssuesStore } from '../../api-issues/index.js';
 
 type RunnerLike = { createThread(input: Record<string, unknown>): Promise<Record<string, unknown>>; message(threadId: string, text: string, mode?: 'queue' | 'interrupt'): Promise<unknown> };
-export type CaptainToolDeps = { pool: pg.Pool; tokens: RunTokenService; runner: RunnerLike };
+export type CaptainToolDeps = { pool: pg.Pool; tokens: RunTokenService; runner: RunnerLike; issues?: Pick<ApiIssuesStore,'createIssue'|'link'|'updateIssue'|'states'> };
 const zero = { usd: 0, inputTokens: 0, outputTokens: 0, cacheTokens: 0, machineSec: 0 };
 function json(value: unknown) { return { content: [{ type: 'text', text: JSON.stringify(value) }] }; }
 export class CaptainToolService {
@@ -48,7 +49,20 @@ export class CaptainToolService {
       catch { if (attempt === 2) return; }
     }
   }
+  private issues(): Pick<ApiIssuesStore,'createIssue'|'link'|'updateIssue'|'states'> { return this.deps.issues ?? new ApiIssuesStore(this.deps.pool) }
+  private async issueDispatch(threadId: string, name: string, args: Record<string, unknown>): Promise<unknown> {
+    const [t] = (await this.deps.pool.query('SELECT owner_id FROM threads WHERE id=$1', [threadId])).rows as { owner_id: string }[];
+    if (!t) throw new KernelDenied('scope', 'thread not found');
+    const store = this.issues();
+    if (name === 'issue.file') { const issue = await store.createIssue(t.owner_id, args); await store.link(t.owner_id, issue.id, { kind: 'thread', target: threadId }); return { issue }; }
+    if (name === 'issue.update') return { issue: await store.updateIssue(t.owner_id, String(args.issueId ?? ''), args) };
+    if (name === 'issue.close') { const states = (await store.states()).items; const done = states.find((x) => ['done','canceled','cancelled'].includes(x.name.toLowerCase())) ?? states.at(-1); if (!done) throw new KernelDenied('scope', 'closing issue state not found'); return { issue: await store.updateIssue(t.owner_id, String(args.issueId ?? ''), { stateId: done.id }) }; }
+    throw new Error(`unknown tool ${name}`);
+  }
   private async dispatch(captainId: string, name: string, args: Record<string, unknown>): Promise<unknown> {
+    if (name.startsWith('issue.')) return this.issueDispatch(captainId, name, args);
+    const [thread] = (await this.deps.pool.query(`SELECT 1 FROM threads WHERE id=$1 AND role='captain'`, [captainId])).rows;
+    if (!thread) throw new KernelDenied('scope', 'Captain tools require a Captain thread');
     if (name === 'crew.start') return this.crewStart(captainId, args);
     if (name === 'crew.message') { const owned = (await this.deps.pool.query('SELECT 1 FROM threads WHERE id=$1 AND crew_of=$2', [args.threadId, captainId])).rows[0]; if (!owned) throw new KernelDenied('crew-limit', 'thread is not in this captain crew'); await this.deps.runner.message(String(args.threadId), String(args.text ?? ''), 'queue'); return { ok: true }; }
     if (name === 'crew.release') { const out = await this.deps.pool.query('UPDATE threads SET crew_of=null WHERE id=$1 AND crew_of=$2', [args.threadId, captainId]); if ((out as { rowCount?: number }).rowCount === 0) throw new KernelDenied('crew-limit', 'thread is not in this captain crew'); return { ok: true }; }

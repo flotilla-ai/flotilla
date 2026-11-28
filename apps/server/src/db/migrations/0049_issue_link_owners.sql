@@ -1,0 +1,1 @@
+ALTER TABLE issue_links ADD COLUMN IF NOT EXISTS created_by text REFERENCES users(id) ON DELETE SET NULL;

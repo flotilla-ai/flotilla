@@ -17,6 +17,7 @@ beforeAll(async () => {
   for (let i = 0; i < 40; i++) { try { const c = new pg.Client({ connectionString: url }); await c.connect(); await c.end(); break; } catch { await new Promise((r) => setTimeout(r, 250)); } }
   await migrate(url); pool = new pg.Pool({ connectionString: url });
   await pool.query(`INSERT INTO users (id,email,role) VALUES ('usr_ai','ai@example.invalid','admin'),('usr_ai2','ai2@example.invalid','member')`);
+  await pool.query(`INSERT INTO threads (id,code,role,owner_id,title,status,engine,budget,spent) VALUES ('thr_ai','T-AI','thread','usr_ai','thread','idle','{}','{}','{}'),('thr_ai2','T-AI2','thread','usr_ai2','other','idle','{}','{}','{}')`);
   const store = new ApiIssuesStore(pool); app = new Hono(); app.onError((err, c) => err instanceof ApiFailure ? apiError(c, err.kind, err.message) : apiError(c, 'Internal', String(err)));
   app.use('*', async (c, next) => { c.set('userId' as never, 'usr_ai' as never); await next(); });
   app.route('/api/v1', createApiIssuesRoute(() => store).app);
@@ -37,6 +38,7 @@ it('CAPY-568..592: public issues CRUD, comments, timeline, relations, links, fil
   const timeline = (await call('GET', `/issues/${made.json.id}/timeline`)).json.items; expect(timeline.map((x: any) => x.kind)).toEqual(expect.arrayContaining(['created', 'updated', 'commented', 'comment']));
   const rel = await call('POST', `/issues/${made.json.id}/relations`, { otherIssueId: other.json.id, type: 'blocks' }); expect(rel.status).toBe(201);
   expect((await call('GET', `/issues/${made.json.id}/relations`)).json.items).toEqual([expect.objectContaining({ id: rel.json.id, type: 'blocks' })]);
+  expect((await call('POST', `/issues/${made.json.id}/links`, { kind: 'thread', target: 'thr_ai2' })).status).toBe(404);
   const link = await call('POST', `/issues/${made.json.id}/links`, { kind: 'thread', target: 'thr_ai' }); expect(link.status).toBe(201);
   expect((await call('DELETE', `/issues/${made.json.id}/links/${link.json.id}`)).status).toBe(204);
   expect((await call('POST', `/issues/${made.json.id}/files`, { fileIds: [grant.fileId] })).json.attached).toBe(1);
