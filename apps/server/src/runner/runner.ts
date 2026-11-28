@@ -248,7 +248,7 @@ export class ThreadRunner {
 
     const policy = thread.budget as { maxUsd: number | null; maxWallSec: number | null; maxTokens: number | null; warnAt: number };
     const reserveAmount = Math.min(20_000, Math.max(1, policy.maxUsd ?? 20_000));
-    let gate: { why: string; shared: boolean } | null = null; for (const check of runGates) gate ??= await check(thread);
+    let gate: ({ why: string; shared: boolean } & Partial<SharedBudgetGate>) | null = null; for (const check of runGates) gate ??= await check(thread);
     if (gate || (policy.maxUsd !== null && (thread.spent as CostTotals).usd >= policy.maxUsd)) { await this.pool.query(`UPDATE runs SET state='paused_budget',ended_at=now() WHERE id=$1`, [runId]); await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'run.ended', source: 'kernel', trust: 'trusted', payload: { state: 'paused_budget', usage: zero } }] as never); return this.pauseBudget(threadId, runId, gate?.why ?? 'budget', gate?.shared ? { scope: gate.scope ?? 'global', scopeId: gate.scopeId ?? 'global', window: gate.window ?? 'month' } : false); }
     let prepared: PreparedSecrets;
     try { prepared = await this.deps.vault?.prepare(threadId) ?? { env: {}, grants: [] }; } catch (err) { return this.failStart(threadId, runId, err); }
