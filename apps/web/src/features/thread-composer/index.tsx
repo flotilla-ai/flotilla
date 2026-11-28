@@ -5,7 +5,7 @@ import './thread-composer.css';
 import {InlineVisuals} from '../thread-media/index.js';
 import {ContextMeter,QueuePanel,SentMessage} from './queue.js';import {versionGroups} from './queue-model.js';
 type Ref={id:string;code:string;title:string};type Attachment={fileId:string;name:string};
-type Card={id:string;title:string;inline:null|{kind:'env';name:string}|{kind:'desktop';url:string}|{kind:'feedback';title:string;body:string}};
+type Card={id:string;title:string;kind?:string;options?:{id:string;label:string}[];inline:null|{kind:'env';name:string}|{kind:'desktop';url:string}|{kind:'feedback';title:string;body:string}};
 const text=(e:Ev)=>typeof e.payload==='string'?e.payload:e.payload?.text??e.payload?.delta??JSON.stringify(e.payload);
 const lookup=(q:string)=>api(`/thread-lookup?q=${encodeURIComponent(q)}`).then((r:{items:Ref[]})=>r.items).catch(()=>[] as Ref[]);
 
@@ -41,21 +41,27 @@ function Composer({value,setValue,onSend,threadId,attach=true,onUploaded}:{value
  </form>;
 }
 
-function RequestCards({threadId}:{threadId:string}){
+function RequestCards({threadId,events=[]}:{threadId:string;events?:Ev[]}){
  const[cards,setCards]=useState<Card[]>([]);const[undo,setUndo]=useState<Card|null>(null);const[val,setVal]=useState<Record<string,string>>({});
  const load=()=>api(`/threads/${threadId}/requests`).then((r:{items:Card[]})=>setCards(r.items)).catch(()=>{});
- useEffect(()=>{void load()},[threadId]);
+ const approvalTick=events.filter(e=>e.kind==='approval.requested'||e.kind==='approval.updated').map(e=>e.seq).join(',');
+ useEffect(()=>{void load()},[threadId,approvalTick]);
+ useEffect(()=>{const done=new Set(events.filter(e=>e.kind==='approval.updated'&&e.payload?.state&&e.payload.state!=='open').map(e=>String(e.payload.approvalId)));if(done.size)setCards(x=>x.filter(c=>!done.has(c.id)))},[events]);
  const act=async(c:Card,path:string,body?:unknown)=>{await api(`/approvals/${c.id}/${path}`,{method:'POST',body:body===undefined?undefined:JSON.stringify(body)});setCards(x=>x.filter(y=>y.id!==c.id));if(path==='dismiss')setUndo(c)};
  return <section aria-label='requests'>
   {cards.map(c=><article className='needs' key={c.id}><b>{c.title}</b>
    {c.inline?.kind==='env'&&<><input type='password' aria-label={c.inline.name} value={val[c.id]??''} onChange={e=>setVal(v=>({...v,[c.id]:e.target.value}))}/><button onClick={async()=>{await api('/me/environment-variables',{method:'PUT',body:JSON.stringify({variables:[{name:(c.inline as {name:string}).name,value:val[c.id]??''}]})});await act(c,'answer',{optionId:'done'})}}>Save</button></>}
    {c.inline?.kind==='desktop'&&<iframe title='desktop' src={c.inline.url}/>}
    {c.inline?.kind==='feedback'&&<><textarea aria-label='feedback report' value={val[c.id]??c.inline.body} onChange={e=>setVal(v=>({...v,[c.id]:e.target.value}))}/><button onClick={()=>void act(c,'feedback',{optionId:'send',body:val[c.id]??(c.inline as {body:string}).body})}>Send report</button><button onClick={()=>void act(c,'feedback',{optionId:'discard'})}>Discard</button></>}
+   {(c.options??[]).map(o=><button key={o.id} onClick={()=>{const body:{optionId:string;value?:number}={optionId:o.id};if(c.kind==='budget'&&o.id==='raise'){const usd=Number(prompt('Raise budget cap to USD')??'');if(!Number.isFinite(usd)||usd<=0)return;body.value=Math.round(usd*1e6)}void act(c,'answer',body)}}>{o.label}</button>)}
+   <button onClick={()=>void api(`/captains/${threadId}/approvals/dismiss`,{method:'POST'}).then(load)}>Dismiss all</button>
    <button onClick={()=>void act(c,'later',{minutes:60})}>Later</button><button onClick={()=>void act(c,'dismiss')}>Dismiss</button>
   </article>)}
   {undo&&<p>Dismissed <button onClick={async()=>{await api(`/approvals/${undo.id}/undo`,{method:'POST'});setUndo(null);await load()}}>Undo</button></p>}
  </section>;
 }
+
+function ErrorRetry({threadId,events}:{threadId:string;events:Ev[]}){const[model,setModel]=useState('');const last=[...events].reverse().find(e=>e.kind==='run.ended'&&e.payload?.error);if(!last)return null;const retry=()=>api(`/threads/${threadId}/retry`,{method:'POST',body:JSON.stringify({...(model?{adapter:'fake',model:'fake-small',connectionId:'free'}:{})})});return<article className='needs' aria-label='provider error'><b>Provider error</b><p>{String(last.payload.error.message??last.payload.error)}</p><select aria-label='retry model' value={model} onChange={e=>setModel(e.target.value)}><option value=''>same model</option><option value='fake-small'>Flotilla free</option></select><button onClick={()=>void retry()}>Retry</button></article>}
 
 export function ThreadComposer({threadId,events:raw}:{threadId:string;events:Ev[]}){const events=Array.isArray(raw)?raw:[];
  const[draft,setDraft]=useState('');const[tick,setTick]=useState(0);const[returned,setReturned]=useState<string[]>([]);const bump=()=>setTick(t=>t+1);const restored=useRef(false);const timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
@@ -65,6 +71,8 @@ export function ThreadComposer({threadId,events:raw}:{threadId:string;events:Ev[
  const reply=(s:ThreadSection)=>setDraft(d=>quote(s)+d);
  const send=async(text:string,own:Attachment[],mode:'queue'|'interrupt')=>{
   const files=[...returned.map(fileId=>({fileId,name:fileId})),...own];
+  const btw=/^\/btw\s+([\s\S]+)$/.exec(text);
+  if(btw&&threadId){const s=await api(`/threads/${threadId}/subagents`,{method:'POST',body:JSON.stringify({title:btw[1].slice(0,80),prompt:btw[1],placement:'fresh',engine:{adapter:'fake'}})});await api(`/subagents/${s.id}/start`,{method:'POST'});location.hash=`#/threads/${s.id}`;return}
   const fb=/^\/feedback\s+(.+)\n?([\s\S]*)$/.exec(text);
   if(fb){await api(`/threads/${threadId}/feedback`,{method:'POST',body:JSON.stringify({title:fb[1].trim(),body:fb[2].trim()||fb[1].trim()})});location.reload();return}
   if(files.length){await api(`/threads/${threadId}/inbox`,{method:'POST',body:JSON.stringify({text,mode,attachments:files.map(f=>f.fileId)})});setReturned([]);bump();return}
@@ -77,7 +85,8 @@ export function ThreadComposer({threadId,events:raw}:{threadId:string;events:Ev[
    :(x.event.kind==='agent.message'||x.event.kind==='agent.delta')?<article key={x.event.seq} id={`ev-${x.event.seq}`} data-seq={x.event.seq}>{sections(x.event.seq,text(x.event)).map(s=><section key={s.index}>{s.heading&&<h3>{s.heading}</h3>}<p>{s.text}</p><InlineVisuals markdown={s.text}/><button onClick={()=>reply(s)}>Reply</button></section>)}</article>
    :versions.hidden.has(x.event.seq)?null
    :<article key={x.event.seq} id={`ev-${x.event.seq}`} data-seq={x.event.seq}><small>{x.event.kind}</small>{versions.shown.has(x.event.seq)?<SentMessage threadId={threadId} versions={versions.shown.get(x.event.seq)!} onEdited={bump}/>:<p>{text(x.event)}</p>}</article>)}</section>
-  <RequestCards threadId={threadId}/>
+  <RequestCards threadId={threadId} events={events}/>
+  <ErrorRetry threadId={threadId} events={events}/>
   <QueuePanel threadId={threadId} tick={tick+events.length} onReturn={(t,a)=>{setDraft(d=>d?`${d}\n${t}`:t);setReturned(r=>[...r,...a])}}/>
   {returned.length>0&&<small aria-label='returned files'>{returned.length} attached file{returned.length>1?'s':''} kept from the returned message <button type='button' onClick={()=>setReturned([])}>Remove</button></small>}
   <ContextMeter threadId={threadId} tick={events.filter(e=>e.kind==='run.ended').length}/>

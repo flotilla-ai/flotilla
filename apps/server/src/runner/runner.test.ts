@@ -166,6 +166,16 @@ describe('thread runner',()=>{
     expect(seenPrompt).toContain('Repair the failing environment build.');
     await snapRunner.drain();
   },20_000);
+  it('budget raises validate amounts and update shared windows before closing approvals',async()=>{
+    await pool.query(`INSERT INTO threads (id,code,role,owner_id,title,status,engine,budget,spent) VALUES ('thr_capfix','CF-1','thread','usr_test','cap fix','paused','{}','{}','{}') ON CONFLICT (id) DO NOTHING`);
+    await pool.query(`INSERT INTO usage_budgets(scope,scope_id,budget_window,max_usd) VALUES ('project','prj_capfix','month',1000) ON CONFLICT (scope,scope_id) DO UPDATE SET max_usd=1000`);
+    await pool.query(`INSERT INTO approvals (id,thread_id,kind,question,options,blocking,state,detail) VALUES ('apr_capfix','thr_capfix','budget','cap','[]',true,'open','{"shared":{"scope":"project","scopeId":"prj_capfix","window":"month"}}') ON CONFLICT (id) DO NOTHING`);
+    await expect(runner.answerApproval('apr_capfix','raise',Number.MAX_SAFE_INTEGER+1,'usr_test')).rejects.toThrow('micro-USD');
+    expect((await pool.query(`SELECT state FROM approvals WHERE id='apr_capfix'`)).rows[0].state).toBe('open');
+    await runner.answerApproval('apr_capfix','raise',5000000,'usr_test');
+    expect((await pool.query(`SELECT max_usd FROM usage_budgets WHERE scope='project' AND scope_id='prj_capfix'`)).rows[0].max_usd).toBe('5000000');
+    expect((await pool.query(`SELECT state FROM approvals WHERE id='apr_capfix'`)).rows[0].state).toBe('answered');
+  },20_000);
   it('failed starts requeue claimed input without cancelling queued messages',async()=>{
     await pool.query(`INSERT INTO threads (id,code,role,owner_id,title,status,engine,budget,spent) VALUES ('thr_failstart','FS-1','thread','usr_test','fail start','queued','{}','{}','{}')`);
     await pool.query(`INSERT INTO runs (id,thread_id,ordinal,trigger,state,usage) VALUES ('run_failstart','thr_failstart',1,'{}','starting','{}')`);

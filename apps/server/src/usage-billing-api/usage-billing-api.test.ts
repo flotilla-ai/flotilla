@@ -137,7 +137,7 @@ describe('usage, budgets and API models', () => {
     expect(card.question).toMatch(/monthly global budget/);
     await put('/api/v1/usage/budgets', [{ scope: 'global', scopeId: 'global', window: 'month', maxUsd: 2_000_000, warnAt: 0.8 }]);
     expect((await get('/api/v1/usage/balance')).body.windows[0]).toMatchObject({ remaining: 1_480_000, state: 'ok' });
-    expect(card.detail).toEqual({ shared: true });
+    expect(card.detail).toEqual({ shared: { scope: 'global', scopeId: 'global', window: 'month' } });
     await runner.answerApproval(card.id, 'raise', 1_000_000, admin);
     await settled(t.id, 2);
     expect((await pool.query('SELECT budget FROM threads WHERE id=$1', [t.id])).rows[0].budget.maxUsd).toBeNull();

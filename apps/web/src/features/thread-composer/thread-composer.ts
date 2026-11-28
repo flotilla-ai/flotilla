@@ -35,3 +35,7 @@ export function mentionQuery(text:string,caret:number):string|null{const m=/(?:^
 export function deepLinkPrompt(hash:string,search:string):string{
  const q=hash.includes('?')?hash.slice(hash.indexOf('?')):search;return new URLSearchParams(q).get('prompt')??'';
 }
+
+export type ToolNode={event:Ev;children:ToolNode[]};
+export function toolTree(events:Ev[]):ToolNode[]{const nodes=new Map<string,ToolNode>();const roots:ToolNode[]=[];for(const event of events.filter(e=>e.kind.startsWith('agent.tool_'))){const id=String(event.payload?.id??event.seq);const n={event,children:[]};nodes.set(id,n);const p=event.payload?.parentId;if(p&&nodes.has(String(p)))nodes.get(String(p))!.children.push(n);else roots.push(n)}return roots}
+export function composerCommand(text:string):'plan'|'btw'|'feedback'|null{return text.startsWith('/plan ')?'plan':text.startsWith('/btw ')?'btw':text.startsWith('/feedback ')?'feedback':null}

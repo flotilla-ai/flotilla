@@ -23,7 +23,7 @@ export function createRunnerQueueRoute(runner: ThreadRunner | (() => ThreadRunne
   app.post('/threads/:id/inbox/:item/send', async (c) => { const id = await owned(c); return c.json({ item: await r().sendNow(id, c.req.param('item')) }, 202); });
   app.get('/threads/:id/inbox/:item/versions', async (c) => { const id = await owned(c); return c.json({ items: await r().inbox.versions(id, c.req.param('item')) }); });
   app.post('/threads/:id/inbox/:item/versions', async (c) => { const b = await body(c); return c.json({ item: await r().newVersion(c.req.param('id'), c.req.param('item'), text(b), userId(c)) }, 201); });
-  app.post('/threads/:id/retry', async (c) => { const b = await body(c); return c.json({ item: await r().retry(c.req.param('id'), userId(c), { model: b.model as string | undefined, connectionId: b.connectionId as string | undefined, effort: b.effort as string | null | undefined }) }, 202); });
+  app.post('/threads/:id/retry', async (c) => { const b = await body(c); return c.json({ item: await r().retry(c.req.param('id'), userId(c), { adapter: b.adapter as string | undefined, model: b.model as string | undefined, connectionId: b.connectionId as string | undefined, effort: b.effort as string | null | undefined }) }, 202); });
   app.get('/threads/:id/context', async (c) => c.json(await r().context(c.req.param('id'), userId(c))));
   app.patch('/threads/:id/context', async (c) => { const b = await body(c); return c.json(await r().context(c.req.param('id'), userId(c), b.compactAt ?? null)); });
 

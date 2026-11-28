@@ -1,12 +1,12 @@
 # Flotilla progress
 
 Current phase: unblock run (clearing the 199 rows that were `blocked` at `f08de2a`). Units run serially in the parent session (no child sessions: no free/SWE 2.1 child mode can be selected).
-Last unit: unblock-02-web-composer-queue (merged). Unblock units merged or blocked: 2 of 52.
+Last unit: unblock-03-web-composer-cards (in review). Unblock units merged or blocked: 2 of 52.
 Unblock plan: `docs/plan/BLOCKED-TRIAGE.md`, `docs/plan/handoffs/README-unblock.md` (52 units).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md`: done 399, blocked 194, needs-human-login 24, n-a 22, pending 0. At the start of the unblock run: done 394, blocked 199, needs-human-login 24, n-a 22, pending 0.
+Counted in `docs/plan/PARITY.md`: done 404, blocked 189, needs-human-login 24, n-a 22, pending 0. At the start of the unblock run: done 394, blocked 199, needs-human-login 24, n-a 22, pending 0.
 
 ## Unit table
 
@@ -81,7 +81,7 @@ Counted in `docs/plan/PARITY.md`: done 399, blocked 194, needs-human-login 24, n
 
 ## Next action
 
-1. unblock-03-web-composer-cards
+1. Merge unblock-03-web-composer-cards
 2. unblock-04-web-settings-models
 3. unblock-05-web-captain-automations
 
