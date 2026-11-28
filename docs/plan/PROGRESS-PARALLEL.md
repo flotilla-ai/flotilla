@@ -2,15 +2,15 @@
 
 ## Next 3 actions
 
-1. Merge PR 0a (`flotilla/plan-parallel`) with the split sources, state note, extension ledger and coverage script.
-2. Open the two plan PRs: `planC` (`captain-02..16` plus `parallel-01-seams`) and `planV` (`vms-02..12`).
-3. After both merge, run serialized `parallel-01-seams`, skipping any shared file still held by an active unblock PR.
+1. Run serialized `parallel-01-seams`; active unblock PR #106 does not touch its shared files at the last check.
+2. Start wave A units whose dependencies are merged after `parallel-01-seams`.
+3. Keep T3 gated until no active unblock work touches `threads.route.ts` or `models-catalog/store.ts`.
 
-Head SHA at orientation: `61c7aaa` (`unblock-07: issues web board (#102)`).
+Head SHA at orientation: `61c7aaa` (`unblock-07: issues web board (#102)`). Current head after plan merge batch: `1dacbd5`.
 
 ## T2 Captain quality
 
-Status: planned, not started. Rows BEYOND-001..015 are `pending` in `PARITY-EXT.md`.
+Status: planned; handoffs merged in PR #105. Rows BEYOND-001..015 are `pending` in `PARITY-EXT.md`.
 
 ## T3 Devin CLI adapter
 
@@ -18,13 +18,15 @@ Status: planned, not started. It starts only when no active unblock PR/branch to
 
 ## T4 own-computer VMs
 
-Status: planned, not started. Rows VM-001..011 are `pending` in `PARITY-EXT.md`.
+Status: planned; handoffs merged in PR #107. Rows VM-001..011 are `pending` in `PARITY-EXT.md`.
 
 ## Unit table
 
 | Unit | Track | Status | Attempts | PR | Notes |
 |---|---|---|---:|---|---|
-| parallel-00-plan | setup | running | 1 |  | sources split; awaiting PR |
+| parallel-00-plan | setup | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/104 | sources, state note, extension ledger, coverage script |
+| planC | setup | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/105 | Captain handoffs; BEYOND rows covered once |
+| planV | setup | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/107 | VM handoffs; VM rows covered once |
 | parallel-01-seams | setup | pending | 0 |  | serialized shared seams |
 
 ## Notes and surprises
