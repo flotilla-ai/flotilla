@@ -1,7 +1,8 @@
 # Flotilla progress
 
-Current phase: phase 3, wave 1 starting in the parent session; child sessions are not used because free/SWE-2.1 child mode is unavailable.
-Current `flotilla/p1` head before this PR: `b7b1615` (phase3-16 merge).
+Current phase: unblock run (clearing the 199 `blocked` rows of groups A and B). Plan PR open; units run serially in the parent session (no child sessions: no free/SWE 2.1 child mode can be selected).
+Current `flotilla/p1` head before this PR: `f08de2a` (phase3/4 closeout).
+Unblock plan: `docs/plan/BLOCKED-TRIAGE.md`, `docs/plan/handoffs/README-unblock.md` (52 units).
 
 ## Row counts
 
@@ -73,13 +74,13 @@ Counted in `docs/plan/PARITY.md` after closeout: done 394, pending 0, needs-huma
 | phase3-15-ui-viewers | merged | 1 | #91 | viewer/explore web foundation; see `docs/runlog/phase3-15.md` |
 | phase3-01-thread-media | merged | 1 | #92 | thread media/annotations; see `docs/runlog/phase3-01.md` |
 | phase3-02-watches-captain-sharing | merged | 1 | #93 | watches/captain sharing; see `docs/runlog/phase3-02.md` |
-| phase3/4-closeout | in review | 1 |  | terminalizes remaining rows with explicit blocked causes; see `docs/runlog/P3-EXIT.md` and `docs/runlog/P4-EXIT.md` |
+| phase3/4-closeout | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/94 | terminalizes remaining rows with explicit blocked causes; see `docs/runlog/P3-EXIT.md` and `docs/runlog/P4-EXIT.md` |
 
 ## Next action
 
-1. Human review may reopen any blocked row and implement its missing connector or product surface in a new repair unit.
-2. No autonomous implementation rows remain pending.
-3. Do not merge `flotilla/p1` into `main` without a human product decision because 199 rows are blocked.
+1. Merge the unblock plan PR, then unblock-01 (README quickstart and `.env.example`).
+2. Wave 1 units unblock-02..16, 21..30 in order; wave 2 (17..20, 33..46); wave 3 (31, 32, 47..51).
+3. unblock-52 exit report. Do not merge `flotilla/p1` into `main`.
 
 ## Phase 1 summary (preserved)
 
