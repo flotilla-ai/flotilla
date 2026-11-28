@@ -1,0 +1,2 @@
+ALTER TABLE issue_links ADD COLUMN IF NOT EXISTS created_by text REFERENCES users(id) ON DELETE SET NULL;
+WITH latest AS (SELECT DISTINCT ON (issue_id,payload->>'kind',payload->>'target') issue_id,payload->>'kind' kind,payload->>'target' target,actor_id FROM issue_events WHERE kind='linked' ORDER BY issue_id,payload->>'kind',payload->>'target',created_at DESC,id DESC) UPDATE issue_links l SET created_by=x.actor_id FROM latest x WHERE l.created_by IS NULL AND x.issue_id=l.issue_id AND x.kind=l.kind AND x.target=l.target;

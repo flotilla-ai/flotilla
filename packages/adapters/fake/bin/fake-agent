@@ -23,10 +23,14 @@ const fixture = args.find((a) => a.endsWith('.jsonl'));
 if (fixture) {
   const rows = readFileSync(fixture, 'utf8').split('\n').filter(Boolean).map((line) => JSON.parse(line));
   for (const row of rows) {
-    if (row.mcp && mcp?.url) {
-      await fetch(mcp.url, {
+    const flotilla = mcp?.mcpServers?.flotilla;
+    const mcpUrl = flotilla?.url ?? mcp?.url;
+    const bearer = flotilla?.headers?.Authorization ?? flotilla?.headers?.authorization;
+    const token = bearer?.startsWith('Bearer ') ? bearer.slice(7) : mcp?.token;
+    if (row.mcp && mcpUrl) {
+      await fetch(mcpUrl, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', ...(mcp.token ? { authorization: `Bearer ${mcp.token}` } : {}) },
+        headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: row.mcp })
       }).catch(() => {});
       continue;
