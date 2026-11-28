@@ -31,7 +31,7 @@ export function createThreadsRoute(runner = defaultRunner(), policy = modelPolic
     const priorThreadId = body.requestId ? (await runner.pool.query(`SELECT e.thread_id FROM events e JOIN threads t ON t.id=e.thread_id WHERE e.request_id=$1 AND e.kind='thread.created' AND t.owner_id=$2 LIMIT 1`, [body.requestId, userId(c)])).rows[0]?.thread_id as string | undefined : undefined;
     const row = await runner.createThread({ ownerId: userId(c), projectId: body.projectId ?? null, title: body.title, prompt: body.prompt, engine, maxUsd: body.maxUsd ?? null, requestId: body.requestId, env, attachments: body.attachments });
     if (body.deviceId) {
-      const placed = priorThreadId ? !!(await runner.pool.query('SELECT 1 FROM device_placements WHERE thread_id=$1 AND device_id=$2', [row.id, body.deviceId])).rows[0] : false;
+      const placed = priorThreadId ? !!(await runner.pool.query('SELECT 1 FROM device_placements WHERE thread_id=$1', [row.id])).rows[0] : false;
       if (!placed) try { await deviceExecutionStore().placeThread(userId(c), row.id as string, body.deviceId); } catch (err) { if (!priorThreadId) await runner.pool.query('DELETE FROM threads WHERE id=$1', [row.id]).catch(() => undefined); throw err; }
     }
     return c.json(row, 201);
