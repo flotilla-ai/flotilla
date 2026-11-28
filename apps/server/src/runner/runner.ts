@@ -23,7 +23,7 @@ const zero = budgetZero;
 const id = (p: string) => `${p}_${randomBytes(10).toString('base64url')}`;
 const budget = (maxUsd: number | null = null) => ({ maxUsd, maxTokens: null, maxWallSec: null, scope: 'thread' as const, onHit: 'pause-and-ask' as const, warnAt: 0.8 });
 /** Pre-run budget checks beyond the thread's own cap (e.g. monthly org/project windows); the first reason found pauses the run. */
-export const runGates: ((thread: Row) => Promise<{ why: string; shared: boolean } | null>)[] = [];
+export type SharedBudgetGate={scope:'global'|'project';scopeId:string;window:'month'|'lifetime'};export const runGates: ((thread: Row) => Promise<({ why: string; shared: boolean } & Partial<SharedBudgetGate>) | null>)[] = [];
 export type RunnerDeps = { store: EventStore; driver: Driver; adapters: Map<string, AgentAdapter>; secrets?: Record<string,string>; projectFor?(row: Row): Row; vault?: Pick<SecretsStore, 'mutate' | 'prepare'>; resolveEngine?(userId: string, engine: Row): Promise<{ adapter: string; model: string | null; effort: unknown; connectionId: string | null; contextWindow?: number }>; runOut?: { onRunOut(threadId: string): Promise<{ switchedTo: string } | { approvalId: string }>; answer(approval: Row, optionId: string): Promise<boolean | void> }; mcp?: Pick<McpStore, 'prepare' | 'answer'>; machines?: Pick<MachineCore, 'boot' | 'release'>; snapshots?: { bootPlan(projectId: string, base?: string): Promise<BootPlan> } };
 type AfterRun=(input:{thread:Row;project:Row|null;runId:string;state:string;containerId:string;driver:Driver})=>Promise<void>;
 const afterRunHooks:AfterRun[]=[];
@@ -121,13 +121,13 @@ export class ThreadRunner {
     await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'user.message', source: 'user', trust: 'trusted', payload: scrub({ text, mode: 'queue', by: userId, inboxId: item.id, rootId: sent.rootId, version, fork: 'new-session' }, this.deps.secrets ?? {}) }] as never);
     return this.deliver(threadId, item);
   }
-  async retry(threadId: string, userId: string, engine: { model?: string; connectionId?: string; effort?: string | null }): Promise<ThreadInboxItem> {
+  async retry(threadId: string, userId: string, engine: { adapter?: string; model?: string; connectionId?: string; effort?: string | null }): Promise<ThreadInboxItem> {
     const thread = await this.assertOwner(threadId, userId);
     const last = (await this.pool.query('SELECT state FROM runs WHERE thread_id=$1 ORDER BY ordinal DESC LIMIT 1', [threadId])).rows[0];
     const sent = await this.inbox.lastDelivered(threadId);
     if (last?.state !== 'failed' || !sent || this.running.has(threadId)) throw new ApiFailure('Conflict', 'nothing to retry');
     if (engine.model !== undefined || engine.connectionId !== undefined || engine.effort !== undefined) {
-      const next: Row = { ...(thread.engine as Row), ...(engine.model !== undefined ? { model: engine.model } : {}), ...(engine.model !== undefined && engine.model !== (thread.engine as Row).model ? { effort: null } : {}), ...(engine.effort !== undefined ? { effort: engine.effort } : {}), ...(engine.connectionId !== undefined ? { connectionId: engine.connectionId } : {}) };
+      const next: Row = { ...(thread.engine as Row), ...(engine.adapter !== undefined ? { adapter: engine.adapter } : {}), ...(engine.model !== undefined ? { model: engine.model } : {}), ...(engine.model !== undefined && engine.model !== (thread.engine as Row).model ? { effort: null } : {}), ...(engine.effort !== undefined ? { effort: engine.effort } : {}), ...(engine.connectionId !== undefined ? { connectionId: engine.connectionId } : {}) };
       // The catalog checks the user owns an enabled connection that offers the model; the vault then injects its key at run start.
       const r = this.deps.resolveEngine ? await this.deps.resolveEngine(userId, next) : null;
       await this.pool.query('UPDATE threads SET engine=engine || $2::jsonb WHERE id=$1', [threadId, JSON.stringify(r ? { adapter: r.adapter, model: r.model, effort: r.effort, connectionId: r.connectionId, contextWindow: r.contextWindow ?? null } : next)]);
@@ -153,12 +153,31 @@ export class ThreadRunner {
   async stop(threadId: string, userId?: string): Promise<void> { if (!(await this.owned(threadId,userId))) throw new Error('not found'); this.cancelled.add(threadId); await this.inbox.cancelAll(threadId); { const live = this.live.get(threadId); if (live) await live.adapter.cancel(live.runId as never).catch(() => undefined); } if (!this.running.has(threadId)) this.cancelled.delete(threadId); await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'control.stop', source: 'user', trust: 'trusted', payload: {} }] as never); await this.pool.query(`UPDATE threads SET status='idle',updated_at=now() WHERE id=$1`, [threadId]); }
 
   async answerApproval(approvalId: string, optionId: string, value: number | undefined, userId: string): Promise<Row | null> {
-    const existing = (await this.pool.query('SELECT thread_id, detail FROM approvals WHERE id=$1 AND state=$2', [approvalId, 'open'])).rows[0];
+    const existing = (await this.pool.query('SELECT thread_id, kind, detail FROM approvals WHERE id=$1 AND state=$2', [approvalId, 'open'])).rows[0];
     if (!existing || !(await this.owned(existing.thread_id,userId))) return null;
     if ((existing.detail as { feedback?: unknown } | null)?.feedback) throw new ApiFailure('Conflict', 'feedback drafts must be answered through the feedback endpoint');
+    if (existing.kind === 'budget' && optionId === 'raise') {
+      if (!Number.isSafeInteger(value) || (value as number) <= 0) throw new ApiFailure('ValidationFailed', 'raise budget needs a positive safe integer micro-USD value');
+      const shared = (existing.detail as Row | null)?.shared;
+      if (shared) {
+        if (typeof shared !== 'object' || !['global','project'].includes(String((shared as Row).scope)) || typeof (shared as Row).scopeId !== 'string' || !['month','lifetime'].includes(String((shared as Row).window))) throw new ApiFailure('Conflict', 'legacy shared budget approvals cannot identify their cap; update it in usage settings');
+        const admin = (await this.pool.query(`SELECT 1 FROM users WHERE id=$1 AND role='admin'`, [userId])).rows[0];
+        if (!admin) throw new ApiFailure('Forbidden', 'only an admin can raise a shared budget');
+        const key = [(shared as Row).scope, (shared as Row).scopeId, (shared as Row).window];
+        const current = (await this.pool.query('SELECT max_usd FROM usage_budgets WHERE scope=$1 AND scope_id=$2 AND budget_window=$3', key)).rows[0];
+        if (!current) throw new ApiFailure('Conflict', 'shared budget window no longer exists; update it in usage settings');
+        const project = (shared as Row).scope === 'project' ? String((shared as Row).scopeId) : null;
+        const now = new Date(); const start = (shared as Row).window === 'month' ? new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)) : new Date(0);
+        const spentRow = (await this.pool.query(`SELECT (SELECT COALESCE(sum((delta->>'usd')::float8),0) FROM cost_entries WHERE at >= $2 AND ($1::text IS NULL OR project_id=$1)) + (SELECT COALESCE(sum(usd),0)::float8 FROM usage_tombstones WHERE at >= $2 AND ($1::text IS NULL OR project_id=$1)) spent`, [project, start])).rows[0];
+        const target = Math.max(Number(current.max_usd ?? 0), value as number);
+        if (target <= Number(spentRow.spent)) throw new ApiFailure('Conflict', 'raise must exceed the spent shared budget');
+        await this.pool.query('UPDATE usage_budgets SET max_usd=$4 WHERE scope=$1 AND scope_id=$2 AND budget_window=$3 AND (max_usd IS NULL OR max_usd < $4)', [...key, value]);
+      }
+    }
     const rows = await this.pool.query(`UPDATE approvals SET state='answered',answer=$2 WHERE id=$1 AND state='open' RETURNING *`, [approvalId, JSON.stringify({ optionId, value, by: userId, at: new Date().toISOString() })]);
     const approval = rows.rows[0]; if (!approval) return null;
-    if (approval.kind === 'budget' && optionId === 'raise' && value && !(approval.detail as Row | null)?.shared) await this.pool.query(`UPDATE threads SET budget=jsonb_set(budget,'{maxUsd}',to_jsonb($2::int)),status='queued' WHERE id=$1`, [approval.thread_id, value]);
+    if (approval.kind === 'budget' && optionId === 'raise' && value && !(approval.detail as Row | null)?.shared) await this.pool.query(`UPDATE threads SET budget=jsonb_set(budget,'{maxUsd}',to_jsonb($2::bigint)),status='queued' WHERE id=$1`, [approval.thread_id, value]);
+    if (approval.kind === 'budget' && optionId === 'raise' && (approval.detail as Row | null)?.shared) await this.pool.query(`UPDATE threads SET status='queued' WHERE id=$1`, [approval.thread_id]);
     if (approval.kind === 'budget' && optionId === 'stop') await this.stop(approval.thread_id);
     if (approval.kind === 'mcp') await this.deps.mcp?.answer(approval, optionId, userId).catch(async (err) => { await this.pool.query(`UPDATE approvals SET state='open',answer=NULL WHERE id=$1`, [approvalId]); throw err; });
     let resume = approval.kind === 'run-out' && optionId === 'use';
@@ -238,8 +257,8 @@ export class ThreadRunner {
 
     const policy = thread.budget as { maxUsd: number | null; maxWallSec: number | null; maxTokens: number | null; warnAt: number };
     const reserveAmount = Math.min(20_000, Math.max(1, policy.maxUsd ?? 20_000));
-    let gate: { why: string; shared: boolean } | null = null; for (const check of runGates) gate ??= await check(thread);
-    if (gate || (policy.maxUsd !== null && (thread.spent as CostTotals).usd >= policy.maxUsd)) { await this.pool.query(`UPDATE runs SET state='paused_budget',ended_at=now() WHERE id=$1`, [runId]); await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'run.ended', source: 'kernel', trust: 'trusted', payload: { state: 'paused_budget', usage: zero } }] as never); return this.pauseBudget(threadId, runId, gate?.why ?? 'budget', gate?.shared); }
+    let gate: ({ why: string; shared: boolean } & Partial<SharedBudgetGate>) | null = null; for (const check of runGates) gate ??= await check(thread);
+    if (gate || (policy.maxUsd !== null && (thread.spent as CostTotals).usd >= policy.maxUsd)) { await this.pool.query(`UPDATE runs SET state='paused_budget',ended_at=now() WHERE id=$1`, [runId]); await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'run.ended', source: 'kernel', trust: 'trusted', payload: { state: 'paused_budget', usage: zero } }] as never); return this.pauseBudget(threadId, runId, gate?.why ?? 'budget', gate?.shared ? { scope: gate.scope ?? 'global', scopeId: gate.scopeId ?? 'global', window: gate.window ?? 'month' } : false); }
     let prepared: PreparedSecrets;
     try { prepared = await this.deps.vault?.prepare(threadId) ?? { env: {}, grants: [] }; } catch (err) { return this.failStart(threadId, runId, err); }
     if (policy.maxUsd !== null) {
@@ -373,11 +392,11 @@ export class ThreadRunner {
     await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'run.ended', source: 'kernel', trust: 'trusted', payload: { state: 'failed', usage: zero } }] as never);
     throw err;
   }
-  private async pauseBudget(threadId: string, runId: string, why: string, shared = false): Promise<void> {
+  private async pauseBudget(threadId: string, runId: string, why: string, shared: boolean | SharedBudgetGate = false): Promise<void> {
     const approvalId = id('apr');
     // Thread status first: anything that sees the open approval also sees the thread paused.
     await this.pool.query(`UPDATE threads SET status='paused',needs_you=$2 WHERE id=$1`, [threadId, JSON.stringify([approvalId])]);
-    await this.pool.query(`INSERT INTO approvals (id,thread_id,kind,question,options,blocking,state,detail) VALUES ($1,$2,'budget',$3,$4,true,'open',$5) ON CONFLICT DO NOTHING`, [approvalId, threadId, `Budget cap reached (${why}); raise the cap or stop`, JSON.stringify([{ id: 'raise', label: 'Raise budget' }, { id: 'stop', label: 'Stop' }]), shared ? JSON.stringify({ shared: true }) : null]);
+    await this.pool.query(`INSERT INTO approvals (id,thread_id,kind,question,options,blocking,state,detail) VALUES ($1,$2,'budget',$3,$4,true,'open',$5) ON CONFLICT DO NOTHING`, [approvalId, threadId, `Budget cap reached (${why}); raise the cap or stop`, JSON.stringify([{ id: 'raise', label: 'Raise budget' }, { id: 'stop', label: 'Stop' }]), shared ? JSON.stringify({ shared: typeof shared === 'object' ? shared : true }) : null]);
     await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: runId as never, kind: 'budget.exceeded', source: 'kernel', trust: 'trusted', payload: { why } }, { runId: null, kind: 'approval.requested', source: 'kernel', trust: 'trusted', payload: { approvalId, kind: 'budget' } }] as never);
   }
 }
