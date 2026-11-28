@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { startCaptainFixtures, type CaptainFixtures } from './index.js';
+import { captainFixtureRepoPath, startCaptainFixtures, type CaptainFixtures } from './index.js';
 import { existsSync } from 'node:fs';
 import { get } from 'node:http';
 
@@ -38,6 +38,6 @@ describe('captain fixtures', () => {
   it('records shop orders and ships a tiny failing repo fixture', async () => {
     await fetch(`${fx.baseUrl}/shop/order`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sku: 'mug' }) });
     expect(fx.shop.orders).toHaveLength(1); fx.reset(); expect(fx.shop.orders).toHaveLength(0);
-    expect(existsSync(fx.repoPath)).toBe(true);
+    expect(existsSync(fx.repoPath)).toBe(true); expect(existsSync(captainFixtureRepoPath(process.cwd() + '/../..'))).toBe(true);
   });
 });

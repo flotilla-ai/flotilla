@@ -1,5 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
 export type RecordedCall = { path: string; body: Record<string, unknown>; at: string };
@@ -18,6 +20,15 @@ export type CaptainFixtures = {
   close(): Promise<void>;
 };
 
+
+export function captainFixtureRepoPath(cwd = process.cwd()): string {
+  const candidates = [
+    join(cwd, 'evals/captain/fixtures/tiny-repo'),
+    join(cwd, '../../evals/captain/fixtures/tiny-repo'),
+    fileURLToPath(new URL('../../../../evals/captain/fixtures/tiny-repo', import.meta.url))
+  ];
+  return candidates.find((p) => existsSync(p)) ?? candidates[0];
+}
 
 const pages: Record<string, string> = {
   '/news/article': '<html><title>Fixture article</title><main>Measured claim: the fixture rocket reached 120 km.</main></html>',
@@ -118,7 +129,7 @@ export async function startCaptainFixtures(options: { port?: number; host?: stri
     search(query) { const q = query.toLowerCase(); const hit = Object.keys(searchMap).find((k) => q.includes(k)); return (hit ? searchMap[hit] : []).map(fakePath); },
     mail,
     shop,
-    repoPath: join(process.cwd(), '../../evals/captain/fixtures/tiny-repo'),
+    repoPath: captainFixtureRepoPath(),
     reset() { mail.sendCalls.length = 0; shop.orders.length = 0; },
     close: () => new Promise((resolve, reject) => server.close((e) => e ? reject(e) : resolve()))
   };
