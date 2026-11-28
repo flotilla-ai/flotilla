@@ -13,9 +13,9 @@ export type AgentToolDeps = {
 };
 export const agentToolNames = ['sibling.create', 'sibling.message', 'captain.create', 'environment.read', 'environment.replace', 'mcp.propose'] as const;
 export const agentToolSchemas: Record<string, unknown> = {
-  'sibling.create': { type: 'object', properties: { title: { type: 'string' }, prompt: { type: 'string' }, placement: { type: 'string', enum: ['fresh', 'shared'] }, mode: { type: 'string', enum: ['parallel', 'stacked'] }, paths: { type: 'array', items: { type: 'string' } }, maxUsd: { type: 'number' } }, required: ['title'] },
+  'sibling.create': { type: 'object', properties: { title: { type: 'string' }, prompt: { type: 'string' }, placement: { type: 'string', enum: ['fresh', 'shared'] }, mode: { type: 'string', enum: ['parallel', 'stacked'] }, paths: { type: 'array', items: { type: 'string' } }, maxUsd: { type: 'number', exclusiveMinimum: 0 } }, required: ['title'] },
   'sibling.message': { type: 'object', properties: { threadId: { type: 'string' }, text: { type: 'string' } }, required: ['threadId', 'text'] },
-  'captain.create': { type: 'object', properties: { name: { type: 'string' }, prompt: { type: 'string' }, maxUsd: { type: 'number' } }, required: ['name'] },
+  'captain.create': { type: 'object', properties: { name: { type: 'string' }, prompt: { type: 'string' }, maxUsd: { type: 'number', exclusiveMinimum: 0 }, engine: { type: 'object', properties: { adapter: { type: 'string' }, model: { type: 'string' }, effort: { type: 'string' }, connectionId: { type: 'string' } } } }, required: ['name'] },
   'environment.read': { type: 'object', properties: {} },
   'environment.replace': { type: 'object', properties: { baseVersion: { type: 'integer' }, spec: { type: 'object' } }, required: ['baseVersion', 'spec'] },
   'mcp.propose': { type: 'object', properties: { action: { type: 'string' }, server: { type: 'object' }, serverId: { type: 'string' } }, required: ['action'] }
@@ -27,6 +27,8 @@ export async function handleAgentTool(self: Row, threadId: string, name: string,
   if (name === 'sibling.create') {
     if (self.role === 'captain' || !self.parent_id) throw new KernelDenied('scope', 'sibling tools require a non-Captain child thread');
     if (!deps.subagents) throw new KernelDenied('scope', 'subagents are not configured');
+    if (args.placement !== undefined && !['fresh', 'shared'].includes(String(args.placement))) throw new ApiFailure('ValidationFailed', 'placement must be fresh or shared');
+    if (args.mode !== undefined && !['parallel', 'stacked'].includes(String(args.mode))) throw new ApiFailure('ValidationFailed', 'mode must be parallel or stacked');
     const draft = await deps.subagents.create(String(self.parent_id), String(self.owner_id), {
       title: String(args.title ?? 'Sibling thread'), prompt: String(args.prompt ?? args.title ?? 'Sibling thread'),
       placement: args.placement === 'shared' ? 'shared' : 'fresh', mode: args.mode === 'stacked' ? 'stacked' : 'parallel',
@@ -52,6 +54,7 @@ export async function handleAgentTool(self: Row, threadId: string, name: string,
     const same = !override.adapter || override.adapter === base.adapter;
     const requested: Row = { adapter: override.adapter ?? base.adapter, model: override.model ?? (same ? base.model : null), effort: override.effort ?? (same ? base.effort : null), connectionId: override.connectionId ?? (same ? base.connectionId : null), ...(base.contextWindow || override.contextWindow ? { contextWindow: override.contextWindow ?? base.contextWindow } : {}) };
     const engine = deps.resolveEngine ? await deps.resolveEngine(String(self.owner_id), requested) : requested;
+    if (args.maxUsd !== undefined && args.maxUsd !== null && !(typeof args.maxUsd === 'number' && args.maxUsd > 0)) throw new ApiFailure('ValidationFailed', 'maxUsd must be positive');
     const prompt = String(args.prompt ?? `You are Captain ${title}.`);
     const thread = await deps.runner.createThread({ ownerId: self.owner_id, projectId: self.project_id, title, prompt, engine: engine as never, maxUsd: args.maxUsd == null ? null : Number(args.maxUsd), draft: true });
     await query(`WITH u AS (UPDATE threads SET role='captain',updated_at=now() WHERE id=$1 RETURNING id) INSERT INTO captains (thread_id,purpose,crew_runs_on,max_concurrent_crew,digest_md,wake_policy) SELECT u.id,$2,'pool',5,'',$3 FROM u ON CONFLICT (thread_id) DO NOTHING`, [String(thread.id), title, JSON.stringify({ heartbeatSec: [600, 7200], coalesceSec: 30 })]);
