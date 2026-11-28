@@ -1,6 +1,6 @@
 import React,{useEffect,useState} from 'react';import {api} from '../../lib/api.js';
 export type Connection={id:string;label:string;baseUrl:string|null};
-export function validBaseUrl(v:string){return/^https?:\/\/[^\\s]+$/.test(v)}
+export function validBaseUrl(v:string){return/^https?:\/\/[^\s]+$/.test(v)}
 export function ConnectionEditor({connection,onSave}:{connection:Connection;onSave:(baseUrl:string|null)=>void}){const[v,setV]=useState(connection.baseUrl??'');const bad=v!==''&&!validBaseUrl(v);return <div className='row'><span>{connection.label}</span><input aria-label={`base-url-${connection.id}`} value={v} onChange={e=>setV(e.target.value)}/>{bad&&<span>Base URL must start with http:// or https://</span>}<button disabled={bad} onClick={()=>onSave(v||null)}>Save base URL</button></div>}
 function Page(){const[items,setItems]=useState<Connection[]>([]);const load=()=>api('/connections').then(r=>setItems(r.items)).catch(()=>{});useEffect(()=>{void load()},[]);const save=async(id:string,baseUrl:string|null)=>{await api(`/connections/${id}`,{method:'PATCH',body:JSON.stringify({baseUrl})});await load()};return <main><h1>Connections</h1>{items.map(c=><ConnectionEditor key={c.id} connection={c} onSave={baseUrl=>void save(c.id,baseUrl)}/>)}</main>}
 export default {path:'/connections',element:<Page/>,nav:'Connections'}
