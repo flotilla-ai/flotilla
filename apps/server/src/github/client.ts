@@ -15,6 +15,9 @@ export class GitHubClient {
     try { return await this.req<GithubPr>(`/repos/${repo}/pulls`, { method: 'POST', body: JSON.stringify({ title, head: branch, base }) }); }
     catch { const raced = await this.findPr(repo, branch); if (raced) return raced; throw new Error('open PR failed'); }
   }
+
+  createPr(repo: string, input: { title: string; head: string; base: string; body: string; draft: boolean }): Promise<GithubPr> { return this.req<GithubPr>(`/repos/${repo}/pulls`, { method: 'POST', body: JSON.stringify(input) }); }
+  updatePrBody(repo: string, number: number, body: string): Promise<GithubPr> { return this.req<GithubPr>(`/repos/${repo}/pulls/${number}`, { method: 'PATCH', body: JSON.stringify({ body }) }); }
   async listPrs(repo: string): Promise<GithubPr[]> { const out: GithubPr[] = []; for (let page = 1; page <= 100; page++) { const batch = await this.req<GithubPr[]>(`/repos/${repo}/pulls?state=all&per_page=100&page=${page}`); out.push(...batch); if (batch.length < 100) break; } return out; }
   getPr(repo: string, number: number): Promise<GithubPr> { return this.req<GithubPr>(`/repos/${repo}/pulls/${number}`); }
   checkRuns(repo: string, sha: string): Promise<CheckRun[]> { return this.req<{ check_runs: CheckRun[] }>(`/repos/${repo}/commits/${sha}/check-runs`).then((x) => x.check_runs); }
