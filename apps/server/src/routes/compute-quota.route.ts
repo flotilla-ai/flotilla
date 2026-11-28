@@ -16,7 +16,12 @@ export function createComputeQuotaRoute(pool: Queryable | (() => Queryable) = ()
   app.post('/compute/allocations/:captainId/state', async (c) => {
     const b = await body(c); const state = String(b.state ?? '') as never;
     if (!['running', 'sleeping', 'absent', 'stopped'].includes(state)) return c.json({ error: 'invalid state' }, 400);
-    return c.json(await svc().setAllocationState(c.req.param('captainId'), state, (b.quota ?? {}) as never));
+    const captainId = c.req.param('captainId'); await defaultRunner().assertOwner(captainId, userId(c));
+    if (state === 'running') {
+      const evaluation = await svc().evaluate({ userId: userId(c), threadId: captainId, captainId, request: (b.quota ?? {}) as never });
+      if (evaluation.decision.decision === 'deny') return c.json({ error: evaluation.decision.reason, approvalId: evaluation.approvalId }, 409);
+    }
+    return c.json(await svc().setAllocationState(captainId, state, (b.quota ?? {}) as never));
   });
   return { basePath: '/api/v1', app, public: false };
 }
