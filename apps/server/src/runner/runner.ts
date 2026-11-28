@@ -163,9 +163,15 @@ export class ThreadRunner {
         if (typeof shared !== 'object' || !['global','project'].includes(String((shared as Row).scope)) || typeof (shared as Row).scopeId !== 'string' || !['month','lifetime'].includes(String((shared as Row).window))) throw new ApiFailure('Conflict', 'legacy shared budget approvals cannot identify their cap; update it in usage settings');
         const admin = (await this.pool.query(`SELECT 1 FROM users WHERE id=$1 AND role='admin'`, [userId])).rows[0];
         if (!admin) throw new ApiFailure('Forbidden', 'only an admin can raise a shared budget');
-        const current = (await this.pool.query('SELECT max_usd FROM usage_budgets WHERE scope=$1 AND scope_id=$2 AND budget_window=$3', [(shared as Row).scope, (shared as Row).scopeId, (shared as Row).window])).rows[0];
+        const key = [(shared as Row).scope, (shared as Row).scopeId, (shared as Row).window];
+        const current = (await this.pool.query('SELECT max_usd FROM usage_budgets WHERE scope=$1 AND scope_id=$2 AND budget_window=$3', key)).rows[0];
         if (!current) throw new ApiFailure('Conflict', 'shared budget window no longer exists; update it in usage settings');
-        if (current.max_usd === null || Number(current.max_usd) < (value as number)) await this.pool.query('UPDATE usage_budgets SET max_usd=$4 WHERE scope=$1 AND scope_id=$2 AND budget_window=$3', [(shared as Row).scope, (shared as Row).scopeId, (shared as Row).window, value]);
+        await this.pool.query('UPDATE usage_budgets SET max_usd=$4 WHERE scope=$1 AND scope_id=$2 AND budget_window=$3 AND (max_usd IS NULL OR max_usd < $4)', [...key, value]);
+        const effective = (await this.pool.query('SELECT max_usd FROM usage_budgets WHERE scope=$1 AND scope_id=$2 AND budget_window=$3', key)).rows[0];
+        const project = (shared as Row).scope === 'project' ? String((shared as Row).scopeId) : null;
+        const start = (shared as Row).window === 'month' ? `date_trunc('month',now())` : `'epoch'::timestamptz`;
+        const spentRow = (await this.pool.query(`SELECT (SELECT COALESCE(sum((delta->>'usd')::float8),0) FROM cost_entries WHERE at >= ${start} AND ($1::text IS NULL OR project_id=$1)) + (SELECT COALESCE(sum(usd),0)::float8 FROM usage_tombstones WHERE at >= ${start} AND ($1::text IS NULL OR project_id=$1)) spent`, [project])).rows[0];
+        if (effective.max_usd !== null && Number(effective.max_usd) <= Number(spentRow.spent)) throw new ApiFailure('Conflict', 'raise must exceed the spent shared budget');
       }
     }
     const rows = await this.pool.query(`UPDATE approvals SET state='answered',answer=$2 WHERE id=$1 AND state='open' RETURNING *`, [approvalId, JSON.stringify({ optionId, value, by: userId, at: new Date().toISOString() })]);
