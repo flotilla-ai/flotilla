@@ -41,8 +41,20 @@ export function classifyAction(input: ActionInput): ActionClass {
 }
 
 function limited(patterns: string[] | undefined): string[] { return (patterns ?? []).filter(Boolean).slice(0, 20).map((p) => p.toLowerCase()); }
+
+function matchText(input: ActionInput): string {
+  let url = input.url ?? '';
+  try {
+    const u = new URL(url);
+    if ((u.protocol === 'https:' && u.port === '443') || (u.protocol === 'http:' && u.port === '80')) u.port = '';
+    u.hostname = u.hostname.toLowerCase();
+    url = u.toString();
+  } catch { /* keep raw relative or fixture URL */ }
+  return [input.tool.toLowerCase(), url, input.text ?? '', ...(input.fieldTypes ?? [])].join('\n').toLowerCase();
+}
+
 function matches(pattern: string, input: ActionInput): boolean {
-  const haystack = [input.tool.toLowerCase(), input.url ?? '', input.text ?? '', ...(input.fieldTypes ?? [])].join('\n').toLowerCase();
+  const haystack = matchText(input);
   return pattern.split(/\s+/).filter((w) => w.length > 2).some((word) => haystack.includes(word));
 }
 

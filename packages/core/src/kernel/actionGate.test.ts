@@ -19,6 +19,8 @@ describe('actionGate kernel', () => {
     expect(decideAction(send, classifyAction(send), { allow: ['hello'] }).decision).toBe('allow');
     const queryAction = { tool: 'browser.click', text: 'Send', url: 'https://example.test/?next=launch-missiles' };
     expect(decideAction(queryAction, classifyAction(queryAction), { askFirst: ['launch-missiles'], allow: ['example'] }).reason).toBe('ask-first-rule');
+    const defaultPort = { tool: 'browser.click', text: 'Send', url: 'https://Example.test:443/confirm' };
+    expect(decideAction(defaultPort, classifyAction(defaultPort), { askFirst: ['example.test/confirm'], allow: ['send'] }).reason).toBe('ask-first-rule');
   });
   it('removes URL credentials queries and fragments from stored signatures', () => {
     expect(safeActionTarget('https://user:pw@example.test/path?token=secret#frag')).toMatch(/^https:\/\/example\.test\/path\?token=[0-9a-f]{12}$/);
