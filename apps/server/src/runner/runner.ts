@@ -121,13 +121,13 @@ export class ThreadRunner {
     await this.deps.store.appendEvents(threadId as Thread['id'], [{ runId: null, kind: 'user.message', source: 'user', trust: 'trusted', payload: scrub({ text, mode: 'queue', by: userId, inboxId: item.id, rootId: sent.rootId, version, fork: 'new-session' }, this.deps.secrets ?? {}) }] as never);
     return this.deliver(threadId, item);
   }
-  async retry(threadId: string, userId: string, engine: { model?: string; connectionId?: string; effort?: string | null }): Promise<ThreadInboxItem> {
+  async retry(threadId: string, userId: string, engine: { adapter?: string; model?: string; connectionId?: string; effort?: string | null }): Promise<ThreadInboxItem> {
     const thread = await this.assertOwner(threadId, userId);
     const last = (await this.pool.query('SELECT state FROM runs WHERE thread_id=$1 ORDER BY ordinal DESC LIMIT 1', [threadId])).rows[0];
     const sent = await this.inbox.lastDelivered(threadId);
     if (last?.state !== 'failed' || !sent || this.running.has(threadId)) throw new ApiFailure('Conflict', 'nothing to retry');
     if (engine.model !== undefined || engine.connectionId !== undefined || engine.effort !== undefined) {
-      const next: Row = { ...(thread.engine as Row), ...(engine.model !== undefined ? { model: engine.model } : {}), ...(engine.model !== undefined && engine.model !== (thread.engine as Row).model ? { effort: null } : {}), ...(engine.effort !== undefined ? { effort: engine.effort } : {}), ...(engine.connectionId !== undefined ? { connectionId: engine.connectionId } : {}) };
+      const next: Row = { ...(thread.engine as Row), ...(engine.adapter !== undefined ? { adapter: engine.adapter } : {}), ...(engine.model !== undefined ? { model: engine.model } : {}), ...(engine.model !== undefined && engine.model !== (thread.engine as Row).model ? { effort: null } : {}), ...(engine.effort !== undefined ? { effort: engine.effort } : {}), ...(engine.connectionId !== undefined ? { connectionId: engine.connectionId } : {}) };
       // The catalog checks the user owns an enabled connection that offers the model; the vault then injects its key at run start.
       const r = this.deps.resolveEngine ? await this.deps.resolveEngine(userId, next) : null;
       await this.pool.query('UPDATE threads SET engine=engine || $2::jsonb WHERE id=$1', [threadId, JSON.stringify(r ? { adapter: r.adapter, model: r.model, effort: r.effort, connectionId: r.connectionId, contextWindow: r.contextWindow ?? null } : next)]);
