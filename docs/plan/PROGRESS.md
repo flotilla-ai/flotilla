@@ -1,12 +1,12 @@
 # Flotilla progress
 
-Current phase: unblock run (clearing the 199 `blocked` rows of groups A and B). Plan PR open; units run serially in the parent session (no child sessions: no free/SWE 2.1 child mode can be selected).
-Current `flotilla/p1` head before this PR: `f08de2a` (phase3/4 closeout).
+Current phase: unblock run (clearing the 199 rows that were `blocked` at `f08de2a`). Units run serially in the parent session (no child sessions: no free/SWE 2.1 child mode can be selected).
+Last unit: unblock-01-readme-quickstart (merged). Unblock units merged or blocked: 1 of 52.
 Unblock plan: `docs/plan/BLOCKED-TRIAGE.md`, `docs/plan/handoffs/README-unblock.md` (52 units).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md` after closeout: done 394, pending 0, needs-human-login 24, n-a 22, blocked 199.
+Counted in `docs/plan/PARITY.md`: done 394, blocked 199, needs-human-login 24, n-a 22, pending 0. At the start of the unblock run: done 394, blocked 199, needs-human-login 24, n-a 22, pending 0.
 
 ## Unit table
 
@@ -75,12 +75,16 @@ Counted in `docs/plan/PARITY.md` after closeout: done 394, pending 0, needs-huma
 | phase3-01-thread-media | merged | 1 | #92 | thread media/annotations; see `docs/runlog/phase3-01.md` |
 | phase3-02-watches-captain-sharing | merged | 1 | #93 | watches/captain sharing; see `docs/runlog/phase3-02.md` |
 | phase3/4-closeout | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/94 | terminalizes remaining rows with explicit blocked causes; see `docs/runlog/P3-EXIT.md` and `docs/runlog/P4-EXIT.md` |
+| planU | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/95 | unblock plan: 52 handoffs, `BLOCKED-TRIAGE.md` |
+| unblock-01-readme-quickstart | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/96 | README quickstart run on the VM, `.env.example` (names only); see `docs/runlog/unblock-01.md` |
 
 ## Next action
 
-1. Merge the unblock plan PR, then unblock-01 (README quickstart and `.env.example`).
-2. Wave 1 units unblock-02..16, 21..30 in order; wave 2 (17..20, 33..46); wave 3 (31, 32, 47..51).
-3. unblock-52 exit report. Do not merge `flotilla/p1` into `main`.
+1. unblock-02-web-composer-queue
+2. unblock-03-web-composer-cards
+3. unblock-04-web-settings-models
+
+Do not merge `flotilla/p1` into `main`.
 
 ## Phase 1 summary (preserved)
 
