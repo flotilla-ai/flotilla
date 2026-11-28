@@ -1,12 +1,12 @@
 # Flotilla progress
 
 Current phase: unblock run (clearing the 199 rows that were `blocked` at `f08de2a`). Units run serially in the parent session (no child sessions: no free/SWE 2.1 child mode can be selected).
-Last unit: unblock-06-issues-web-list (in progress). Unblock units merged or blocked: 5 of 52.
+Last unit: unblock-07-issues-web-board (in progress). Unblock units merged or blocked: 6 of 52.
 Unblock plan: `docs/plan/BLOCKED-TRIAGE.md`, `docs/plan/handoffs/README-unblock.md` (52 units).
 
 ## Row counts
 
-Counted in `docs/plan/PARITY.md`: done 417, blocked 176, needs-human-login 24, n-a 22, pending 0. At the start of the unblock run: done 394, blocked 199, needs-human-login 24, n-a 22, pending 0.
+Counted in `docs/plan/PARITY.md`: done 421, blocked 172, needs-human-login 24, n-a 22, pending 0. At the start of the unblock run: done 394, blocked 199, needs-human-login 24, n-a 22, pending 0.
 
 ## Unit table
 
@@ -81,13 +81,14 @@ Counted in `docs/plan/PARITY.md`: done 417, blocked 176, needs-human-login 24, n
 | unblock-03-web-composer-cards | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/98 | composer cards, plan/budget/retry actions; see `docs/runlog/unblock-03.md` |
 | unblock-04-web-settings-models | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/99 | wake settings, BYOM hold UI, model picker, connection editor; see `docs/runlog/unblock-04.md` |
 | unblock-05-web-captain-automations | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/100 | New Captain dialog, Captain PR filter, sidebar modes, automations page, virtualized crew list; see `docs/runlog/unblock-05.md` |
-| unblock-06-issues-web-list | in progress | 1 | https://github.com/flotilla-ai/flotilla/pull/101 | issues views/filters/detail/thread tools/comments/files; see `docs/runlog/unblock-06.md` |
+| unblock-06-issues-web-list | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/101 | issues views/filters/detail/thread tools/comments/files; see `docs/runlog/unblock-06.md` |
+| unblock-07-issues-web-board | in progress | 1 | https://github.com/flotilla-ai/flotilla/pull/102 | board move/undo/views/settings/display/comment tags; see `docs/runlog/unblock-07.md` |
 
 ## Next action
 
-1. Finish and merge unblock-06-issues-web-list
-2. unblock-07-issues-web-board
-3. unblock-08-pr-page-wiring
+1. Finish and merge unblock-07-issues-web-board
+2. unblock-08-pr-page-wiring
+3. unblock-09-pr-review-actions
 
 Do not merge `flotilla/p1` into `main`.
 

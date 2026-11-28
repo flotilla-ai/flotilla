@@ -109,9 +109,9 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-101 | Issues | P3 | done | unblock-06-issues-web-list |  | Implemented with local web/server unit tests; browser e2e and live backend behavior unverified. |
 | CAPY-102 | Issues | P3 | done | unblock-06-issues-web-list |  | Implemented with local web/server unit tests; browser e2e and live backend behavior unverified. |
 | CAPY-103 | Issues | P3 | done | unblock-06-issues-web-list |  | Implemented with local web/server unit tests; browser e2e and live backend behavior unverified. |
-| CAPY-104 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
-| CAPY-105 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
-| CAPY-106 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
+| CAPY-104 | Issues | P3 | done | unblock-07-issues-web-board |  | Implemented with local web/server unit tests; browser e2e unverified. |
+| CAPY-105 | Issues | P3 | done | unblock-07-issues-web-board |  | Implemented with local web/server unit tests; browser e2e unverified. |
+| CAPY-106 | Issues | P3 | done | unblock-07-issues-web-board |  | Implemented with local web/server unit tests; browser e2e unverified. |
 | CAPY-107 | Issues | P3 | done | unblock-06-issues-web-list |  | Implemented with local web/server unit tests; browser e2e and live backend behavior unverified. |
 | CAPY-108 | Pull requests & autofix | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate with a real GitHub PAT: create a test project/thread, let it push and open a PR. |
 | CAPY-109 | Pull requests & autofix | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
@@ -504,7 +504,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-493 | Captains | P2 | done | phase2-21 |  | Captain photo upload stores bounded png/jpeg/webp bytes and org library selection is supported. |
 | CAPY-494 | Captains | P3 | blocked |  |  | captain= Linear mention parsing exists, but Linear mention ingestion/routing does not exist. |
 | CAPY-495 | Captains | P2 | done | unblock-05-web-captain-automations |  | Crew list uses a virtualized fixed-height window; 500-row mount/row-400 scroll calculations are unit-tested. |
-| CAPY-496 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
+| CAPY-496 | Issues | P3 | done | unblock-07-issues-web-board |  | Implemented with local web/server unit tests; browser e2e unverified. |
 | CAPY-497 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
 | CAPY-498 | Review | P2 | done | phase2-24 |  | Review state and finding triage are exposed through the REST API. |
 | CAPY-499 | Review | P2 | done| phase2-25 |  | Stack badge detection covers graphite, spr and manual branch chains. |
