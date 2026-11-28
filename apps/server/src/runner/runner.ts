@@ -196,7 +196,7 @@ export class ThreadRunner {
       }
       if (optionId !== 'stop') this.kick(approval.thread_id);
     }
-    if (optionId === 'raise') { if (!(await this.inbox.hasPending(approval.thread_id))) await this.inbox.add({ threadId: approval.thread_id, text: 'Continue within the raised budget.', mode: 'queue', by: null, ownerId: (await this.thread(approval.thread_id))!.owner_id as string }); this.supervise(this.startNext(approval.thread_id, 'resume')); }
+    if (approval.kind === 'budget' && optionId === 'raise') { if (!(await this.inbox.hasPending(approval.thread_id))) await this.inbox.add({ threadId: approval.thread_id, text: 'Continue within the raised budget.', mode: 'queue', by: null, ownerId: (await this.thread(approval.thread_id))!.owner_id as string }); this.supervise(this.startNext(approval.thread_id, 'resume')); }
     return approval;
   }
 
