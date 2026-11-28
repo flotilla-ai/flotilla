@@ -11,7 +11,9 @@ export function createComputeQuotaRoute(pool: Queryable | (() => Queryable) = ()
   const app = new Hono();
   app.post('/threads/:id/compute/evaluate', async (c) => {
     const b = await body(c); const threadId = c.req.param('id'); await defaultRunner().assertOwner(threadId, userId(c));
-    return c.json(await svc().evaluate({ userId: userId(c), threadId, captainId: b.captainId as string | undefined, request: (b.request ?? {}) as never }));
+    const captainId = b.captainId as string | undefined;
+    if (captainId && captainId !== threadId) await defaultRunner().assertOwner(captainId, userId(c));
+    return c.json(await svc().evaluate({ userId: userId(c), threadId, captainId, request: (b.request ?? {}) as never }));
   });
   app.post('/compute/allocations/:captainId/state', async (c) => {
     const b = await body(c); const state = String(b.state ?? '') as never;
