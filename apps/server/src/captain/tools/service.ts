@@ -2,6 +2,7 @@ import { KernelDenied } from '@flotilla/core/types';
 import { crewLimitCheck } from '@flotilla/core/kernel/crewLimits';
 import type pg from 'pg';
 import type { RunTokenService } from './tokens.js';
+import { ApiFailure, apiErrorStatus } from '../../api-platform/types.js';
 import { ApiIssuesStore } from '../../api-issues/index.js';
 import { agentToolNames, handleAgentTool, type AgentToolDeps } from '../../agent-tools/index.js';
 
@@ -32,6 +33,7 @@ export class CaptainToolService {
     try { return { status: 200, body: json(await this.dispatch(captainId, name, args)) }; }
     catch (err) {
       if (err instanceof KernelDenied) { await this.recordDenied(captainId, name, err); return { status: 403, body: { error: err.message, rule: err.rule } }; }
+      if (err instanceof ApiFailure) return { status: apiErrorStatus[err.kind], body: { error: err.message, code: `flotilla/${err.kind}` } };
       throw err;
     }
   }

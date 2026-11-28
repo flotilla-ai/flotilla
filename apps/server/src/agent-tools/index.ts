@@ -43,6 +43,8 @@ export async function handleAgentTool(self: Row, threadId: string, name: string,
     const target = (await query('SELECT s.thread_id,s.parent_id,s.started_at,t.owner_id FROM subagents s JOIN threads t ON t.id=s.thread_id WHERE s.thread_id=$1', [String(args.threadId ?? '')])).rows[0] as Row | undefined;
     const sameParent = target?.parent_id && target.parent_id === self.parent_id;
     if (!target || target.owner_id !== self.owner_id || !sameParent || !target.started_at) throw new KernelDenied('scope', 'thread is not a started sibling owned by this user');
+    const text = String(args.text ?? '').trim();
+    if (!text) throw new ApiFailure('ValidationFailed', 'text is required');
     await deps.runner.message(String(args.threadId), String(args.text ?? ''), 'queue');
     return { handled: true, result: { ok: true } };
   }
