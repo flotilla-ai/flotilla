@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {deepLinkPrompt,fold,keyAction,loadKeymap,mentionQuery,quote,saveKeymap,sections} from './thread-composer.js';
+import {deepLinkPrompt,fold,keyAction,loadKeymap,mentionQuery,quote,saveKeymap,sections,toolTree,composerCommand} from './thread-composer.js';
 const mem=()=>{const m=new Map<string,string>();return {getItem:(k:string)=>m.get(k)??null,setItem:(k:string,v:string)=>void m.set(k,v)}};
 describe('thread composer helpers',()=>{
  it('CAPY-007: send key is remappable per browser and the other Enter inserts a newline',()=>{
@@ -40,4 +40,5 @@ describe('thread composer helpers',()=>{
   expect(sections(1,'# A\n- step\n    ```sh\n    # c\n    ```\n# B\nok').map(x=>x.heading)).toEqual(['A','B']);
   expect(sections(1,'# A\r\n```sh\r\n# c\r\n```\r\n# B\r\nok').map(x=>x.heading)).toEqual(['A','B']);
  });
+ it('CAPY-465/466/476: composer command modes and nested tool tree',()=>{expect(composerCommand('/plan x')).toBe('plan');expect(composerCommand('/btw x')).toBe('btw');expect(composerCommand('x')).toBeNull();const ev=(seq:number,payload:any)=>({seq,kind:'agent.tool_call',payload});const tree=toolTree([ev(1,{id:'a'}),ev(2,{id:'b',parentId:'a'})]);expect(tree).toHaveLength(1);expect(tree[0].children[0].event.seq).toBe(2)});
 });
