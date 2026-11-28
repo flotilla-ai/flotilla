@@ -34,9 +34,21 @@ export class MemoryFetchStore {
   }
 }
 
+function stripComments(html: string): string {
+  let out = ''; let rest = html;
+  for (;;) {
+    const start = rest.indexOf('<!--');
+    if (start < 0) return out + rest;
+    out += rest.slice(0, start);
+    const end = rest.indexOf('-->', start + 4);
+    if (end < 0) return out;
+    rest = rest.slice(end + 3);
+  }
+}
+
 export function readableText(html: string): string {
   const withoutBlocks = html.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ');
-  const withoutTags = withoutBlocks.replace(/<!--[\s\S]*?-->|<(?:[^<>"']|"[^"]*"|'[^']*')*>/g, ' ');
+  const withoutTags = stripComments(withoutBlocks).replace(/<(?:[^<>"']|"[^"]*"|'[^']*')*>/g, ' ');
   return withoutTags.replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
 }
 
@@ -54,8 +66,9 @@ export function createHttpGate(resolve: (host: string) => Promise<string[]> = as
     const u = new URL(raw);
     if (!['http:', 'https:'].includes(u.protocol)) throw new Error('unsupported url scheme');
     if (u.username || u.password) throw new Error('url credentials refused');
-    if (isIP(u.hostname)) { if (privateIp(u.hostname)) throw new Error('private destination refused'); return; }
-    const ips = await resolve(u.hostname).catch(() => []);
+    const host = u.hostname.replace(/^\[|\]$/g, '');
+    if (isIP(host)) { if (privateIp(host)) throw new Error('private destination refused'); return; }
+    const ips = await resolve(host).catch(() => []);
     if (!ips.length || ips.some(privateIp)) throw new Error('private destination refused');
   } };
 }
@@ -72,7 +85,7 @@ export class ResearchService {
     const fresh = store.forUrl(url, now);
     if (fresh) return { url, finalUrl: fresh.finalUrl ?? url, etag: fresh.etag, lastModified: fresh.lastModified, text: fresh.text, hash: fresh.hash, fenced: fenceUntrusted('web.fetch', fresh.text), cache: 'hit' };
     const probe = await fetcher(url);
-    if (probe.status >= 400) throw new Error(`fetch failed: ${probe.status}`);
+    if (probe.status >= 300) throw new Error(`fetch failed: ${probe.status}`);
     const key = `${url}\n${probe.etag ?? ''}\n${probe.lastModified ?? ''}`;
     const cached = store.get(key, now);
     if (cached) return { url, finalUrl: probe.finalUrl ?? url, etag: probe.etag, lastModified: probe.lastModified, text: cached.text, hash: cached.hash, fenced: fenceUntrusted('web.fetch', cached.text), cache: 'hit' };

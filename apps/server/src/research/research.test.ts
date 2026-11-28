@@ -40,5 +40,12 @@ describe('research search/fetch', () => {
     expect(readableText('<html><script>x</script><main>Hello <b title="2 > 1">world</b>&nbsp;again</main></html>')).toBe('Hello world again');
     await expect(createHttpGate(async () => ['10.0.0.1']).assertAllowed('https://internal.test/')).rejects.toThrow('private');
     await expect(createHttpGate(async () => ['93.184.216.34']).assertAllowed('https://example.test/')).resolves.toBeUndefined();
+    await expect(createHttpGate().assertAllowed('https://[2606:4700:4700::1111]/')).resolves.toBeUndefined();
+    expect(readableText('<p>a</p><!--open<!--open<p>secret</p>')).toBe('a');
+  });
+
+  it('does not cache redirect bodies as fetched pages', async () => {
+    const svc = new ResearchService({ search: new HttpSearchProvider('fixture', `${fx.baseUrl}/search`), fetcher: async () => ({ status: 302, text: '' }) });
+    await expect(svc.webFetch('https://example.test/redirect')).rejects.toThrow('302');
   });
 });
