@@ -169,8 +169,8 @@ export class ThreadRunner {
         const project = (shared as Row).scope === 'project' ? String((shared as Row).scopeId) : null;
         const now = new Date(); const start = (shared as Row).window === 'month' ? new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)) : new Date(0);
         const spentRow = (await this.pool.query(`SELECT (SELECT COALESCE(sum((delta->>'usd')::float8),0) FROM cost_entries WHERE at >= $2 AND ($1::text IS NULL OR project_id=$1)) + (SELECT COALESCE(sum(usd),0)::float8 FROM usage_tombstones WHERE at >= $2 AND ($1::text IS NULL OR project_id=$1)) spent`, [project, start])).rows[0];
-        const target = current.max_usd === null ? null : Math.max(Number(current.max_usd), value as number);
-        if (target !== null && target <= Number(spentRow.spent)) throw new ApiFailure('Conflict', 'raise must exceed the spent shared budget');
+        const target = Math.max(Number(current.max_usd ?? 0), value as number);
+        if (target <= Number(spentRow.spent)) throw new ApiFailure('Conflict', 'raise must exceed the spent shared budget');
         await this.pool.query('UPDATE usage_budgets SET max_usd=$4 WHERE scope=$1 AND scope_id=$2 AND budget_window=$3 AND (max_usd IS NULL OR max_usd < $4)', [...key, value]);
       }
     }
