@@ -106,13 +106,13 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-098 | Captains | P2 | done | unblock-05-web-captain-automations |  | Persistent Captains-first/hybrid sidebar modes, pinned faces and waiting-question rows implemented with unit tests; browser e2e unverified. |
 | CAPY-099 | Captains | P2 | blocked | phase2-22 |  | No chat observer starts work from a passing mention. |
 | CAPY-100 | Captains | P2 | done | phase2-22 |  | Feature, Triage and Janitor captain templates are exposed by the API and web copy. |
-| CAPY-101 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
-| CAPY-102 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
-| CAPY-103 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
+| CAPY-101 | Issues | P3 | done | unblock-06-issues-web-list |  | Implemented with local web/server unit tests; browser e2e and live backend behavior unverified. |
+| CAPY-102 | Issues | P3 | done | unblock-06-issues-web-list |  | Implemented with local web/server unit tests; browser e2e and live backend behavior unverified. |
+| CAPY-103 | Issues | P3 | done | unblock-06-issues-web-list |  | Implemented with local web/server unit tests; browser e2e and live backend behavior unverified. |
 | CAPY-104 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
 | CAPY-105 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
 | CAPY-106 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
-| CAPY-107 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
+| CAPY-107 | Issues | P3 | done | unblock-06-issues-web-list |  | Implemented with local web/server unit tests; browser e2e and live backend behavior unverified. |
 | CAPY-108 | Pull requests & autofix | P1 | needs-human-login | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | validate with a real GitHub PAT: create a test project/thread, let it push and open a PR. |
 | CAPY-109 | Pull requests & autofix | P1 | done | phase1 | https://github.com/flotilla-ai/flotilla/pull/1 | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
 | CAPY-110 | Pull requests & autofix | P2 | done | phase2-23 |  | Branch prefix setting is durable and release/release/* is rejected. |
