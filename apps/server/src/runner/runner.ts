@@ -163,8 +163,9 @@ export class ThreadRunner {
         if (typeof shared !== 'object' || !['global','project'].includes(String((shared as Row).scope)) || typeof (shared as Row).scopeId !== 'string' || !['month','lifetime'].includes(String((shared as Row).window))) throw new ApiFailure('Conflict', 'legacy shared budget approvals cannot identify their cap; update it in usage settings');
         const admin = (await this.pool.query(`SELECT 1 FROM users WHERE id=$1 AND role='admin'`, [userId])).rows[0];
         if (!admin) throw new ApiFailure('Forbidden', 'only an admin can raise a shared budget');
-        const updated = await this.pool.query('UPDATE usage_budgets SET max_usd=$3 WHERE scope=$1 AND scope_id=$2 AND budget_window=$4 AND (max_usd IS NULL OR max_usd < $3)', [(shared as Row).scope, (shared as Row).scopeId, value, (shared as Row).window]);
-        if (!updated.rowCount) throw new ApiFailure('Conflict', 'shared budget value must raise the current cap');
+        const current = (await this.pool.query('SELECT max_usd FROM usage_budgets WHERE scope=$1 AND scope_id=$2 AND budget_window=$3', [(shared as Row).scope, (shared as Row).scopeId, (shared as Row).window])).rows[0];
+        if (!current) throw new ApiFailure('Conflict', 'shared budget window no longer exists; update it in usage settings');
+        if (current.max_usd === null || Number(current.max_usd) < (value as number)) await this.pool.query('UPDATE usage_budgets SET max_usd=$4 WHERE scope=$1 AND scope_id=$2 AND budget_window=$3', [(shared as Row).scope, (shared as Row).scopeId, (shared as Row).window, value]);
       }
     }
     const rows = await this.pool.query(`UPDATE approvals SET state='answered',answer=$2 WHERE id=$1 AND state='open' RETURNING *`, [approvalId, JSON.stringify({ optionId, value, by: userId, at: new Date().toISOString() })]);
