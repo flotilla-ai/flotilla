@@ -2,13 +2,13 @@ import pg from 'pg';
 import { ApiFailure } from '../api-platform/types.js';
 
 export interface PullRequestSettings { branchPrefix: string; draftDefault: boolean; openInFlotilla: boolean; personalOverride: boolean }
-export interface PullRequestView { repo: string; number: number; threadId: string; title: string; author: string; state: string; labels: string[]; draft: boolean; checksState: string; headBranch: string; owned: boolean; blockedReason: string | null; updatedAt: string }
+export interface PullRequestView { repo: string; number: number; threadId: string; title: string; author: string; state: string; labels: string[]; draft: boolean; checksState: string; headBranch: string; owned: boolean; blockedReason: string | null; updatedAt: string; contextThreadIds?: string[] }
 export interface MergeAction { action: 'merge' | 'comment' | 'update-branch' | 'auto-merge'; method?: 'squash' | 'merge' | 'rebase'; comment?: string; actor: string }
 export interface AutofixWake { threadId: string; repo: string; number: number; text: string }
 export interface PrGateway { act(input: MergeAction & { repo: string; number: number }): Promise<Record<string, unknown>>; review(input: { repo: string; number: number; verdict: string; comment: string; actor: string }): Promise<Record<string, unknown>> }
 type Row = Record<string, any>;
 const failClosedGateway: PrGateway = { act: async () => { throw new ApiFailure('Conflict', 'live GitHub gateway is not configured'); }, review: async () => { throw new ApiFailure('Conflict', 'live GitHub gateway is not configured'); } };
-const view = (r: Row): PullRequestView => ({ repo: r.repo, number: r.number, threadId: r.thread_id, title: r.title, author: r.author, state: r.state, labels: r.labels ?? [], draft: r.draft, checksState: r.checks_state, headBranch: r.head_branch, owned: r.owned, blockedReason: blocked(r), updatedAt: r.updated_at?.toISOString?.() ?? String(r.updated_at) });
+const view = (r: Row): PullRequestView => ({ repo: r.repo, number: r.number, threadId: r.thread_id, title: r.title, author: r.author, state: r.state, labels: r.labels ?? [], draft: r.draft, checksState: r.checks_state, headBranch: r.head_branch, owned: r.owned, blockedReason: blocked(r), updatedAt: r.updated_at?.toISOString?.() ?? String(r.updated_at), contextThreadIds: r.context_thread_ids ?? [] });
 function blocked(r: Row): string | null { if (r.state !== 'open') return `pull request is ${r.state}`; if (r.draft) return 'draft pull request'; if (r.checks_state === 'pending') return 'checks are pending'; if (r.checks_state === 'failed') return 'checks are failing'; return null }
 function prefix(value: unknown): string { const p = String(value ?? 'flotilla').trim().replace(/^\/+|\/+$/g, ''); if (!/^[A-Za-z0-9][A-Za-z0-9._/-]{0,80}$/.test(p)) throw new ApiFailure('ValidationFailed', 'invalid branch prefix'); if (p === 'release' || p.startsWith('release/')) throw new ApiFailure('ValidationFailed', 'release is a reserved branch prefix'); return p }
 export class PrAutofixStore {
@@ -29,7 +29,7 @@ export class PrAutofixStore {
   }
   async list(userId: string, query: Row): Promise<PullRequestView[]> {
     const installed = await this.installedRepos(userId); if (!installed.size) return [];
-    let rows = (await this.q(`SELECT p.* FROM prs p LEFT JOIN threads t ON t.id=p.thread_id WHERE (t.owner_id=$1 OR p.thread_id IS NULL) ORDER BY p.updated_at DESC`, [userId])).filter((r) => installed.has(String(r.repo).toLowerCase()));
+    let rows = (await this.q(`SELECT p.*,(SELECT json_agg(x.thread_id) FROM pr_context_threads x WHERE x.repo=p.repo AND x.number=p.number) AS context_thread_ids FROM prs p LEFT JOIN threads t ON t.id=p.thread_id WHERE (t.owner_id=$1 OR p.thread_id IS NULL) ORDER BY p.updated_at DESC`, [userId])).filter((r) => installed.has(String(r.repo).toLowerCase()));
     const qtext = String(query.q ?? ''); const terms = Object.fromEntries([...qtext.matchAll(/(author|repo|status|label|since):([^\s]+)/g)].map((m) => [m[1], m[2]]));
     const f = { author: query.author ?? terms.author, repo: query.repo ?? terms.repo, status: query.status ?? terms.status, label: query.label ?? terms.label, since: query.since ?? terms.since } as Row;
     if (query.captain) { const crew = new Set((await this.q('SELECT id FROM threads WHERE crew_of=$1', [String(query.captain)])).map((r) => String(r.id))); rows = rows.filter((r) => crew.has(String(r.thread_id))); }
