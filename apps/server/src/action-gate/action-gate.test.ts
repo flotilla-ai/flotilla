@@ -46,7 +46,7 @@ describe('ActionGateService', () => {
     const { calls, pool } = db(); const svc = new ActionGateService(pool);
     await svc.evaluate({ userId: 'u', threadId: 't', input: { tool: 'browser.click', url: 'https://example.test/pay?token=secret', text: 'Send' } });
     const audit = calls.find((c) => c.sql.includes('INSERT INTO agent_audit'));
-    expect(audit?.params[4]).toBe('https://example.test/pay');
+    expect(String(audit?.params[4])).toMatch(/^https:\/\/example\.test\/pay\?token=[0-9a-f]{12}$/);
     expect(JSON.stringify(audit?.params)).not.toContain('token=secret');
   });
   it('uses durable denial audit rows when deciding later actions', async () => {

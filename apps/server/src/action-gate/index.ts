@@ -32,6 +32,7 @@ export class ActionGateService {
        SELECT 1 FROM approvals ap
        WHERE ap.thread_id=$1 AND ap.detail->>'kind'='action' AND ap.detail->>'signature'=$2
          AND ap.state='answered' AND ap.answer->>'optionId'='deny'
+         AND (ap.answer->>'at')::timestamptz > COALESCE((SELECT max(e2.at) FROM events e2 WHERE e2.thread_id=$1 AND e2.kind='user.message' AND e2.source='user'), '-infinity'::timestamptz)
        LIMIT 1`,
       [threadId, signature]
     );
