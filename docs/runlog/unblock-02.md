@@ -13,3 +13,6 @@ Unverified:
 - CAPY-010: the server starts a new session for the new version (no adapter rewind); the UI hides older versions behind the switcher but does not hide the replies that followed them.
 - CAPY-026: no org-level default UI; the default is the server env value.
 - `e2e/drive-core.spec.ts` (CAPY-276) fails on `flotilla/p1` without this change (measured with the change stashed); not touched here.
+- CAPY-467: a reload while the file bytes are still being sent aborts the browser PUT; the message then stays `waiting for upload` until the user discards or returns it (no resumable upload).
+- A queued message edited or discarded before delivery still shows its original text in the transcript: the server appends `user.message` at enqueue time and emits no event on edit or cancel. Needs a server change (out of this unit's web scope).
+- Return to composer keeps the message's attachment ids (shown as a count, names are not known to the queue view).

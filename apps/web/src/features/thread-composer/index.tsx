@@ -58,15 +58,16 @@ function RequestCards({threadId}:{threadId:string}){
 }
 
 export function ThreadComposer({threadId,events:raw}:{threadId:string;events:Ev[]}){const events=Array.isArray(raw)?raw:[];
- const[draft,setDraft]=useState('');const[tick,setTick]=useState(0);const bump=()=>setTick(t=>t+1);const restored=useRef(false);const timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
+ const[draft,setDraft]=useState('');const[tick,setTick]=useState(0);const[returned,setReturned]=useState<string[]>([]);const bump=()=>setTick(t=>t+1);const restored=useRef(false);const timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
  const items=fold(events);const versions=versionGroups(events);const humans=events.filter(e=>e.kind==='user.message').sort((a,b)=>a.seq-b.seq);
  useEffect(()=>{if(restored.current||!events.length)return;restored.current=true;void api(`/threads/${threadId}/reading-place`).then((p:{seq:number|null;offset:number})=>{if(p.seq!==null)document.getElementById(`ev-${p.seq}`)?.scrollIntoView({block:'start'})}).catch(()=>{})},[threadId,events.length]);
  useEffect(()=>{const save=()=>{clearTimeout(timer.current);timer.current=setTimeout(()=>{const el=[...document.querySelectorAll<HTMLElement>('[data-seq]')].find(x=>x.getBoundingClientRect().bottom>0);if(el)void api(`/threads/${threadId}/reading-place`,{method:'PUT',body:JSON.stringify({seq:Number(el.dataset.seq),offset:Math.round(-el.getBoundingClientRect().top)})}).catch(()=>{})},300)};addEventListener('scroll',save,{passive:true});return()=>{removeEventListener('scroll',save);clearTimeout(timer.current)}},[threadId]);
  const reply=(s:ThreadSection)=>setDraft(d=>quote(s)+d);
- const send=async(text:string,files:Attachment[],mode:'queue'|'interrupt')=>{
+ const send=async(text:string,own:Attachment[],mode:'queue'|'interrupt')=>{
+  const files=[...returned.map(fileId=>({fileId,name:fileId})),...own];
   const fb=/^\/feedback\s+(.+)\n?([\s\S]*)$/.exec(text);
   if(fb){await api(`/threads/${threadId}/feedback`,{method:'POST',body:JSON.stringify({title:fb[1].trim(),body:fb[2].trim()||fb[1].trim()})});location.reload();return}
-  if(files.length){await api(`/threads/${threadId}/inbox`,{method:'POST',body:JSON.stringify({text,mode,attachments:files.map(f=>f.fileId)})});bump();return}
+  if(files.length){await api(`/threads/${threadId}/inbox`,{method:'POST',body:JSON.stringify({text,mode,attachments:files.map(f=>f.fileId)})});setReturned([]);bump();return}
   if(mode==='interrupt')await api(`/threads/${threadId}/interrupt`,{method:'POST'});
   await api(`/threads/${threadId}/message`,{method:'POST',body:JSON.stringify({text})});
  };
@@ -77,7 +78,8 @@ export function ThreadComposer({threadId,events:raw}:{threadId:string;events:Ev[
    :versions.hidden.has(x.event.seq)?null
    :<article key={x.event.seq} id={`ev-${x.event.seq}`} data-seq={x.event.seq}><small>{x.event.kind}</small>{versions.shown.has(x.event.seq)?<SentMessage threadId={threadId} versions={versions.shown.get(x.event.seq)!} onEdited={bump}/>:<p>{text(x.event)}</p>}</article>)}</section>
   <RequestCards threadId={threadId}/>
-  <QueuePanel threadId={threadId} tick={tick+events.length} onReturn={t=>setDraft(d=>d?`${d}\n${t}`:t)}/>
+  <QueuePanel threadId={threadId} tick={tick+events.length} onReturn={(t,a)=>{setDraft(d=>d?`${d}\n${t}`:t);setReturned(r=>[...r,...a])}}/>
+  {returned.length>0&&<small aria-label='returned files'>{returned.length} attached file{returned.length>1?'s':''} kept from the returned message <button type='button' onClick={()=>setReturned([])}>Remove</button></small>}
   <ContextMeter threadId={threadId} tick={events.filter(e=>e.kind==='run.ended').length}/>
   <Composer threadId={threadId} value={draft} setValue={setDraft} onSend={send} onUploaded={bump}/>
  </>;

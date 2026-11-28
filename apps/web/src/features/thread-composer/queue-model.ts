@@ -1,5 +1,5 @@
 import type {Ev} from './thread-composer.js';
-export type InboxItem={id:string;text:string;state:'waiting_upload'|'pending'|'delivered'|'cancelled';mode:string};
+export type InboxItem={id:string;text:string;state:'waiting_upload'|'pending'|'delivered'|'cancelled';mode:string;attachments?:string[]};
 export type InboxView={items:InboxItem[];queuedCount:number;folded:boolean};
 export type ContextMeter={usedTokens:number;compactAt:number;compactSupported:boolean};
 export type Version={seq:number;inboxId:string;version:number;text:string};

@@ -2,7 +2,7 @@ import React,{useEffect,useState} from 'react';import {api} from '../../lib/api.
 import {alreadyRead,compactBody,meterView,queueFold,stateLabel,switcherLabel,type ContextMeter as Meter,type InboxItem,type InboxView,type Version} from './queue-model.js';
 
 /** CAPY-009 / CAPY-467 / CAPY-468: queued messages above the composer. */
-export function QueuePanel({threadId,tick,onReturn}:{threadId:string;tick:number;onReturn:(text:string)=>void}){
+export function QueuePanel({threadId,tick,onReturn}:{threadId:string;tick:number;onReturn:(text:string,attachments:string[])=>void}){
  const[view,setView]=useState<InboxView>({items:[],queuedCount:0,folded:false});const[editing,setEditing]=useState<string|null>(null);const[text,setText]=useState('');const[note,setNote]=useState('');
  const load=()=>api(`/threads/${threadId}/inbox`).then((v:InboxView)=>setView({...v,items:v?.items??[]})).catch(()=>{});
  useEffect(()=>{void load()},[threadId,tick]);
@@ -14,7 +14,7 @@ export function QueuePanel({threadId,tick,onReturn}:{threadId:string;tick:number
    <button onClick={()=>{setEditing(i.id);setText(i.text)}}>Edit</button>
    <button onClick={()=>void act(()=>api(`${path(i)}/send`,{method:'POST'}))}>Send now</button>
    <button onClick={()=>void act(()=>api(path(i),{method:'DELETE'}))}>Discard</button>
-   <button onClick={()=>void act(async()=>{await api(path(i),{method:'DELETE'});onReturn(i.text)})}>Return to composer</button></>}
+   <button onClick={()=>void act(async()=>{await api(path(i),{method:'DELETE'});onReturn(i.text,i.attachments??[])})}>Return to composer</button></>}
  </article>);
  const fold=queueFold(view);
  return <section aria-label='queue'>{note&&<p role='status'>{note}</p>}{fold.folded?<details><summary>{fold.label}</summary>{rows}</details>:rows}</section>;

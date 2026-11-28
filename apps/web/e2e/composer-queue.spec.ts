@@ -16,7 +16,7 @@ async function mock(page:Page,extra:Record<string,(c:Call)=>any>){
 const sent=(calls:Call[],m:string,p:string)=>calls.filter(c=>c.method===m&&c.path===p).map(c=>c.body);
 
 test('CAPY-009 + CAPY-468: queued messages fold behind a count and can be edited, sent now, discarded or returned; a 409 removes the controls',async({page})=>{
- let items=[item('inb_a','first queued'),item('inb_b','second queued'),item('inb_c','third queued')];
+ let items:any[]=[item('inb_a','first queued'),item('inb_b','second queued'),{...item('inb_c','third queued'),attachments:['fil_9']}];
  const view=()=>({items,queuedCount:items.length,folded:items.length>=2});
  const calls=await mock(page,{'GET /threads/thr_1/inbox':view,
   'PATCH /threads/thr_1/inbox/inb_a':c=>{items=items.map(i=>i.id==='inb_a'?{...i,text:c.body.text}:i);return {item:items[0]}},
@@ -31,9 +31,10 @@ test('CAPY-009 + CAPY-468: queued messages fold behind a count and can be edited
  await row('first queued').getByRole('button',{name:'Edit'}).click();await page.getByLabel('edit queued message').fill('first edited');await queue.getByRole('button',{name:'Save'}).click();
  await expect(row('first edited')).toBeVisible();expect(sent(calls,'PATCH','/threads/thr_1/inbox/inb_a')).toEqual([{text:'first edited'}]);
  await row('second queued').getByRole('button',{name:'Discard'}).click();await expect(queue.getByText('2 queued')).toBeVisible();expect(sent(calls,'DELETE','/threads/thr_1/inbox/inb_b')).toHaveLength(1);
- await row('third queued').getByRole('button',{name:'Return to composer'}).click();await expect(page.getByLabel('message')).toHaveValue('third queued');
+ await row('third queued').getByRole('button',{name:'Return to composer'}).click();await expect(page.getByLabel('message')).toHaveValue('third queued');await expect(page.getByLabel('returned files')).toContainText('1 attached file kept');
  await expect(queue.getByText('queued',{exact:false}).first()).toBeVisible();await expect(queue.locator('summary')).toHaveCount(0);
  await row('first edited').getByRole('button',{name:'Send now'}).click();
+ await page.getByRole('button',{name:'Queue'}).click();await expect.poll(()=>sent(calls,'POST','/threads/thr_1/inbox')).toEqual([{text:'third queued',mode:'queue',attachments:['fil_9']}]);
  await expect(queue.getByRole('status')).toHaveText('The agent already read this message.');await expect(queue.getByRole('button',{name:'Edit'})).toHaveCount(0);await expect(queue.getByRole('article')).toHaveCount(0);
 });
 
