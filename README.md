@@ -44,25 +44,26 @@ It answers `201` once; after that the endpoint answers `409 setup complete`.
 In the web UI, or with the API (the session is a cookie; writes also need the CSRF token from the login response):
 
 ```sh
-curl -c /tmp/flotilla.jar -X POST localhost:8080/api/v1/auth/login \
+umask 077   # the cookie file is your session: readable by you only
+curl -c ~/.flotilla.jar -X POST localhost:8080/api/v1/auth/login \
   -H 'content-type: application/json' \
   -d '{"email":"you@example.com","password":"<password>"}'
 # {"userId":"usr_...","csrfToken":"..."}
 ```
 
-The cookie file holds your session: it is kept outside the checkout; delete it when done.
+The cookie file is kept outside the checkout; delete it when done.
 
 ### 3. Create a thread with the `fake` adapter and watch it stream
 
 The `fake` adapter is a scripted agent: no model, no account, no cost. It is the default engine.
 
 ```sh
-curl -b /tmp/flotilla.jar -X POST localhost:8080/api/v1/threads \
+curl -b ~/.flotilla.jar -X POST localhost:8080/api/v1/threads \
   -H 'content-type: application/json' -H 'x-flotilla-csrf: <csrfToken>' \
   -d '{"title":"hello","prompt":"say hello","engine":{"adapter":"fake"}}'
 # {"id":"thr_...","status":"queued",...}
 
-curl -N -b /tmp/flotilla.jar localhost:8080/api/v1/threads/<thread id>/stream
+curl -N -b ~/.flotilla.jar localhost:8080/api/v1/threads/<thread id>/stream
 # event: thread.created, user.message, run.started, machine.state, cost.entry, agent.delta, run.ended
 ```
 
