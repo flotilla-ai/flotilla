@@ -29,7 +29,7 @@ export class PrAutofixStore {
   }
   async list(userId: string, query: Row): Promise<PullRequestView[]> {
     const installed = await this.installedRepos(userId); if (!installed.size) return [];
-    let rows = (await this.q(`SELECT p.*,(SELECT json_agg(x.thread_id) FROM pr_context_threads x WHERE x.repo=p.repo AND x.number=p.number) AS context_thread_ids FROM prs p LEFT JOIN threads t ON t.id=p.thread_id WHERE (t.owner_id=$1 OR p.thread_id IS NULL) ORDER BY p.updated_at DESC`, [userId])).filter((r) => installed.has(String(r.repo).toLowerCase()));
+    let rows = (await this.q(`SELECT p.*,(SELECT json_agg(x.thread_id) FROM pr_context_threads x WHERE x.repo=p.repo AND x.number=p.number AND x.user_id=$1) AS context_thread_ids FROM prs p LEFT JOIN threads t ON t.id=p.thread_id WHERE (t.owner_id=$1 OR p.thread_id IS NULL) ORDER BY p.updated_at DESC`, [userId])).filter((r) => installed.has(String(r.repo).toLowerCase()));
     const qtext = String(query.q ?? ''); const terms = Object.fromEntries([...qtext.matchAll(/(author|repo|status|label|since):([^\s]+)/g)].map((m) => [m[1], m[2]]));
     const f = { author: query.author ?? terms.author, repo: query.repo ?? terms.repo, status: query.status ?? terms.status, label: query.label ?? terms.label, since: query.since ?? terms.since } as Row;
     if (query.captain) { const crew = new Set((await this.q('SELECT id FROM threads WHERE crew_of=$1', [String(query.captain)])).map((r) => String(r.id))); rows = rows.filter((r) => crew.has(String(r.thread_id))); }
