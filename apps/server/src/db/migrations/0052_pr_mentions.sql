@@ -1,0 +1,1 @@
+ALTER TABLE prs ADD COLUMN IF NOT EXISTS head_sha text;

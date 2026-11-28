@@ -53,7 +53,7 @@ describe('github client and autofix wake logic', () => {
     });
     await monitor.syncRepo('o/r');
     const insert = writes.find((x) => String(x[0]).includes('INSERT INTO prs'));
-    expect(insert).toBeTruthy(); expect(insert?.slice(1)).toEqual(['o/r', 9, 'external/branch', 'External', 'alice', 'open', '["bug"]', false, 'green', '2026-01-02T03:04:05Z']);
+    expect(insert).toBeTruthy(); expect(insert?.slice(1)).toEqual(['o/r', 9, 'external/branch', 'External', 'alice', 'open', '["bug"]', false, 'green', '2026-01-02T03:04:05Z', 'abc']);
     expect(insert?.[0]).toContain('thread_id,head_branch');
     expect(insert?.[0]).toContain('VALUES ($1,$2,NULL');
   });

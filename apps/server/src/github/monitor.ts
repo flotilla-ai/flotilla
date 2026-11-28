@@ -34,7 +34,7 @@ export class CheckMonitor {
       let checks: string | null = null;
       try { checks = checksState(await client.checkRuns(repo, pr.head.sha)); } catch { checks = null; }
       const state = pr.merged_at ? 'merged' : pr.state ?? 'open';
-      await this.deps.pool.query(`INSERT INTO prs (repo,number,thread_id,head_branch,owned,title,author,state,labels,draft,checks_state,updated_at) VALUES ($1,$2,NULL,$3,false,$4,$5,$6,$7,$8,COALESCE($9,'unknown'),COALESCE($10::timestamptz,now())) ON CONFLICT (repo,number) DO UPDATE SET head_branch=$3,title=$4,author=$5,state=$6,labels=$7,draft=$8,checks_state=COALESCE($9,prs.checks_state),updated_at=COALESCE($10::timestamptz,prs.updated_at)`, [repo, pr.number, pr.head.ref, pr.title ?? '', pr.user?.login?.toLowerCase() ?? '', state, JSON.stringify((pr.labels ?? []).map((x) => x.name).filter(Boolean)), pr.draft === true, checks, pr.updated_at ?? null]);
+      await this.deps.pool.query(`INSERT INTO prs (repo,number,thread_id,head_branch,owned,title,author,state,labels,draft,checks_state,updated_at,head_sha) VALUES ($1,$2,NULL,$3,false,$4,$5,$6,$7,$8,COALESCE($9,'unknown'),COALESCE($10::timestamptz,now()),$11) ON CONFLICT (repo,number) DO UPDATE SET head_branch=$3,title=$4,author=$5,state=$6,labels=$7,draft=$8,checks_state=COALESCE($9,prs.checks_state),updated_at=COALESCE($10::timestamptz,prs.updated_at),head_sha=COALESCE($11,prs.head_sha)`, [repo, pr.number, pr.head.ref, pr.title ?? '', pr.user?.login?.toLowerCase() ?? '', state, JSON.stringify((pr.labels ?? []).map((x) => x.name).filter(Boolean)), pr.draft === true, checks, pr.updated_at ?? null, pr.head.sha ?? null]);
     }
   }
   async process(repo: string, number: number, threadId: string, sha: string): Promise<'pending' | 'green' | 'failed'> {
