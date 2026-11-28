@@ -17,10 +17,13 @@ describe('actionGate kernel', () => {
     expect(decideAction(buy, classifyAction(buy), { allow: ['buy'] }).reason).toBe('always-ask');
     const send = { tool: 'mail.send', text: 'Send hello' };
     expect(decideAction(send, classifyAction(send), { allow: ['hello'] }).decision).toBe('allow');
+    const queryAction = { tool: 'browser.click', text: 'Send', url: 'https://example.test/?next=launch-missiles' };
+    expect(decideAction(queryAction, classifyAction(queryAction), { askFirst: ['launch-missiles'], allow: ['example'] }).reason).toBe('ask-first-rule');
   });
   it('removes URL credentials queries and fragments from stored signatures', () => {
-    expect(safeActionTarget('https://user:pw@example.test/path?token=secret#frag')).toBe('https://example.test/path');
+    expect(safeActionTarget('https://user:pw@example.test/path?token=secret#frag')).toMatch(/^https:\/\/example\.test\/path\?token=[0-9a-f]{12}$/);
     expect(actionSignature({ tool: 'web.fetch', url: 'https://example.test/path?token=secret' })).not.toContain('secret');
+    expect(actionSignature({ tool: 'web.fetch', url: 'https://example.test/p?id=1' })).not.toBe(actionSignature({ tool: 'web.fetch', url: 'https://example.test/p?id=2' }));
   });
   it('limits rules and denies repeated signatures until cleared by caller', () => {
     const input = { tool: 'browser.click', text: 'Publish post' };

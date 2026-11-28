@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 export type ConsequentialKind = 'send' | 'publish' | 'purchase' | 'delete' | 'permission' | 'credential-entry' | 'legal-accept';
 export type ActionClass = { class: 'read' } | { class: 'write-local' } | { class: 'consequential'; kind: ConsequentialKind };
 export type ActionInput = { tool: string; url?: string; text?: string; fieldTypes?: string[]; method?: string };
@@ -19,7 +20,10 @@ export function safeActionTarget(url: string | undefined): string {
   if (!url) return '';
   try {
     const u = new URL(url);
-    u.username = ''; u.password = ''; u.search = ''; u.hash = '';
+    u.username = ''; u.password = ''; u.hash = '';
+    const params = new URLSearchParams();
+    for (const [key, value] of u.searchParams) params.append(key, createHash('sha256').update(value).digest('hex').slice(0, 12));
+    u.search = params.toString();
     return u.toString();
   } catch { return url.split(/[?#]/, 1)[0]; }
 }
@@ -38,7 +42,7 @@ export function classifyAction(input: ActionInput): ActionClass {
 
 function limited(patterns: string[] | undefined): string[] { return (patterns ?? []).filter(Boolean).slice(0, 20).map((p) => p.toLowerCase()); }
 function matches(pattern: string, input: ActionInput): boolean {
-  const haystack = actionSignature(input);
+  const haystack = [input.tool.toLowerCase(), input.url ?? '', input.text ?? '', ...(input.fieldTypes ?? [])].join('\n').toLowerCase();
   return pattern.split(/\s+/).filter((w) => w.length > 2).some((word) => haystack.includes(word));
 }
 
