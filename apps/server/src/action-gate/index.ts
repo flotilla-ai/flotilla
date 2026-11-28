@@ -1,4 +1,4 @@
-import { canOfferAlwaysAllow, classifyAction, decideAction, type ActionInput, type ActionRules, type GateDecision } from '@flotilla/core/kernel/actionGate';
+import { canOfferAlwaysAllow, classifyAction, decideAction, safeActionTarget, type ActionInput, type ActionRules, type GateDecision } from '@flotilla/core/kernel/actionGate';
 
 export type Queryable = { query(sql: string, params?: unknown[]): Promise<{ rows: Record<string, unknown>[]; rowCount?: number | null }> };
 export type ActionEvaluation = {
@@ -28,6 +28,10 @@ export class ActionGateService {
       `SELECT 1 FROM agent_audit a
        WHERE a.thread_id=$1 AND a.decision='deny' AND a.detail->>'signature'=$2
          AND a.at > COALESCE((SELECT max(e.at) FROM events e WHERE e.thread_id=$1 AND e.kind='user.message' AND e.source='user'), '-infinity'::timestamptz)
+       UNION ALL
+       SELECT 1 FROM approvals ap
+       WHERE ap.thread_id=$1 AND ap.detail->>'kind'='action' AND ap.detail->>'signature'=$2
+         AND ap.state='answered' AND ap.answer->>'optionId'='deny'
        LIMIT 1`,
       [threadId, signature]
     );
@@ -38,11 +42,15 @@ export class ActionGateService {
     await this.pool.query(
       `INSERT INTO agent_audit (user_id,thread_id,run_id,tool,target,classification,decision,approval_id,detail)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-      [opts.userId, opts.threadId, opts.runId ?? null, opts.input.tool, opts.input.url ?? opts.input.text ?? null, classification.class === 'consequential' ? classification.kind : classification.class, decision.decision, approvalId ?? null, JSON.stringify({ signature: decision.signature, reason: decision.reason })]
+      [opts.userId, opts.threadId, opts.runId ?? null, opts.input.tool, safeActionTarget(opts.input.url) || opts.input.text?.split(/[?#]/, 1)[0] || null, classification.class === 'consequential' ? classification.kind : classification.class, decision.decision, approvalId ?? null, JSON.stringify({ signature: decision.signature, reason: decision.reason })]
     );
   }
 
   async evaluate(opts: EvaluateOptions): Promise<ActionEvaluation> {
+    if (opts.runId) {
+      const run = await this.pool.query('SELECT 1 FROM runs WHERE id=$1 AND thread_id=$2', [opts.runId, opts.threadId]);
+      if (!run.rows.length) throw new Error('run does not belong to thread');
+    }
     const classification = classifyAction(opts.input);
     const first = decideAction(opts.input, classification, opts.rules ?? {});
     const denied = new Set(await this.isDenied(opts.threadId, first.signature) ? [first.signature] : []);
@@ -73,12 +81,13 @@ export class ActionGateService {
     await this.audit(opts, classification, { decision: 'deny', reason: 'user-denied', signature });
   }
 
-  async expireBackground(now = new Date()): Promise<number> {
+  async expireBackground(now = new Date(), userId?: string): Promise<number> {
     const rows = await this.pool.query(
-      `UPDATE approvals SET state='expired'
-       WHERE state='open' AND kind='decision' AND detail->>'kind'='action'
-         AND detail->>'expiresAt' IS NOT NULL AND (detail->>'expiresAt')::timestamptz < $1`,
-      [now.toISOString()]
+      `UPDATE approvals a SET state='expired' FROM threads t
+       WHERE t.id=a.thread_id AND ($2::text IS NULL OR t.owner_id=$2)
+         AND a.state='open' AND a.kind='decision' AND a.detail->>'kind'='action'
+         AND a.detail->>'expiresAt' IS NOT NULL AND (a.detail->>'expiresAt')::timestamptz < $1`,
+      [now.toISOString(), userId ?? null]
     );
     return rows.rowCount ?? 0;
   }

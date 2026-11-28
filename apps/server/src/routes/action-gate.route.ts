@@ -17,7 +17,7 @@ export function createActionGateRoute(pool: Queryable | (() => Queryable) = () =
       input: (b.input ?? {}) as never, rules: (b.rules ?? {}) as never, background: b.background === true
     }));
   });
-  app.post('/action-gate/expire-background', async (c) => c.json({ expired: await svc().expireBackground() }));
+  app.post('/action-gate/expire-background', async (c) => c.json({ expired: await svc().expireBackground(new Date(), userId(c)) }));
   return { basePath: '/api/v1', app, public: false };
 }
 export default createActionGateRoute();

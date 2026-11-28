@@ -6,6 +6,7 @@ function db() {
   const pool: Queryable = { async query(sql: string, params: unknown[] = []) {
     calls.push({ sql, params });
     if (sql.includes('SELECT 1 FROM agent_audit')) return { rows: [] };
+    if (sql.includes('SELECT 1 FROM runs')) return { rows: [{ '?column?': 1 }] };
     if (sql.includes('UPDATE approvals')) return { rows: [], rowCount: 2 };
     return { rows: [] };
   } };
@@ -39,7 +40,14 @@ describe('ActionGateService', () => {
     expect(audit?.params.slice(0, 7)).toEqual(['u', 't', 'r', 'browser.click', 'Send reply', 'send', 'ask']);
     expect(await svc.expireBackground()).toBe(2);
     const expire = calls.find((c) => c.sql.includes('UPDATE approvals'));
-    expect(expire?.sql).toContain("detail->>'kind'='action'"); expect(expire?.sql).toContain("state='expired'");
+    expect(expire?.sql).toContain("detail->>'kind'='action'"); expect(expire?.sql).toContain("state='expired'"); expect(expire?.sql).toContain('t.owner_id=$2');
+  });
+  it('does not store URL query secrets in audit targets or signatures', async () => {
+    const { calls, pool } = db(); const svc = new ActionGateService(pool);
+    await svc.evaluate({ userId: 'u', threadId: 't', input: { tool: 'browser.click', url: 'https://example.test/pay?token=secret', text: 'Send' } });
+    const audit = calls.find((c) => c.sql.includes('INSERT INTO agent_audit'));
+    expect(audit?.params[4]).toBe('https://example.test/pay');
+    expect(JSON.stringify(audit?.params)).not.toContain('token=secret');
   });
   it('uses durable denial audit rows when deciding later actions', async () => {
     const calls: string[] = []; const pool: Queryable = { async query(sql: string) { calls.push(sql); if (sql.includes('SELECT 1 FROM agent_audit')) return { rows: [{ '?column?': 1 }] }; return { rows: [] }; } };
