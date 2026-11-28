@@ -14,6 +14,16 @@ services:
     image: flotilla-thread:p1-fix02
     build: { context: ., dockerfile: deploy/thread.Dockerfile }
     command: ["true"]
+  computer-image:
+    image: flotilla-computer:dev
+    build: { context: ., dockerfile: deploy/computer.Dockerfile }
+    command: ["true"]
+    profiles: ["computer"]
+  computer-isolated-image:
+    image: flotilla-computer-isolated:dev
+    build: { context: ., dockerfile: deploy/computer-isolated.Dockerfile }
+    command: ["true"]
+    profiles: ["computer"]
   server:
     build: { context: ., dockerfile: deploy/server.Dockerfile }
     ports: ["8080:8080", "8081:8081"]

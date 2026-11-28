@@ -10,7 +10,17 @@ export function tarFile(name: string, content: string | Buffer, mode = '0000644'
   const body = Buffer.from(content); const pad = Buffer.alloc((512 - body.length % 512) % 512);
   return Buffer.concat([header(name, body.length, mode), body, pad, Buffer.alloc(1024)]);
 }
+export function captainMcpServers(token: string | null, extraServers: Record<string, unknown> = {}): Record<string, unknown> {
+  if (!token) return { ...extraServers };
+  const headers = { Authorization: `Bearer ${token}` };
+  const builtin = {
+    flotilla: { type: 'http', url: 'http://flotilla-tools/mcp/captain', headers },
+    'flotilla-computer': { type: 'http', url: 'http://flotilla-tools/mcp/computer', headers },
+    'flotilla-research': { type: 'http', url: 'http://flotilla-tools/mcp/research', headers },
+    'flotilla-memory': { type: 'http', url: 'http://flotilla-tools/mcp/memory', headers }
+  };
+  return { ...extraServers, ...builtin };
+}
 export function captainMcpTar(token: string | null, extraServers: Record<string, unknown> = {}): Buffer {
-  const builtin = token ? { flotilla: { type: 'http', url: 'http://flotilla-tools/mcp/captain', headers: { Authorization: `Bearer ${token}` } } } : {};
-  return tarFile('flotilla/mcp.json', JSON.stringify({ mcpServers: { ...extraServers, ...builtin } }), '0000600');
+  return tarFile('flotilla/mcp.json', JSON.stringify({ mcpServers: captainMcpServers(token, extraServers) }), '0000600');
 }
