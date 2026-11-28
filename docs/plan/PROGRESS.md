@@ -82,7 +82,7 @@ Counted in `docs/plan/PARITY.md`: done 421, blocked 172, needs-human-login 24, n
 | unblock-04-web-settings-models | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/99 | wake settings, BYOM hold UI, model picker, connection editor; see `docs/runlog/unblock-04.md` |
 | unblock-05-web-captain-automations | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/100 | New Captain dialog, Captain PR filter, sidebar modes, automations page, virtualized crew list; see `docs/runlog/unblock-05.md` |
 | unblock-06-issues-web-list | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/101 | issues views/filters/detail/thread tools/comments/files; see `docs/runlog/unblock-06.md` |
-| unblock-07-issues-web-board | in progress | 1 |  | board move/undo/views/settings/display/comment tags; see `docs/runlog/unblock-07.md` |
+| unblock-07-issues-web-board | in progress | 1 | https://github.com/flotilla-ai/flotilla/pull/102 | board move/undo/views/settings/display/comment tags; see `docs/runlog/unblock-07.md` |
 
 ## Next action
 
