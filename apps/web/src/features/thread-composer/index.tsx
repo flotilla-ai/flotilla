@@ -3,7 +3,7 @@ import {deepLinkPrompt,fold,keyAction,loadKeymap,mentionQuery,quote,saveKeymap,s
 import {keyEventAction,loadShortcuts} from '../keyboard-shortcuts/model.js';
 import './thread-composer.css';
 import {InlineVisuals} from '../thread-media/index.js';
-import {ContextMeter,QueuePanel,SentMessage} from './queue.js';import {versionGroups} from './queue-model.js';
+import {ContextMeter,QueuePanel,SentMessage} from './queue.js';import {versionGroups} from './queue-model.js';import {resolvePullQuery,type Pull} from '../pr-page/index.js';
 type Ref={id:string;code:string;title:string};type Attachment={fileId:string;name:string};
 type Card={id:string;title:string;kind?:string;options?:{id:string;label:string}[];inline:null|{kind:'env';name:string}|{kind:'desktop';url:string}|{kind:'feedback';title:string;body:string}};
 const text=(e:Ev)=>typeof e.payload==='string'?e.payload:e.payload?.text??e.payload?.delta??JSON.stringify(e.payload);
@@ -17,12 +17,12 @@ async function upload(f:File):Promise<Attachment&{done:Promise<void>}>{
 }
 
 export function CommandPalette(){
- const[open,setOpen]=useState(false);const[q,setQ]=useState('');const[hits,setHits]=useState<Ref[]>([]);
+ const[open,setOpen]=useState(false);const[q,setQ]=useState('');const[hits,setHits]=useState<Ref[]>([]);const[prHit,setPrHit]=useState<string|null>(null);
  useEffect(()=>{const k=(e:KeyboardEvent)=>{if(e.isComposing||e.keyCode===229)return;if(e.key==='Escape'){setOpen(false);return}const target=e.target as HTMLElement|null;if(target?.closest('input,textarea,select,[contenteditable=true]'))return;const mac=navigator.platform.toLowerCase().includes('mac');if(keyEventAction(loadShortcuts(localStorage),e.key,{ctrl:e.ctrlKey,alt:e.altKey,shift:e.shiftKey,meta:e.metaKey},mac)==='commandMenu'){e.preventDefault();setOpen(o=>!o)}};addEventListener('keydown',k);return()=>removeEventListener('keydown',k)},[]);
- useEffect(()=>{if(open&&q)void lookup(q).then(setHits);else setHits([])},[open,q]);
+ useEffect(()=>{if(open&&q){void lookup(q).then(setHits);void api('/pulls').then((x:{items:Pull[]})=>setPrHit(resolvePullQuery(q,x.items))).catch(()=>setPrHit(null))}else{setHits([]);setPrHit(null)}},[open,q]);
  if(!open)return null;
  const go=(t:Ref)=>{location.hash=`#/threads/${t.id}`;setOpen(false);setQ('')};
- return <dialog open className='card palette' aria-label='command palette'><input autoFocus aria-label='go to thread' value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&hits[0])go(hits[0])}}/>{hits.map(t=><button key={t.id} onClick={()=>go(t)}>{t.code} {t.title}</button>)}</dialog>;
+ return <dialog open className='card palette' aria-label='command palette'><input autoFocus aria-label='go to thread' value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&prHit){location.hash=`#${prHit}`;setOpen(false);setQ('')}else if(e.key==='Enter'&&hits[0])go(hits[0])}}/>{prHit&&<button onClick={()=>{location.hash=`#${prHit}`;setOpen(false);setQ('')}}>{prHit}</button>}{hits.map(t=><button key={t.id} onClick={()=>go(t)}>{t.code} {t.title}</button>)}</dialog>;
 }
 
 function Composer({value,setValue,onSend,threadId,attach=true,onUploaded}:{value:string;setValue:(v:string)=>void;onSend:(text:string,files:Attachment[],mode:'queue'|'interrupt')=>Promise<void>;threadId?:string;attach?:boolean;onUploaded?:()=>void}){
