@@ -2,11 +2,11 @@
 
 ## Next 3 actions
 
-1. Run serialized `parallel-01-seams`; active unblock PR #106 does not touch its shared files at the last check.
-2. Start wave A units whose dependencies are merged after `parallel-01-seams`.
+1. Merge wave A units whose dependency `parallel-01-seams` is now merged.
+2. Implement Captain fixtures/computer/action-gate and VM quota/hostd seams in dependency order.
 3. Keep T3 gated until no active unblock work touches `threads.route.ts` or `models-catalog/store.ts`.
 
-Head SHA at orientation: `61c7aaa` (`unblock-07: issues web board (#102)`). Current head after plan merge batch: `1dacbd5`.
+Head SHA at orientation: `61c7aaa` (`unblock-07: issues web board (#102)`). Current head after seam merge batch: `65eb5ca`.
 
 ## T2 Captain quality
 
@@ -27,7 +27,7 @@ Status: planned; handoffs merged in PR #107. Rows VM-001..011 are `pending` in `
 | parallel-00-plan | setup | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/104 | sources, state note, extension ledger, coverage script |
 | planC | setup | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/105 | Captain handoffs; BEYOND rows covered once |
 | planV | setup | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/107 | VM handoffs; VM rows covered once |
-| parallel-01-seams | setup | pending | 0 |  | serialized shared seams |
+| parallel-01-seams | setup | merged | 1 | https://github.com/flotilla-ai/flotilla/pull/109 | migrations, MCP names, fence helper, image/eval seams |
 
 ## Notes and surprises
 
