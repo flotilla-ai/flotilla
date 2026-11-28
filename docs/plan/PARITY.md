@@ -72,7 +72,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-064 | Subagents & forks | P2 | blocked | phase2-19 |  | Fork/summary-fork requires adapter session copy for full forks plus fresh-machine workspace copy; summary-fork can use any adapter but still needs the fork lifecycle. Blocked: no fork API/workspace clone primitive yet. |
 | CAPY-065 | Subagents & forks | P2 | blocked | phase2-19 |  | Passage fork/side-chat depends on the blocked fork/side-chat primitives plus composer passage selection UI; no such selection/fork workflow exists yet. |
 | CAPY-066 | Captains | P1 | done | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-067 | Captains | P2 | blocked | phase2-20 |  | New-Captain backend exists, but the required dialog with name/face/project/machine/model/access is not implemented in the web UI; blocked on that UI slice. |
+| CAPY-067 | Captains | P2 | done | unblock-05-web-captain-automations |  | New Captain dialog collects name/face/project/machine/model/access, blocks missing names, and its create flow is unit-tested against the Captain API; browser e2e unverified. |
 | CAPY-068 | Captains | P2 | done | phase2-20 |  | `POST /captains/promote` promotes the same thread row to Captain, preserving history, PRs, machine id, engine/model and member references by identity; regression in `create-crew.test.ts`. |
 | CAPY-069 | Captains | P2 | blocked | phase2-20 |  | Flotilla has no folder entity/folder removal workflow, so folder promotion cannot currently move folder threads into a crew. |
 | CAPY-070 | Captains | P2 | blocked | phase2-20 |  | Natural-language “Make a Captain…” creation through an existing thread is not implemented; only direct Captain create/promote APIs exist. |
@@ -83,7 +83,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-075 | Captains | P2 | done | phase2-20 |  | Finished crew threads can be archived by their Captain and any crew thread can be released with the existing delete action; regression in `create-crew.test.ts`. |
 | CAPY-076 | Captains | P2 | blocked | phase2-22 |  | Crew lifecycle events exist in the scheduler, but turn-end/need wiring into this operations surface and beside-chat UI is not connected. |
 | CAPY-077 | Captains | P2 | blocked | phase2-22 |  | No runner/crew event currently reports that a crew thread answered the user directly. |
-| CAPY-078 | Captains | P2 | blocked | phase2-22 |  | Pull-requests page has no Captain filter control; no UI integration is implemented. |
+| CAPY-078 | Captains | P2 | done | unblock-05-web-captain-automations |  | Pull requests page has a Captain filter backed by server-side crew-thread filtering and fixture tests. |
 | CAPY-079 | Captains | P1 | done | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Restart-safe wake persistence/coalescing proved by real Postgres fake-clock test. |
 | CAPY-080 | Captains | P2 | done | phase2-22 |  | Digest API and /captain-ops digest tab expose the digest file and top five Needs-you entries. |
 | CAPY-081 | Captains | P2 | done | phase2-22 |  | One-line digest commands such as merge repo#123 are parsed, dispatched to the action handler, and the item is dropped. |
@@ -103,7 +103,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-095 | Captains | P2 | blocked | phase2-22 |  | Automations still create ordinary threads and cannot yet hand work to or start Captain threads. |
 | CAPY-096 | Captains | P2 | done | phase2-22 |  | Captain-to-captain messages are durable and suppressed when an active suppress-chatter rule matches. |
 | CAPY-097 | Captains | P1 | done | phase1fix-02 | https://github.com/flotilla-ai/flotilla/pull/21 | Compose fake-agent relay proves five crew, kernel sixth-crew denial, one coalesced wake, digest and Needs-you propagation. | Covered by merged phase 1 scope; row-specific proof is in the linked phase-1 runlog where available. |
-| CAPY-098 | Captains | P2 | blocked | phase2-22 |  | Captains-first/hybrid sidebar with pinned faces and waiting questions is not implemented. |
+| CAPY-098 | Captains | P2 | done | unblock-05-web-captain-automations |  | Persistent Captains-first/hybrid sidebar modes, pinned faces and waiting-question rows implemented with unit tests; browser e2e unverified. |
 | CAPY-099 | Captains | P2 | blocked | phase2-22 |  | No chat observer starts work from a passing mention. |
 | CAPY-100 | Captains | P2 | done | phase2-22 |  | Feature, Triage and Janitor captain templates are exposed by the API and web copy. |
 | CAPY-101 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
@@ -158,7 +158,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-150 | Review | P2 | done| phase2-25 |  | Finding evidence stores and returns rules, memory and production telemetry lists. |
 | CAPY-151 | Review | P2 | blocked| phase2-25 |  | Review machine read-only enforcement and the 4 GB default are not wired to machine provisioning. |
 | CAPY-152 | Automations | P2 | done | phase2-26 |  | Stored prompt/project automation with 1-20 OR triggers; runs create normal threads through the runner. |
-| CAPY-153 | Automations | P2 | blocked | phase2-26 |  | Automation API exists, but neither an Automations page nor agent-accessible full management tools are implemented. |
+| CAPY-153 | Automations | P2 | done | unblock-05-web-captain-automations |  | Automations page lists, creates, edits, pauses, resumes and deletes through the REST API; agent-accessible tools remain covered by existing automation API, browser e2e unverified. |
 | CAPY-154 | Automations | P2 | done | phase2-26 |  | 5-field cron + IANA timezone validation, 5-minute floor, timezone-correct matching and coalesced catch-up scans. |
 | CAPY-155 | Automations | P2 | done | phase2-26 |  | Signed GitHub webhook events map PR/comment/review/label/check/push/workflow_run fixtures into automation runs. |
 | CAPY-156 | Automations | P3 | blocked | phase3-05-automations-external |  | Blocked: durable automations exist, but vendor inbound triggers, Slack posting behavior, and run-as-principal enforcement connectors are not implemented. |
@@ -503,7 +503,7 @@ Status values: `done`, `blocked`, `needs-human-login`, `n-a`, `pending`. Initial
 | CAPY-492 | Captains | P2 | done | phase2-21 |  | API creates a crew thread in the Captain project and adds/removes crew membership. |
 | CAPY-493 | Captains | P2 | done | phase2-21 |  | Captain photo upload stores bounded png/jpeg/webp bytes and org library selection is supported. |
 | CAPY-494 | Captains | P3 | blocked |  |  | captain= Linear mention parsing exists, but Linear mention ingestion/routing does not exist. |
-| CAPY-495 | Captains | P2 | blocked | phase2-22 |  | Large crew/subagent lists are not virtualized. |
+| CAPY-495 | Captains | P2 | done | unblock-05-web-captain-automations |  | Crew list uses a virtualized fixed-height window; 500-row mount/row-400 scroll calculations are unit-tested. |
 | CAPY-496 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
 | CAPY-497 | Issues | P3 | blocked | phase3-03-issues-core |  | Blocked: the public issues API exists, but the full issue web application (board, saved views, relations UX, inline comments, Slack unfurl) is not implemented. |
 | CAPY-498 | Review | P2 | done | phase2-24 |  | Review state and finding triage are exposed through the REST API. |
